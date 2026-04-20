@@ -478,7 +478,12 @@ export class LawnMowerCard extends LitElement {
     }
 
     if (this._config.progress_entity) {
-      tiles.push(this._tileFromEntity(this._config.progress_entity, "Status"));
+      tiles.push(
+        this._tileFromEntity(
+          this._config.progress_entity,
+          this._preferredEntityLabel(this._config.progress_entity, "Status"),
+        ),
+      );
     } else {
       const fallbackTask =
         this._tileFromMowerAttribute("task_status_name", "Task") ||
@@ -550,7 +555,7 @@ export class LawnMowerCard extends LitElement {
     const weatherStatus = this._companionSummaryFromEntity(
       "sensor",
       "weather_protection_status",
-      "Weather",
+      "Rain protection",
     );
     if (weatherStatus) {
       summary.push(weatherStatus);
@@ -820,12 +825,15 @@ export class LawnMowerCard extends LitElement {
     const entity = this.hass.states[entityId];
     if (!entity) {
       return {
-        label: fallbackLabel || this._entityName(entityId),
+        label: fallbackLabel || this._preferredEntityLabel(entityId),
         value: "Unavailable",
       };
     }
 
-    const label = fallbackLabel || this._friendlyName(entity) || this._entityName(entityId);
+    const label =
+      fallbackLabel ||
+      this._friendlyName(entity) ||
+      this._preferredEntityLabel(entityId);
     const value = this._friendlyState(entity);
     return {
       label: icon ? `${icon} ${label}` : label,
@@ -838,7 +846,7 @@ export class LawnMowerCard extends LitElement {
     if (typeof unit === "string" && unit) {
       return `${entity.state} ${unit}`;
     }
-    return this._humanizeValue(String(entity.state));
+    return this._humanizeEntityState(entity.entity_id, String(entity.state));
   }
 
   private _entityState(entityId?: string): string | undefined {
@@ -882,8 +890,49 @@ export class LawnMowerCard extends LitElement {
     return mapped.charAt(0).toUpperCase() + mapped.slice(1);
   }
 
+  private _humanizeEntityState(entityId: string, value: string): string {
+    const normalized = value.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+
+    if (entityId.endsWith("_weather_protection_status")) {
+      if (normalized === "rain protection enabled" || normalized === "enabled") {
+        return "Enabled";
+      }
+      if (normalized === "rain protection disabled" || normalized === "disabled") {
+        return "Disabled";
+      }
+    }
+
+    if (entityId.endsWith("_task_status") || entityId.endsWith("_task_status_name")) {
+      if (this._isUnknownLike(value)) {
+        return "Unknown";
+      }
+    }
+
+    return this._humanizeValue(value);
+  }
+
   private _isUnknownLike(value: string): boolean {
-    return ["unknown", "unavailable", "none"].includes(value.trim().toLowerCase());
+    const normalized = value.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    return ["unknown", "unavailable", "none", "task unknown"].includes(normalized);
+  }
+
+  private _preferredEntityLabel(entityId: string, fallback?: string): string {
+    if (entityId.endsWith("_weather_protection_status")) {
+      return "Rain protection";
+    }
+    if (entityId.endsWith("_state_name")) {
+      return "State";
+    }
+    if (entityId.endsWith("_task_status") || entityId.endsWith("_task_status_name")) {
+      return "Task";
+    }
+    if (entityId.endsWith("_battery")) {
+      return "Battery";
+    }
+    if (entityId.endsWith("_error")) {
+      return "Error";
+    }
+    return fallback || this._entityName(entityId);
   }
 
   private _friendlyName(entity: HassEntity): string | undefined {
@@ -896,7 +945,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _friendlyMowerState(state: string): string {
-    return FRIENDLY_STATE[state] || state.replace(/_/g, " ");
+    return this._humanizeValue(state);
   }
 
   private _cameraUrl(entity: HassEntity): string {
