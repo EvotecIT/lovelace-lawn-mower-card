@@ -113,6 +113,9 @@ The built-in visual editor now covers the main card fields, explicit
 `summary_entities`, extra `tiles`, and custom `actions`. `service_data` for
 service actions is edited as JSON in the editor, and entity fields offer
 browser suggestions from the entities Home Assistant already knows about.
+When you select a mower entity, the editor also tries to prefill common
+companion entities such as map, state, battery, and status tiles without
+overwriting deliberate custom choices.
 
 ## Layout Modes
 

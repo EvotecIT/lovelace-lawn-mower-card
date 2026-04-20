@@ -1152,6 +1152,10 @@ export class LawnMowerCardEditor extends LitElement {
 
     return html`
       <div class="editor">
+        <div class="hint">
+          Select a mower first. The editor will prefill common companion entities such as map, state,
+          battery, and status tiles when they can be derived safely.
+        </div>
         ${this._field(
           "Mower entity",
           config.entity,
@@ -1573,8 +1577,9 @@ export class LawnMowerCardEditor extends LitElement {
       return;
     }
 
+    const previous = this._config || LawnMowerCard.getStubConfig();
     const next: LawnMowerCardConfig = {
-      ...(this._config || LawnMowerCard.getStubConfig()),
+      ...previous,
     };
 
     const value = target.value.trim();
@@ -1588,7 +1593,93 @@ export class LawnMowerCardEditor extends LitElement {
       next.entity = LawnMowerCard.getStubConfig().entity;
     }
 
+    if (key === "entity" && value && value !== previous.entity) {
+      this._applyEntityAutofill(next, previous);
+    }
+
     this._emitConfigChanged(next);
+  }
+
+  private _applyEntityAutofill(
+    next: LawnMowerCardConfig,
+    previous: LawnMowerCardConfig,
+  ) {
+    const previousDetected = this._autoDetectedCompanions(previous.entity);
+    const nextDetected = this._autoDetectedCompanions(next.entity);
+
+    this._replaceAutoEntityField("map_entity", next, previousDetected, nextDetected);
+    this._replaceAutoEntityField("status_entity", next, previousDetected, nextDetected);
+    this._replaceAutoEntityField("battery_entity", next, previousDetected, nextDetected);
+    this._replaceAutoEntityField("progress_entity", next, previousDetected, nextDetected);
+
+    const previousAutoShowMap = Boolean(previousDetected.map_entity);
+    if (next.show_map === undefined || next.show_map === previousAutoShowMap) {
+      if (nextDetected.map_entity) {
+        next.show_map = true;
+      } else {
+        delete next.show_map;
+      }
+    }
+  }
+
+  private _replaceAutoEntityField(
+    key: "map_entity" | "status_entity" | "battery_entity" | "progress_entity",
+    next: LawnMowerCardConfig,
+    previousDetected: Partial<LawnMowerCardConfig>,
+    nextDetected: Partial<LawnMowerCardConfig>,
+  ) {
+    const current = next[key];
+    const previousValue = previousDetected[key] as string | undefined;
+    const nextValue = nextDetected[key] as string | undefined;
+
+    if (!current || (previousValue !== undefined && current === previousValue)) {
+      if (nextValue) {
+        next[key] = nextValue as never;
+      } else {
+        delete next[key];
+      }
+    }
+  }
+
+  private _autoDetectedCompanions(entityId?: string): Partial<LawnMowerCardConfig> {
+    if (!entityId || !this.hass?.states) {
+      return {};
+    }
+
+    const objectId = entityId.split(".", 2)[1];
+    if (!objectId) {
+      return {};
+    }
+
+    const companion = (domain: string, suffix: string): string | undefined => {
+      const candidate = `${domain}.${objectId}_${suffix}`;
+      return this.hass.states[candidate] ? candidate : undefined;
+    };
+
+    const first = (...values: Array<string | undefined>): string | undefined =>
+      values.find((value) => Boolean(value));
+
+    const mapEntity = first(
+      companion("camera", "map"),
+      companion("camera", "all_maps"),
+      companion("camera", "map_data"),
+    );
+
+    return {
+      map_entity: mapEntity,
+      status_entity: first(
+        companion("sensor", "state_name"),
+        companion("sensor", "activity"),
+        companion("sensor", "error"),
+      ),
+      battery_entity: companion("sensor", "battery"),
+      progress_entity: first(
+        companion("sensor", "weather_protection_status"),
+        companion("sensor", "task_status_name"),
+        companion("sensor", "task_status"),
+        companion("sensor", "error"),
+      ),
+    };
   }
 
   private _toggleChanged(event: Event) {
