@@ -64,6 +64,16 @@ const FRIENDLY_STATE: Record<string, string> = {
   unknown: "Unknown",
 };
 
+const VALUE_ALIASES: Record<string, string> = {
+  "charging completed": "charging completed",
+  "rain protection enabled": "rain protection enabled",
+  "rain protection disabled": "rain protection disabled",
+  "rain delay active": "rain delay active",
+  "rain delay inactive": "rain delay inactive",
+  "no error": "no error",
+  "task unknown": "task unknown",
+};
+
 @customElement("lawn-mower-card")
 export class LawnMowerCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -518,7 +528,7 @@ export class LawnMowerCard extends LitElement {
     }
 
     const task = this._stringAttribute(mower, "task_status_name");
-    if (task) {
+    if (task && !this._isUnknownLike(task)) {
       summary.push(`Task ${task}`);
     }
 
@@ -567,7 +577,7 @@ export class LawnMowerCard extends LitElement {
 
     return {
       label,
-      value: unit ? `${String(value)} ${unit}` : String(value),
+      value: unit ? `${String(value)} ${unit}` : this._humanizeValue(String(value)),
     };
   }
 
@@ -828,7 +838,7 @@ export class LawnMowerCard extends LitElement {
     if (typeof unit === "string" && unit) {
       return `${entity.state} ${unit}`;
     }
-    return String(entity.state);
+    return this._humanizeValue(String(entity.state));
   }
 
   private _entityState(entityId?: string): string | undefined {
@@ -848,7 +858,32 @@ export class LawnMowerCard extends LitElement {
     if (value === undefined || value === null || value === "") {
       return undefined;
     }
-    return unit ? `${String(value)} ${unit}` : String(value);
+    return unit ? `${String(value)} ${unit}` : this._humanizeValue(String(value));
+  }
+
+  private _humanizeValue(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    const direct = FRIENDLY_STATE[trimmed];
+    if (direct) {
+      return direct;
+    }
+
+    const normalized = trimmed.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!normalized) {
+      return trimmed;
+    }
+
+    const lowered = normalized.toLowerCase();
+    const mapped = VALUE_ALIASES[lowered] || lowered;
+    return mapped.charAt(0).toUpperCase() + mapped.slice(1);
+  }
+
+  private _isUnknownLike(value: string): boolean {
+    return ["unknown", "unavailable", "none"].includes(value.trim().toLowerCase());
   }
 
   private _friendlyName(entity: HassEntity): string | undefined {
