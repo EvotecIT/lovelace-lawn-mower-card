@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lawn Mower Card Preview</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' font-size='42'%3E%F0%9F%9A%9C%3C/text%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --primary-text-color: #f3f4f6;
+        --secondary-text-color: #b6bcc8;
+        --card-background-color: #171b22;
+        --divider-color: #2a3240;
+        --primary-color: #65b8ff;
+        --ha-card-border-radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(101, 184, 255, 0.08), transparent 30%),
+          #0e1117;
+        color: var(--primary-text-color);
+      }
+
+      .app-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        border-right: 1px solid #1d2530;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+          #0b0f15;
+        padding: 24px 18px;
+        display: grid;
+        align-content: start;
+        gap: 24px;
+      }
+
+      .brand {
+        display: grid;
+        gap: 6px;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 1.45rem;
+        line-height: 1.1;
+      }
+
+      .brand p {
+        margin: 0;
+        color: var(--secondary-text-color);
+        font-size: 0.92rem;
+      }
+
+      .nav {
+        display: grid;
+        gap: 8px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        color: #d8e1ee;
+        background: transparent;
+        border: 1px solid transparent;
+      }
+
+      .nav-item.active {
+        background: #171d27;
+        border-color: #2a3240;
+      }
+
+      .nav-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #65b8ff;
+      }
+
+      .sidebar-note {
+        display: grid;
+        gap: 6px;
+        padding: 14px;
+        border: 1px solid #222b38;
+        border-radius: 8px;
+        color: var(--secondary-text-color);
+        font-size: 0.9rem;
+        background: #11161d;
+      }
+
+      .content {
+        min-width: 0;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 24px;
+        border-bottom: 1px solid #1d2530;
+        background: rgba(11, 15, 21, 0.82);
+        backdrop-filter: blur(10px);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      .topbar-title {
+        display: grid;
+        gap: 4px;
+      }
+
+      .topbar-title h2 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+
+      .topbar-title p {
+        margin: 0;
+        color: var(--secondary-text-color);
+        font-size: 0.9rem;
+      }
+
+      .page {
+        max-width: 1440px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 24px;
+      }
+
+      .intro {
+        display: grid;
+        gap: 10px;
+      }
+
+      .intro h1 {
+        margin: 0;
+        font-size: 1.85rem;
+        line-height: 1.1;
+      }
+
+      .intro p {
+        margin: 0;
+        color: var(--secondary-text-color);
+      }
+
+      .dashboard-layout {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.85fr);
+        align-items: start;
+      }
+
+      .workspace {
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel {
+        display: grid;
+        gap: 16px;
+        padding: 18px;
+        border: 1px solid #222b38;
+        border-radius: 8px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+          #121821;
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+
+      .panel-header h2,
+      .panel-header h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .panel-header p {
+        margin: 4px 0 0;
+        color: var(--secondary-text-color);
+        font-size: 0.9rem;
+      }
+
+      .eyebrow {
+        color: #8fbce3;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid #2a3240;
+        border-radius: 8px;
+        background: #171d27;
+        color: #dce7f5;
+        font-size: 0.85rem;
+        white-space: nowrap;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #4ade80;
+        box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.14);
+      }
+
+      .status-dot.paused {
+        background: #c084fc;
+        box-shadow: 0 0 0 4px rgba(192, 132, 252, 0.14);
+      }
+
+      .status-dot.returning {
+        background: #facc15;
+        box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.14);
+      }
+
+      .status-dot.docked {
+        background: #60a5fa;
+        box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.14);
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .toolbar-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .segment {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px;
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        background: #11161d;
+      }
+
+      .segment button,
+      .toolbar select,
+      .toggle-button {
+        border: 1px solid var(--divider-color);
+        background: #171b22;
+        color: var(--primary-text-color);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .segment button {
+        background: transparent;
+        border-color: transparent;
+      }
+
+      .segment button.active {
+        background: #1f2834;
+        border-color: #334052;
+      }
+
+      .toggle-button.active {
+        background: color-mix(in srgb, #173122 78%, var(--card-background-color) 22%);
+        border-color: color-mix(in srgb, #4ade80 45%, var(--divider-color) 55%);
+      }
+
+      .preview-grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      }
+
+      .preset {
+        display: grid;
+        gap: 10px;
+      }
+
+      .preset-title {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--secondary-text-color);
+      }
+
+      .preset-title strong {
+        display: block;
+        color: var(--primary-text-color);
+        font-size: 1rem;
+        margin-bottom: 4px;
+      }
+
+      .compact-note {
+        font-size: 0.82rem;
+        color: var(--secondary-text-color);
+      }
+
+      ha-card {
+        display: block;
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: var(--ha-card-border-radius);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+      }
+
+      ha-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+
+      .notes {
+        display: grid;
+        gap: 8px;
+        color: var(--secondary-text-color);
+        font-size: 0.92rem;
+      }
+
+      .rail {
+        display: grid;
+        gap: 18px;
+      }
+
+      .metric-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric {
+        display: grid;
+        gap: 6px;
+        padding: 14px;
+        border-radius: 8px;
+        background: #0f141c;
+        border: 1px solid #212937;
+      }
+
+      .metric-label {
+        color: var(--secondary-text-color);
+        font-size: 0.82rem;
+      }
+
+      .metric-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .feed {
+        display: grid;
+        gap: 12px;
+      }
+
+      .feed-item {
+        display: grid;
+        gap: 4px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #1f2632;
+      }
+
+      .feed-item:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+
+      .feed-item strong {
+        font-size: 0.92rem;
+      }
+
+      .feed-item span {
+        color: var(--secondary-text-color);
+        font-size: 0.86rem;
+      }
+
+      .schedule-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .schedule-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #1f2632;
+      }
+
+      .schedule-row:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+      }
+
+      .schedule-row strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .schedule-row span {
+        color: var(--secondary-text-color);
+        font-size: 0.86rem;
+      }
+
+      .schedule-time {
+        color: #dce7f5;
+        font-size: 0.92rem;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 980px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .dashboard-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <section class="brand">
+          <h1>Lawn Mower Card</h1>
+          <p>Preview shell for fast Lovelace iteration.</p>
+        </section>
+
+        <nav class="nav" aria-label="Preview navigation">
+          <div class="nav-item active"><span class="nav-dot"></span> Dashboard</div>
+          <div class="nav-item"><span class="nav-dot"></span> Layout study</div>
+          <div class="nav-item"><span class="nav-dot"></span> Helper actions</div>
+          <div class="nav-item"><span class="nav-dot"></span> Summary chips</div>
+        </nav>
+
+        <section class="sidebar-note">
+          <strong>Preview tips</strong>
+          <div>Switch mower states from the toolbar.</div>
+          <div>Toggle rain delay to test helper summaries.</div>
+          <div>Use the layout filter to focus on one preset or compare all.</div>
+        </section>
+      </aside>
+
+      <div class="content">
+        <header class="topbar">
+          <div class="topbar-title">
+            <h2>Backyard mowing view</h2>
+            <p>Mocked Home Assistant dashboard context for the mower card.</p>
+          </div>
+          <div class="status-pill">
+            <span class="status-dot" id="live-state-dot"></span>
+            <span id="live-state-label">Live: Mowing</span>
+          </div>
+        </header>
+
+        <main class="page">
+          <section class="intro">
+            <div class="eyebrow">Demo workspace</div>
+            <h1>Lawn mower dashboard study</h1>
+            <p>
+              Use the state controls to compare how the card behaves when the mower
+              is cutting, paused, returning, or docked, while keeping the rest of
+              the dashboard context visible.
+            </p>
+          </section>
+
+          <section class="dashboard-layout">
+            <div class="workspace">
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h2>Preview controls</h2>
+                    <p>Switch mower state, rain delay, and visible layout preset.</p>
+                  </div>
+                </div>
+                <div class="toolbar">
+                  <div class="toolbar-group">
+                    <div class="segment" id="state-segment" aria-label="Mower state">
+                      <button data-state="mowing" class="active">Mowing</button>
+                      <button data-state="paused">Paused</button>
+                      <button data-state="returning">Returning</button>
+                      <button data-state="docked">Docked</button>
+                    </div>
+                    <button id="toggle-rain" class="toggle-button">Rain delay off</button>
+                  </div>
+                  <label>
+                    <span style="margin-right: 8px;">Layout</span>
+                    <select id="layout">
+                      <option value="all" selected>All presets</option>
+                      <option value="default">Default only</option>
+                      <option value="compact">Compact only</option>
+                      <option value="wide">Wide only</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h2>Card comparison</h2>
+                    <p>All three presets share the same mocked mower state and helper entities.</p>
+                  </div>
+                  <div class="compact-note" id="layout-summary">Showing all presets</div>
+                </div>
+                <div class="preview-grid">
+                  <div class="preset">
+                    <h2 class="preset-title">
+                      <strong>Wide</strong>
+                      Two-column balance for dashboards with room for map context.
+                    </h2>
+                    <lawn-mower-card id="preview-card-wide"></lawn-mower-card>
+                  </div>
+                  <div class="preset">
+                    <h2 class="preset-title">
+                      <strong>Default</strong>
+                      General-purpose layout for mixed dashboard stacks.
+                    </h2>
+                    <lawn-mower-card id="preview-card-default"></lawn-mower-card>
+                  </div>
+                  <div class="preset">
+                    <h2 class="preset-title">
+                      <strong>Compact</strong>
+                      Reduced spacing for tighter grids and sidebar views.
+                    </h2>
+                    <lawn-mower-card id="preview-card-compact"></lawn-mower-card>
+                  </div>
+                </div>
+              </section>
+
+              <section class="notes">
+                <div>The action buttons inside the card still log mocked service calls in the browser console.</div>
+                <div>
+                  The map image is a placeholder so the preview can be tuned without a
+                  live Home Assistant camera proxy.
+                </div>
+              </section>
+            </div>
+
+            <aside class="rail">
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>Live snapshot</h3>
+                    <p>Quick context next to the card while we tune states and spacing.</p>
+                  </div>
+                </div>
+                <div class="metric-grid">
+                  <div class="metric">
+                    <div class="metric-label">Battery</div>
+                    <div class="metric-value" id="metric-battery">87%</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">Weather</div>
+                    <div class="metric-value" id="metric-weather">Monitoring</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">Progress</div>
+                    <div class="metric-value">62%</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">Area today</div>
+                    <div class="metric-value">531 m²</div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>Upcoming schedule</h3>
+                    <p>Context that often sits near the mower card in a real dashboard.</p>
+                  </div>
+                </div>
+                <div class="schedule-list">
+                  <div class="schedule-row">
+                    <div>
+                      <strong>Front lawn</strong>
+                      <span>Zone run with edge mowing enabled</span>
+                    </div>
+                    <div class="schedule-time">Tue 10:00</div>
+                  </div>
+                  <div class="schedule-row">
+                    <div>
+                      <strong>Whole garden</strong>
+                      <span>General pattern with obstacle detection on</span>
+                    </div>
+                    <div class="schedule-time">Thu 10:58</div>
+                  </div>
+                  <div class="schedule-row">
+                    <div>
+                      <strong>Dock return window</strong>
+                      <span>Evening stop before quiet hours</span>
+                    </div>
+                    <div class="schedule-time">Daily 21:00</div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>Recent activity</h3>
+                    <p>Mock events help the card feel grounded in a broader UI.</p>
+                  </div>
+                </div>
+                <div class="feed" id="activity-feed">
+                  <div class="feed-item">
+                    <strong>Mowing session active</strong>
+                    <span>Current task: front lawn pass with object avoidance.</span>
+                  </div>
+                  <div class="feed-item">
+                    <strong>Weather protection monitoring</strong>
+                    <span>No rain delay active.</span>
+                  </div>
+                  <div class="feed-item">
+                    <strong>Helper entities available</strong>
+                    <span>Map diagnostics, all maps, schedules, and probe buttons detected.</span>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import "../lawn-mower-card.js";
+
+      const mapImage =
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80";
+
+      const stateStore = {
+        "lawn_mower.backyard_mower": {
+          entity_id: "lawn_mower.backyard_mower",
+          state: "mowing",
+          attributes: {
+            friendly_name: "Backyard mower",
+            battery_level: 87,
+            activity: "cutting",
+            task_status_name: "zone_cleaning",
+            error_display: null,
+          },
+        },
+        "sensor.backyard_mower_state_name": {
+          entity_id: "sensor.backyard_mower_state_name",
+          state: "Mowing front yard",
+          attributes: { friendly_name: "State" },
+        },
+        "sensor.backyard_mower_battery": {
+          entity_id: "sensor.backyard_mower_battery",
+          state: "87",
+          attributes: { friendly_name: "Battery", unit_of_measurement: "%" },
+        },
+        "sensor.backyard_mower_weather_protection_status": {
+          entity_id: "sensor.backyard_mower_weather_protection_status",
+          state: "monitoring",
+          attributes: { friendly_name: "Weather" },
+        },
+        "binary_sensor.backyard_mower_docked": {
+          entity_id: "binary_sensor.backyard_mower_docked",
+          state: "off",
+          attributes: { friendly_name: "Docked" },
+        },
+        "binary_sensor.backyard_mower_charging": {
+          entity_id: "binary_sensor.backyard_mower_charging",
+          state: "off",
+          attributes: { friendly_name: "Charging" },
+        },
+        "binary_sensor.backyard_mower_rain_delay_active": {
+          entity_id: "binary_sensor.backyard_mower_rain_delay_active",
+          state: "off",
+          attributes: { friendly_name: "Rain Delay" },
+        },
+        "camera.backyard_mower_map": {
+          entity_id: "camera.backyard_mower_map",
+          state: "idle",
+          attributes: { friendly_name: "Map", entity_picture: mapImage },
+        },
+        "camera.backyard_mower_map_data": {
+          entity_id: "camera.backyard_mower_map_data",
+          state: "idle",
+          attributes: { friendly_name: "Map Diagnostics" },
+        },
+        "camera.backyard_mower_all_maps": {
+          entity_id: "camera.backyard_mower_all_maps",
+          state: "idle",
+          attributes: { friendly_name: "All Maps" },
+        },
+        "calendar.backyard_mower_schedule": {
+          entity_id: "calendar.backyard_mower_schedule",
+          state: "on",
+          attributes: { friendly_name: "Schedule" },
+        },
+        "calendar.backyard_mower_all_schedules": {
+          entity_id: "calendar.backyard_mower_all_schedules",
+          state: "on",
+          attributes: { friendly_name: "All Schedules" },
+        },
+        "button.backyard_mower_capture_weather_probe": {
+          entity_id: "button.backyard_mower_capture_weather_probe",
+          state: "idle",
+          attributes: { friendly_name: "Capture Weather Probe" },
+        },
+        "button.backyard_mower_capture_schedule_probe": {
+          entity_id: "button.backyard_mower_capture_schedule_probe",
+          state: "idle",
+          attributes: { friendly_name: "Capture Schedule Probe" },
+        },
+        "button.backyard_mower_capture_map_probe": {
+          entity_id: "button.backyard_mower_capture_map_probe",
+          state: "idle",
+          attributes: { friendly_name: "Capture Map Probe" },
+        },
+        "button.backyard_mower_capture_operation_snapshot": {
+          entity_id: "button.backyard_mower_capture_operation_snapshot",
+          state: "idle",
+          attributes: { friendly_name: "Capture Operation Snapshot" },
+        },
+      };
+
+      const hass = {
+        states: stateStore,
+        async callService(domain, service, data) {
+          console.log("Mock service call:", { domain, service, data });
+        },
+      };
+
+      const cards = {
+        wide: document.getElementById("preview-card-wide"),
+        default: document.getElementById("preview-card-default"),
+        compact: document.getElementById("preview-card-compact"),
+      };
+      const liveStateLabel = document.getElementById("live-state-label");
+      const liveStateDot = document.getElementById("live-state-dot");
+      const rainToggle = document.getElementById("toggle-rain");
+      const layoutSummary = document.getElementById("layout-summary");
+      const metricBattery = document.getElementById("metric-battery");
+      const metricWeather = document.getElementById("metric-weather");
+      const activityFeed = document.getElementById("activity-feed");
+      const baseConfig = {
+        type: "custom:lawn-mower-card",
+        entity: "lawn_mower.backyard_mower",
+        name: "Backyard mower",
+        map_entity: "camera.backyard_mower_map",
+        show_map: true,
+        status_entity: "sensor.backyard_mower_state_name",
+        battery_entity: "sensor.backyard_mower_battery",
+        progress_entity: "sensor.backyard_mower_weather_protection_status",
+        show_default_actions: true,
+        show_helper_actions: true,
+        summary_entities: [
+          "sensor.backyard_mower_weather_protection_status"
+        ],
+        tiles: [
+          { entity: "binary_sensor.backyard_mower_docked", label: "Docked" },
+          { entity: "binary_sensor.backyard_mower_charging", label: "Charging" },
+          { entity: "binary_sensor.backyard_mower_rain_delay_active", label: "Rain Delay" }
+        ]
+      };
+
+      function applyConfig(overrides = {}) {
+        cards.wide.hass = hass;
+        cards.wide.setConfig({ ...baseConfig, ...overrides, layout: "wide" });
+        cards.wide.requestUpdate();
+
+        cards.default.hass = hass;
+        cards.default.setConfig({ ...baseConfig, ...overrides, layout: "default" });
+        cards.default.requestUpdate();
+
+        cards.compact.hass = hass;
+        cards.compact.setConfig({ ...baseConfig, ...overrides, layout: "compact" });
+        cards.compact.requestUpdate();
+      }
+
+      function setActivityFeed(items) {
+        activityFeed.innerHTML = "";
+        for (const item of items) {
+          const row = document.createElement("div");
+          row.className = "feed-item";
+          row.innerHTML = `<strong>${item.title}</strong><span>${item.body}</span>`;
+          activityFeed.appendChild(row);
+        }
+      }
+
+      function updatePreviewMeta(nextState) {
+        const labels = {
+          mowing: "Live: Mowing",
+          paused: "Live: Paused",
+          returning: "Live: Returning",
+          docked: "Live: Docked",
+        };
+        liveStateLabel.textContent = labels[nextState] || "Live: Unknown";
+        liveStateDot.className = `status-dot ${nextState === "mowing" ? "" : nextState}`.trim();
+        metricBattery.textContent =
+          `${stateStore["sensor.backyard_mower_battery"].state}${stateStore["sensor.backyard_mower_battery"].attributes.unit_of_measurement || ""}`;
+        metricWeather.textContent =
+          stateStore["sensor.backyard_mower_weather_protection_status"].state === "rain_delay_active"
+            ? "Rain delay"
+            : "Monitoring";
+
+        const feedByState = {
+          mowing: [
+            {
+              title: "Mowing session active",
+              body: "Current task: front lawn pass with object avoidance.",
+            },
+            {
+              title: "Weather protection monitoring",
+              body:
+                stateStore["binary_sensor.backyard_mower_rain_delay_active"].state === "on"
+                  ? "Rain delay is currently active."
+                  : "No rain delay active.",
+            },
+            {
+              title: "Helper entities available",
+              body: "Map diagnostics, all maps, schedules, and probe buttons detected.",
+            },
+          ],
+          paused: [
+            {
+              title: "Task paused near flower bed",
+              body: "Use the card to resume, inspect helpers, or send the mower back to dock.",
+            },
+            {
+              title: "Status remains visible",
+              body: "Summary chips and helper actions still surface the key context cleanly.",
+            },
+            {
+              title: "Weather protection monitoring",
+              body:
+                stateStore["binary_sensor.backyard_mower_rain_delay_active"].state === "on"
+                  ? "Rain delay is currently active."
+                  : "No rain delay active.",
+            },
+          ],
+          returning: [
+            {
+              title: "Return to dock in progress",
+              body: "The preview keeps the returning state visible without overwhelming the card.",
+            },
+            {
+              title: "Map remains visible",
+              body: "Wide mode still leaves enough room for helper actions and summary chips.",
+            },
+            {
+              title: "Weather protection monitoring",
+              body:
+                stateStore["binary_sensor.backyard_mower_rain_delay_active"].state === "on"
+                  ? "Rain delay is currently active."
+                  : "No rain delay active.",
+            },
+          ],
+          docked: [
+            {
+              title: "Mower docked and charging",
+              body: "This state is a good check for calmer card density and clean idle context.",
+            },
+            {
+              title: "Next schedule ready",
+              body: "The surrounding dashboard still keeps the next mowing windows visible.",
+            },
+            {
+              title: "Weather protection monitoring",
+              body:
+                stateStore["binary_sensor.backyard_mower_rain_delay_active"].state === "on"
+                  ? "Rain delay is currently active."
+                  : "No rain delay active.",
+            },
+          ],
+        };
+
+        setActivityFeed(feedByState[nextState] || feedByState.mowing);
+      }
+
+      applyConfig();
+      updatePreviewMeta("mowing");
+
+      for (const button of document.querySelectorAll("[data-state]")) {
+        button.addEventListener("click", () => {
+          const nextState = button.getAttribute("data-state");
+          for (const candidate of document.querySelectorAll("[data-state]")) {
+            candidate.classList.toggle("active", candidate === button);
+          }
+          stateStore["lawn_mower.backyard_mower"].state = nextState;
+          stateStore["sensor.backyard_mower_state_name"].state =
+            nextState === "mowing"
+              ? "Mowing front yard"
+              : nextState === "paused"
+                ? "Paused near flower bed"
+                : nextState === "returning"
+                  ? "Returning to dock"
+                  : "Docked";
+          stateStore["binary_sensor.backyard_mower_docked"].state =
+            nextState === "docked" ? "on" : "off";
+          stateStore["binary_sensor.backyard_mower_charging"].state =
+            nextState === "docked" ? "on" : "off";
+          stateStore["lawn_mower.backyard_mower"].attributes.activity =
+            nextState === "mowing"
+              ? "cutting"
+              : nextState === "returning"
+                ? "returning"
+                : nextState === "paused"
+                ? "paused"
+                  : "docked";
+          applyConfig();
+          updatePreviewMeta(nextState);
+        });
+      }
+
+      rainToggle.addEventListener("click", () => {
+        const sensor = stateStore["binary_sensor.backyard_mower_rain_delay_active"];
+        sensor.state = sensor.state === "on" ? "off" : "on";
+        stateStore["sensor.backyard_mower_weather_protection_status"].state =
+          sensor.state === "on" ? "rain_delay_active" : "monitoring";
+        rainToggle.textContent = sensor.state === "on" ? "Rain delay on" : "Rain delay off";
+        rainToggle.classList.toggle("active", sensor.state === "on");
+        applyConfig();
+        updatePreviewMeta(stateStore["lawn_mower.backyard_mower"].state);
+      });
+
+      document.getElementById("layout").addEventListener("change", (event) => {
+        const only = event.target.value;
+        const hidden = { wide: false, default: false, compact: false };
+        if (only !== "all") {
+          hidden.wide = only !== "wide";
+          hidden.default = only !== "default";
+          hidden.compact = only !== "compact";
+        }
+        cards.wide.parentElement.hidden = hidden.wide;
+        cards.default.parentElement.hidden = hidden.default;
+        cards.compact.parentElement.hidden = hidden.compact;
+        layoutSummary.textContent =
+          only === "all"
+            ? "Showing all presets"
+            : `Showing ${only} preset`;
+      });
+    </script>
+  </body>
+</html>
