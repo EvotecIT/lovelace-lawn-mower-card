@@ -1,6 +1,6 @@
 {
-  "name": "homeassistant-lawn-mower-card",
-  "version": "0.1.0",
+  "name": "lovelace-lawn-mower-card",
+  "version": "0.1.1",
   "private": true,
   "description": "A Lovelace card for robotic lawn mowers in Home Assistant.",
   "type": "module",
@@ -24,12 +24,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/EvotecIT/homeassistant-lawn-mower-card.git"
+    "url": "git+https://github.com/EvotecIT/lovelace-lawn-mower-card.git"
   },
   "bugs": {
-    "url": "https://github.com/EvotecIT/homeassistant-lawn-mower-card/issues"
+    "url": "https://github.com/EvotecIT/lovelace-lawn-mower-card/issues"
   },
-  "homepage": "https://github.com/EvotecIT/homeassistant-lawn-mower-card#readme",
+  "homepage": "https://github.com/EvotecIT/lovelace-lawn-mower-card#readme",
   "dependencies": {
     "lit": "^3.3.1"
   },

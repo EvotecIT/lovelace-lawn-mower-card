@@ -1,9 +1,9 @@
 # Lawn Mower Card for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
-[![Validate](https://img.shields.io/github/actions/workflow/status/EvotecIT/homeassistant-lawn-mower-card/validate.yml?branch=main&label=Validate)](https://github.com/EvotecIT/homeassistant-lawn-mower-card/actions/workflows/validate.yml)
-[![Release](https://img.shields.io/github/actions/workflow/status/EvotecIT/homeassistant-lawn-mower-card/release.yml?label=Release)](https://github.com/EvotecIT/homeassistant-lawn-mower-card/actions/workflows/release.yml)
-[![License](https://img.shields.io/github/license/EvotecIT/homeassistant-lawn-mower-card)](LICENSE)
+[![Validate](https://img.shields.io/github/actions/workflow/status/EvotecIT/lovelace-lawn-mower-card/validate.yml?branch=main&label=Validate)](https://github.com/EvotecIT/lovelace-lawn-mower-card/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/EvotecIT/lovelace-lawn-mower-card/release.yml?label=Release)](https://github.com/EvotecIT/lovelace-lawn-mower-card/actions/workflows/release.yml)
+[![License](https://img.shields.io/github/license/EvotecIT/lovelace-lawn-mower-card)](LICENSE)
 
 Custom Lovelace card for robotic lawn mowers in Home Assistant.
 
@@ -34,7 +34,7 @@ entities.
 4. Add the resource if HACS does not do it automatically:
 
 ```yaml
-url: /hacsfiles/homeassistant-lawn-mower-card/lawn-mower-card.js
+url: /hacsfiles/lovelace-lawn-mower-card/lawn-mower-card.js
 type: module
 ```
 
