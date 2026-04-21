@@ -14,6 +14,7 @@ integrations today:
 - mower state and activity
 - optional map camera
 - start, pause, and dock controls
+- optional selector controls for map, mowing action, zone, spot, and edge entities
 - configurable status tiles
 - room to grow into richer map and zone workflows later
 
@@ -63,6 +64,10 @@ battery_entity: sensor.dreame_a2_bodzio_battery
 progress_entity: sensor.dreame_a2_bodzio_weather_protection_status
 show_default_actions: true
 show_helper_actions: true
+control_entities:
+  - select.dreame_a2_bodzio_mowing_action
+  - select.dreame_a2_bodzio_zone
+  - select.dreame_a2_bodzio_spot
 summary_entities:
   - sensor.dreame_a2_bodzio_state_name
   - sensor.dreame_a2_bodzio_weather_protection_status
@@ -96,6 +101,7 @@ tiles:
 - `progress_entity`: optional entity shown in a stat tile
 - `show_default_actions`: optional boolean, defaults to `true`
 - `show_helper_actions`: optional boolean, defaults to `true`
+- `control_entities`: optional list of `select` entities rendered as inline mower controls
 - `summary_entities`: optional list of entities rendered as header summary chips
 - `actions`: optional list of extra action chips
   - `type`: one of `start`, `pause`, `dock`, `more-info`, or `service`
@@ -110,12 +116,15 @@ tiles:
   - `icon`: optional MDI icon override
 
 The built-in visual editor now covers the main card fields, explicit
-`summary_entities`, extra `tiles`, and custom `actions`. `service_data` for
-service actions is edited as JSON in the editor, and entity fields offer
-browser suggestions from the entities Home Assistant already knows about.
-When you select a mower entity, the editor also tries to prefill common
-companion entities such as map, state, battery, and status tiles without
-overwriting deliberate custom choices.
+`control_entities`, `summary_entities`, extra `tiles`, and custom `actions`.
+`service_data` for service actions is edited as JSON in the editor, and entity
+fields offer browser suggestions from the entities Home Assistant already knows
+about. When you select a mower entity, the editor also tries to prefill common
+companion entities such as map, state, battery, status tiles, and mower select
+controls without overwriting deliberate custom choices. With the Dreame mower
+integration, that companion autofill now also picks up live-session summary
+chips such as current zone, cut area, mowing time, and active segments when
+those sensors exist.
 
 ## Layout Modes
 
@@ -138,6 +147,16 @@ By default it will try to use:
 You can also add explicit `summary_entities` when you want tighter control over
 what appears in the header.
 
+If you leave `summary_entities` empty, the card and visual editor will try to
+auto-detect live-session companions for integrations that expose them,
+including:
+
+- `sensor.my_mower_current_zone`
+- `sensor.my_mower_current_cleaned_area`
+- `sensor.my_mower_current_cleaning_time`
+- `sensor.my_mower_active_segment_count`
+- `sensor.my_mower_current_app_map_trajectory_point_count`
+
 ## Smart Helper Actions
 
 When `show_helper_actions` is enabled, the card will look for companion
@@ -154,6 +173,21 @@ Current auto-detected helpers include:
 - schedule probe button
 - map probe button
 - operation snapshot button
+
+## Control Selectors
+
+When compatible `select` entities exist, the card can render them as direct
+inline controls. This is especially useful for Dreame and MOVA mower setups
+that expose entities such as:
+
+- `select.my_mower_map`
+- `select.my_mower_mowing_action`
+- `select.my_mower_edge`
+- `select.my_mower_zone`
+- `select.my_mower_spot`
+
+If you do not set `control_entities`, the card will try to auto-detect these
+companions from the mower object id.
 
 ## Development
 
@@ -203,6 +237,6 @@ release.
 
 ## Scope
 
-This MVP intentionally does not try to solve every mower workflow on day one.
-Interactive map selection, zone targeting, no-go editing, and integration-
-specific write paths should be added only after the backend contracts are stable.
+This card still does not try to solve every mower workflow on day one. Interactive
+map editing, no-go editing, and deeper integration-specific write paths should be
+added only after the backend contracts are stable.

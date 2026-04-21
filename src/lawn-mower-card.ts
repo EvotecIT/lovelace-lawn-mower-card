@@ -39,6 +39,7 @@ type LawnMowerCardConfig = {
   progress_entity?: string;
   show_default_actions?: boolean;
   show_helper_actions?: boolean;
+  control_entities?: string[];
   summary_entities?: string[];
   actions?: LawnMowerActionConfig[];
   tiles?: LawnMowerTileConfig[];
@@ -46,6 +47,16 @@ type LawnMowerCardConfig = {
 
 type ConfigChangedDetail = {
   config: LawnMowerCardConfig;
+};
+
+type RuntimeSessionDetails = {
+  trailLengthM?: number;
+  pointCount?: number;
+  segmentCount?: number;
+  headingDeg?: number;
+  positionX?: number;
+  positionY?: number;
+  source?: string;
 };
 
 declare global {
@@ -219,6 +230,112 @@ export class LawnMowerCard extends LitElement {
       text-align: center;
     }
 
+    .selectors {
+      display: grid;
+      gap: 10px;
+    }
+
+    .selector-card {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--divider-color);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--card-background-color) 94%, var(--primary-color) 6%);
+    }
+
+    .selector-label {
+      font-size: 0.8rem;
+      color: var(--secondary-text-color);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .selector-card select {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font: inherit;
+    }
+
+    .session-panel {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid color-mix(in srgb, #4ade80 32%, var(--divider-color) 68%);
+      border-radius: 12px;
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, #153527 18%, var(--card-background-color) 82%),
+          color-mix(in srgb, var(--card-background-color) 95%, #153527 5%)
+        );
+    }
+
+    .session-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .session-title {
+      font-size: 0.86rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: color-mix(in srgb, var(--primary-text-color) 86%, #4ade80 14%);
+    }
+
+    .session-badge {
+      border: 1px solid color-mix(in srgb, #4ade80 34%, var(--divider-color) 66%);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 0.76rem;
+      color: color-mix(in srgb, var(--primary-text-color) 78%, #4ade80 22%);
+      background: color-mix(in srgb, #153527 24%, var(--card-background-color) 76%);
+      white-space: nowrap;
+    }
+
+    .session-subtitle {
+      color: var(--secondary-text-color);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .session-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 10px;
+    }
+
+    .session-metric {
+      border: 1px solid color-mix(in srgb, #4ade80 16%, var(--divider-color) 84%);
+      border-radius: 10px;
+      padding: 10px;
+      background: color-mix(in srgb, var(--card-background-color) 95%, #4ade80 5%);
+      min-width: 0;
+    }
+
+    .session-metric-label {
+      color: var(--secondary-text-color);
+      font-size: 0.76rem;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .session-metric-value {
+      font-size: 0.98rem;
+      font-weight: 600;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
     .actions {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -369,6 +486,8 @@ export class LawnMowerCard extends LitElement {
     const statTiles = this._buildTiles();
     const actionGroups = this._buildActionGroups(mower.state);
     const headerSummary = this._buildHeaderSummary();
+    const controlEntities = this._resolvedControlEntities();
+    const runtimeSession = this._runtimeSessionDetails();
 
     return html`
       <ha-card>
@@ -403,6 +522,18 @@ export class LawnMowerCard extends LitElement {
           </div>
 
           <div class="side">
+            ${runtimeSession
+              ? this._renderRuntimeSessionPanel(runtimeSession)
+              : nothing}
+
+            ${controlEntities.length
+              ? html`
+                  <div class="selectors">
+                    ${controlEntities.map((entityId) => this._renderSelectControl(entityId))}
+                  </div>
+                `
+              : nothing}
+
             ${actionGroups.length
               ? html`
                   ${actionGroups.map(
@@ -453,12 +584,12 @@ export class LawnMowerCard extends LitElement {
     const showMap = this._config?.show_map ?? Boolean(this._config?.map_entity);
     const layout = this._config?.layout || "default";
     if (layout === "compact") {
-      return showMap ? 6 : 4;
+      return showMap ? 7 : 5;
     }
     if (layout === "wide") {
-      return showMap ? 8 : 6;
+      return showMap ? 9 : 7;
     }
-    return showMap ? 7 : 5;
+    return showMap ? 8 : 6;
   }
 
   private _buildTiles(): Array<{ label: string; value: string }> {
@@ -497,6 +628,18 @@ export class LawnMowerCard extends LitElement {
       tiles.push(this._tileFromEntity(tile.entity, tile.label, tile.icon));
     }
 
+    if (!(this._config.tiles || []).length) {
+      const runtimeAreaTile = this._runtimeCoverageTile();
+      if (runtimeAreaTile) {
+        tiles.push(runtimeAreaTile);
+      }
+
+      const liveTrackTile = this._runtimeLiveTrackTile();
+      if (liveTrackTile) {
+        tiles.push(liveTrackTile);
+      }
+    }
+
     return tiles.filter((tile) => tile.value !== "Unavailable");
   }
 
@@ -511,7 +654,7 @@ export class LawnMowerCard extends LitElement {
       return summary;
     }
 
-    for (const entityId of this._config.summary_entities || []) {
+    for (const entityId of this._resolvedSummaryEntities()) {
       const entity = this.hass.states[entityId];
       if (!entity) {
         continue;
@@ -566,7 +709,116 @@ export class LawnMowerCard extends LitElement {
       summary.push(`Error ${error}`);
     }
 
+    summary.push(...this._runtimeMapSummaryItems());
+
     return [...new Set(summary)].slice(0, 6);
+  }
+
+  private _resolvedSummaryEntities(): string[] {
+    if (!this._config) {
+      return [];
+    }
+
+    const configured = (this._config.summary_entities || []).filter(Boolean);
+    if (configured.length) {
+      return configured;
+    }
+
+    return this._autoDetectedSummaryEntities(this._config.entity);
+  }
+
+  private _autoDetectedSummaryEntities(entityId?: string): string[] {
+    if (!entityId || !this.hass?.states) {
+      return [];
+    }
+
+    const objectId = entityId.split(".", 2)[1];
+    if (!objectId) {
+      return [];
+    }
+
+    const firstAvailable = (...candidates: string[]): string[] => {
+      const match = candidates.find((candidate) => Boolean(this.hass.states[candidate]));
+      return match ? [match] : [];
+    };
+
+    return [
+      `sensor.${objectId}_runtime_mission_progress`,
+      `sensor.${objectId}_runtime_current_area`,
+      `sensor.${objectId}_runtime_total_area`,
+      `sensor.${objectId}_current_zone`,
+      `sensor.${objectId}_current_cleaned_area`,
+      `sensor.${objectId}_current_cleaning_time`,
+      `sensor.${objectId}_active_segment_count`,
+      ...firstAvailable(
+        `sensor.${objectId}_current_app_map_trajectory_length`,
+        `sensor.${objectId}_current_app_map_mow_path_length`,
+        `sensor.${objectId}_current_app_map_trajectory_point_count`,
+      ),
+    ].filter((candidate) => Boolean(this.hass.states[candidate]));
+  }
+
+  private _resolvedControlEntities(): string[] {
+    if (!this._config) {
+      return [];
+    }
+
+    const configured = (this._config.control_entities || []).filter(Boolean);
+    if (configured.length) {
+      return configured;
+    }
+
+    return this._autoDetectedControlEntities(this._config.entity);
+  }
+
+  private _autoDetectedControlEntities(entityId?: string): string[] {
+    if (!entityId || !this.hass?.states) {
+      return [];
+    }
+
+    const objectId = entityId.split(".", 2)[1];
+    if (!objectId) {
+      return [];
+    }
+
+    return ["map", "mowing_action", "edge", "zone", "spot"]
+      .map((suffix) => `select.${objectId}_${suffix}`)
+      .filter((candidate) => Boolean(this.hass.states[candidate]));
+  }
+
+  private _renderSelectControl(entityId: string) {
+    const entity = this.hass.states[entityId];
+    if (!entity) {
+      return nothing;
+    }
+
+    const options = Array.isArray(entity.attributes.options)
+      ? entity.attributes.options.filter((option): option is string => typeof option === "string")
+      : [];
+    if (!options.length) {
+      return nothing;
+    }
+
+    const label =
+      this._friendlyName(entity) ||
+      this._preferredEntityLabel(entityId) ||
+      this._entityName(entityId);
+    const unavailable = ["unavailable", "unknown"].includes(String(entity.state));
+
+    return html`
+      <label class="selector-card">
+        <span class="selector-label">${label}</span>
+        <select
+          .value=${String(entity.state)}
+          ?disabled=${unavailable}
+          @change=${(event: Event) => this._selectOption(entityId, event)}
+        >
+          ${options.map(
+            (option) => html`<option value=${option}>${option}</option>`,
+          )}
+        </select>
+      </label>
+    `;
   }
 
   private _tileFromMowerAttribute(
@@ -584,6 +836,50 @@ export class LawnMowerCard extends LitElement {
       label,
       value: unit ? `${String(value)} ${unit}` : this._humanizeValue(String(value)),
     };
+  }
+
+  private _runtimeCoverageTile(): { label: string; value: string } | undefined {
+    const currentArea = this._companionState("sensor", "runtime_current_area");
+    const totalArea = this._companionState("sensor", "runtime_total_area");
+
+    if (currentArea && totalArea) {
+      return {
+        label: "Coverage",
+        value: `${currentArea} / ${totalArea}`,
+      };
+    }
+
+    if (currentArea) {
+      return {
+        label: "Current Area",
+        value: currentArea,
+      };
+    }
+
+    return undefined;
+  }
+
+  private _runtimeLiveTrackTile(): { label: string; value: string } | undefined {
+    const runtimeSession = this._runtimeSessionDetails();
+    if (!runtimeSession) {
+      return undefined;
+    }
+
+    if (runtimeSession.trailLengthM !== undefined && runtimeSession.trailLengthM > 0) {
+      return {
+        label: "Live Trail",
+        value: this._formatMeters(runtimeSession.trailLengthM),
+      };
+    }
+
+    if (runtimeSession.pointCount !== undefined && runtimeSession.pointCount > 1) {
+      return {
+        label: "Live Points",
+        value: `${Math.round(runtimeSession.pointCount)}`,
+      };
+    }
+
+    return undefined;
   }
 
   private _buildActionGroups(
@@ -929,6 +1225,72 @@ export class LawnMowerCard extends LitElement {
     if (entityId.endsWith("_battery")) {
       return "Battery";
     }
+    if (entityId.endsWith("_mowing_action")) {
+      return "Mowing Action";
+    }
+    if (entityId.endsWith("_zone")) {
+      return "Zone";
+    }
+    if (entityId.endsWith("_spot")) {
+      return "Spot";
+    }
+    if (entityId.endsWith("_map")) {
+      return "Map";
+    }
+    if (entityId.endsWith("_mowing_progress")) {
+      return "Progress";
+    }
+    if (entityId.endsWith("_runtime_mission_progress")) {
+      return "Mission Progress";
+    }
+    if (entityId.endsWith("_runtime_current_area")) {
+      return "Current Area";
+    }
+    if (entityId.endsWith("_runtime_total_area")) {
+      return "Total Area";
+    }
+    if (entityId.endsWith("_runtime_position_x")) {
+      return "Position X";
+    }
+    if (entityId.endsWith("_runtime_position_y")) {
+      return "Position Y";
+    }
+    if (entityId.endsWith("_runtime_heading")) {
+      return "Heading";
+    }
+    if (entityId.endsWith("_current_cleaned_area")) {
+      return "Cut Area";
+    }
+    if (entityId.endsWith("_current_cleaning_time")) {
+      return "Time";
+    }
+    if (entityId.endsWith("_current_zone")) {
+      return "Current Zone";
+    }
+    if (entityId.endsWith("_active_segment_count")) {
+      return "Active Segments";
+    }
+    if (entityId.endsWith("_current_app_map_area")) {
+      return "Map Area";
+    }
+    if (entityId.endsWith("_current_app_map_zone_count")) {
+      return "Zones";
+    }
+    if (entityId.endsWith("_current_app_map_spot_count")) {
+      return "Spots";
+    }
+    if (entityId.endsWith("_current_app_map_trajectory_point_count")) {
+      return "Path Points";
+    }
+    if (entityId.endsWith("_current_app_map_trajectory_length")) {
+      return "Path Length";
+    }
+    if (entityId.endsWith("_current_app_map_mow_path_length")) {
+      return "Trail Length";
+    }
+    if (entityId.endsWith("_current_app_map_cut_relation_count")) {
+      return "Cut Links";
+    }
     if (entityId.endsWith("_error")) {
       return "Error";
     }
@@ -958,6 +1320,173 @@ export class LawnMowerCard extends LitElement {
     return `/api/camera_proxy/${entityId}?v=${Date.now()}`;
   }
 
+  private _mapEntity(): HassEntity | undefined {
+    if (!this._config?.map_entity) {
+      return undefined;
+    }
+    return this.hass.states[this._config.map_entity];
+  }
+
+  private _numberAttribute(entity: HassEntity, attribute: string): number | undefined {
+    const value = entity.attributes[attribute];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return undefined;
+  }
+
+  private _formatMeters(value: number): string {
+    const decimals = value >= 10 ? 1 : 2;
+    return `${value.toFixed(decimals)} m`;
+  }
+
+  private _formatCoordinate(value: number): string {
+    return Number.isInteger(value) ? `${value}` : value.toFixed(1);
+  }
+
+  private _runtimeSessionDetails(): RuntimeSessionDetails | undefined {
+    const mapEntity = this._mapEntity();
+    if (!mapEntity) {
+      return undefined;
+    }
+
+    const trailLengthM = this._numberAttribute(mapEntity, "runtime_track_length_m");
+    const pointCount = this._numberAttribute(mapEntity, "runtime_track_point_count");
+    const segmentCount = this._numberAttribute(mapEntity, "runtime_track_segment_count");
+    const headingDeg = this._numberAttribute(mapEntity, "runtime_heading_deg");
+    const positionX = this._numberAttribute(mapEntity, "runtime_pose_x");
+    const positionY = this._numberAttribute(mapEntity, "runtime_pose_y");
+    const source =
+      typeof mapEntity.attributes.source === "string" && mapEntity.attributes.source
+        ? mapEntity.attributes.source
+        : undefined;
+
+    const hasLiveRuntimeTrail =
+      (trailLengthM !== undefined && trailLengthM > 0) ||
+      (pointCount !== undefined && pointCount > 1) ||
+      (segmentCount !== undefined && segmentCount > 0);
+    if (!hasLiveRuntimeTrail) {
+      return undefined;
+    }
+
+    return {
+      trailLengthM,
+      pointCount,
+      segmentCount,
+      headingDeg,
+      positionX,
+      positionY,
+      source,
+    };
+  }
+
+  private _runtimeMapSummaryItems(): string[] {
+    const runtimeSession = this._runtimeSessionDetails();
+    if (!runtimeSession) {
+      return [];
+    }
+
+    const summary: string[] = [];
+    const liveTrackLength = runtimeSession.trailLengthM;
+    const liveTrackPoints = runtimeSession.pointCount;
+    const hasLiveRuntimeTrail =
+      (liveTrackLength !== undefined && liveTrackLength > 0) ||
+      (liveTrackPoints !== undefined && liveTrackPoints > 1);
+
+    if (liveTrackLength !== undefined && liveTrackLength > 0) {
+      summary.push(`Live trail ${this._formatMeters(liveTrackLength)}`);
+    } else {
+      if (liveTrackPoints !== undefined && liveTrackPoints > 1) {
+        summary.push(`Live points ${Math.round(liveTrackPoints)}`);
+      }
+    }
+
+    const heading = runtimeSession.headingDeg;
+    if (heading !== undefined && hasLiveRuntimeTrail) {
+      summary.push(`Heading ${Math.round(heading)}°`);
+    }
+
+    return summary;
+  }
+
+  private _renderRuntimeSessionPanel(runtimeSession: RuntimeSessionDetails) {
+    const metrics: Array<{ label: string; value: string }> = [];
+
+    if (runtimeSession.trailLengthM !== undefined && runtimeSession.trailLengthM > 0) {
+      metrics.push({
+        label: "Live Trail",
+        value: this._formatMeters(runtimeSession.trailLengthM),
+      });
+    }
+
+    if (runtimeSession.pointCount !== undefined && runtimeSession.pointCount > 1) {
+      metrics.push({
+        label: "Points",
+        value: `${Math.round(runtimeSession.pointCount)}`,
+      });
+    }
+
+    if (runtimeSession.segmentCount !== undefined && runtimeSession.segmentCount > 0) {
+      metrics.push({
+        label: "Segments",
+        value: `${Math.round(runtimeSession.segmentCount)}`,
+      });
+    }
+
+    if (runtimeSession.headingDeg !== undefined) {
+      metrics.push({
+        label: "Heading",
+        value: `${Math.round(runtimeSession.headingDeg)}°`,
+      });
+    }
+
+    if (runtimeSession.positionX !== undefined && runtimeSession.positionY !== undefined) {
+      metrics.push({
+        label: "Position",
+        value: `${this._formatCoordinate(runtimeSession.positionX)}, ${this._formatCoordinate(runtimeSession.positionY)}`,
+      });
+    }
+
+    if (runtimeSession.source) {
+      metrics.push({
+        label: "Source",
+        value: this._humanizeValue(runtimeSession.source),
+      });
+    }
+
+    if (!metrics.length) {
+      return nothing;
+    }
+
+    return html`
+      <div class="session-panel">
+        <div class="session-header">
+          <div class="session-title">Live Session</div>
+          <div class="session-badge">Runtime Overlay</div>
+        </div>
+        <div class="session-subtitle">
+          Current mowing telemetry from the live runtime map stream.
+        </div>
+        <div class="session-grid">
+          ${metrics.map(
+            (metric) => html`
+              <div class="session-metric">
+                <div class="session-metric-label">${metric.label}</div>
+                <div class="session-metric-value">${metric.value}</div>
+              </div>
+            `,
+          )}
+        </div>
+      </div>
+    `;
+  }
+
   private _showMoreInfo(entityId?: string) {
     this.dispatchEvent(
       new CustomEvent("hass-more-info", {
@@ -983,6 +1512,19 @@ export class LawnMowerCard extends LitElement {
   private async _pressButton(entityId: string) {
     await this.hass.callService("button", "press", {
       entity_id: entityId,
+    });
+  }
+
+  private async _selectOption(entityId: string, event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+    const option = target.value;
+    if (!option) {
+      return;
+    }
+
+    await this.hass.callService("select", "select_option", {
+      entity_id: entityId,
+      option,
     });
   }
 
@@ -1032,6 +1574,14 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     return `${label} ${this._friendlyState(entity)}`;
+  }
+
+  private _companionState(domain: string, suffix: string): string | undefined {
+    const entityId = this._companionEntityId(domain, suffix);
+    if (!entityId) {
+      return undefined;
+    }
+    return this._entityState(entityId);
   }
 
   private _canStart(state: string): boolean {
@@ -1303,6 +1853,7 @@ export class LawnMowerCardEditor extends LitElement {
           config.show_helper_actions ?? true,
           "show_helper_actions",
         )}
+        ${this._controlEntitiesSection(config.control_entities || [])}
         ${this._summaryEntitiesSection(config.summary_entities || [])}
         ${this._tilesSection(config.tiles || [])}
         ${this._actionsSection(config.actions || [])}
@@ -1364,6 +1915,62 @@ export class LawnMowerCardEditor extends LitElement {
           @change=${this._toggleChanged}
         />
       </label>
+    `;
+  }
+
+  private _controlEntitiesSection(controlEntities: string[]) {
+    return html`
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">
+            <strong>Control selectors</strong>
+            <span class="hint">
+              Add Home Assistant select entities for map, mowing action, zone, spot, or edge controls.
+            </span>
+          </div>
+          <button type="button" @click=${this._addControlEntity}>Add selector</button>
+        </div>
+        ${controlEntities.length
+          ? html`
+              <div class="collection">
+                ${controlEntities.map(
+                  (entityId, index) => html`
+                    <div class="row">
+                      <div class="row-grid single">
+                        <label>
+                          <span>Select entity</span>
+                          <input
+                            .value=${entityId || ""}
+                            data-index=${String(index)}
+                            placeholder="select.my_mower_mowing_action"
+                            list="lawn-mower-card-editor-control-entities"
+                            @input=${this._controlEntityChanged}
+                          />
+                        </label>
+                      </div>
+                      <div class="row-actions">
+                        <button
+                          type="button"
+                          class="danger"
+                          data-index=${String(index)}
+                          @click=${this._removeControlEntity}
+                        >
+                          Remove selector
+                        </button>
+                      </div>
+                    </div>
+                  `,
+                )}
+              </div>
+            `
+          : html`
+              <div class="hint">
+                No explicit control selectors yet. The card will auto-detect common mower select companions
+                like map, mowing action, zone, and spot when they exist.
+              </div>
+            `}
+        ${this._entityDatalist("lawn-mower-card-editor-control-entities", ["select"])}
+      </div>
     `;
   }
 
@@ -1695,6 +2302,8 @@ export class LawnMowerCardEditor extends LitElement {
     this._replaceAutoEntityField("status_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("battery_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("progress_entity", next, previousDetected, nextDetected);
+    this._replaceAutoControlEntities(next, previousDetected, nextDetected);
+    this._replaceAutoSummaryEntities(next, previousDetected, nextDetected);
 
     const previousAutoShowMap = Boolean(previousDetected.map_entity);
     if (next.show_map === undefined || next.show_map === previousAutoShowMap) {
@@ -1702,6 +2311,50 @@ export class LawnMowerCardEditor extends LitElement {
         next.show_map = true;
       } else {
         delete next.show_map;
+      }
+    }
+  }
+
+  private _replaceAutoControlEntities(
+    next: LawnMowerCardConfig,
+    previousDetected: Partial<LawnMowerCardConfig>,
+    nextDetected: Partial<LawnMowerCardConfig>,
+  ) {
+    const current = (next.control_entities || []).filter(Boolean);
+    const previousAuto = Array.isArray(previousDetected.control_entities)
+      ? previousDetected.control_entities.filter(Boolean)
+      : [];
+    const nextAuto = Array.isArray(nextDetected.control_entities)
+      ? nextDetected.control_entities.filter(Boolean)
+      : [];
+
+    if (!current.length || this._sameEntityList(current, previousAuto)) {
+      if (nextAuto.length) {
+        next.control_entities = nextAuto;
+      } else {
+        delete next.control_entities;
+      }
+    }
+  }
+
+  private _replaceAutoSummaryEntities(
+    next: LawnMowerCardConfig,
+    previousDetected: Partial<LawnMowerCardConfig>,
+    nextDetected: Partial<LawnMowerCardConfig>,
+  ) {
+    const current = (next.summary_entities || []).filter(Boolean);
+    const previousAuto = Array.isArray(previousDetected.summary_entities)
+      ? previousDetected.summary_entities.filter(Boolean)
+      : [];
+    const nextAuto = Array.isArray(nextDetected.summary_entities)
+      ? nextDetected.summary_entities.filter(Boolean)
+      : [];
+
+    if (!current.length || this._sameEntityList(current, previousAuto)) {
+      if (nextAuto.length) {
+        next.summary_entities = nextAuto;
+      } else {
+        delete next.summary_entities;
       }
     }
   }
@@ -1758,12 +2411,39 @@ export class LawnMowerCardEditor extends LitElement {
       ),
       battery_entity: companion("sensor", "battery"),
       progress_entity: first(
+        companion("sensor", "runtime_mission_progress"),
+        companion("sensor", "mowing_progress"),
         companion("sensor", "weather_protection_status"),
         companion("sensor", "task_status_name"),
         companion("sensor", "task_status"),
         companion("sensor", "error"),
       ),
+      control_entities: [
+        companion("select", "map"),
+        companion("select", "mowing_action"),
+        companion("select", "edge"),
+        companion("select", "zone"),
+        companion("select", "spot"),
+      ].filter((value): value is string => Boolean(value)),
+      summary_entities: [
+        companion("sensor", "runtime_mission_progress"),
+        companion("sensor", "runtime_current_area"),
+        companion("sensor", "runtime_total_area"),
+        companion("sensor", "current_zone"),
+        companion("sensor", "current_cleaned_area"),
+        companion("sensor", "current_cleaning_time"),
+        companion("sensor", "active_segment_count"),
+        first(
+          companion("sensor", "current_app_map_trajectory_length"),
+          companion("sensor", "current_app_map_mow_path_length"),
+          companion("sensor", "current_app_map_trajectory_point_count"),
+        ),
+      ].filter((value): value is string => Boolean(value)),
     };
+  }
+
+  private _sameEntityList(left: string[], right: string[]) {
+    return left.length === right.length && left.every((value, index) => value === right[index]);
   }
 
   private _toggleChanged(event: Event) {
@@ -1806,6 +2486,45 @@ export class LawnMowerCardEditor extends LitElement {
   private _addSummaryEntity() {
     const next = this._nextConfig();
     next.summary_entities = [...(next.summary_entities || []), ""];
+    this._emitConfigChanged(next);
+  }
+
+  private _addControlEntity() {
+    const next = this._nextConfig();
+    next.control_entities = [...(next.control_entities || []), ""];
+    this._emitConfigChanged(next);
+  }
+
+  private _removeControlEntity(event: Event) {
+    const index = this._indexFromEvent(event);
+    if (index === undefined) {
+      return;
+    }
+    const next = this._nextConfig();
+    next.control_entities = (next.control_entities || []).filter(
+      (_, itemIndex) => itemIndex !== index,
+    );
+    if (!next.control_entities.length) {
+      delete next.control_entities;
+    }
+    this._emitConfigChanged(next);
+  }
+
+  private _controlEntityChanged(event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    const index = this._indexFromEvent(event);
+    if (index === undefined) {
+      return;
+    }
+    const next = this._nextConfig();
+    const controlEntities = [...(next.control_entities || [])];
+    controlEntities[index] = target.value.trim();
+    const cleaned = controlEntities.filter(Boolean);
+    if (cleaned.length) {
+      next.control_entities = cleaned;
+    } else {
+      delete next.control_entities;
+    }
     this._emitConfigChanged(next);
   }
 
