@@ -173,10 +173,14 @@ Current auto-detected helpers include:
 
 - schedule calendar
 - all-schedules calendar
+- last-schedule-write diagnostic sensor
 - map diagnostics camera
 - all-maps camera
 - weather probe button
+- preference probe button
+- last-preference-write diagnostic sensor
 - schedule probe button
+- task-status probe button
 - map probe button
 - operation snapshot button
 

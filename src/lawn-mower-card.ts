@@ -1161,6 +1161,16 @@ export class LawnMowerCard extends LitElement {
       });
     }
 
+    const lastScheduleWrite = this._companionEntityId("sensor", "last_schedule_write");
+    if (lastScheduleWrite) {
+      helpers.push({
+        label: "Last Schedule Write",
+        icon: "mdi:calendar-check-outline",
+        disabled: false,
+        handler: () => this._showMoreInfo(lastScheduleWrite),
+      });
+    }
+
     const mapDiagnostics = this._companionEntityId("camera", "map_data");
     if (mapDiagnostics) {
       helpers.push({
@@ -1191,6 +1201,26 @@ export class LawnMowerCard extends LitElement {
       });
     }
 
+    const preferenceProbe = this._companionEntityId("button", "capture_preference_probe");
+    if (preferenceProbe) {
+      helpers.push({
+        label: "Preferences",
+        icon: "mdi:tune-variant",
+        disabled: false,
+        handler: () => this._pressButton(preferenceProbe),
+      });
+    }
+
+    const lastPreferenceWrite = this._companionEntityId("sensor", "last_preference_write");
+    if (lastPreferenceWrite) {
+      helpers.push({
+        label: "Last Preference Write",
+        icon: "mdi:tune",
+        disabled: false,
+        handler: () => this._showMoreInfo(lastPreferenceWrite),
+      });
+    }
+
     const scheduleProbe = this._companionEntityId("button", "capture_schedule_probe");
     if (scheduleProbe) {
       helpers.push({
@@ -1198,6 +1228,16 @@ export class LawnMowerCard extends LitElement {
         icon: "mdi:calendar-search",
         disabled: false,
         handler: () => this._pressButton(scheduleProbe),
+      });
+    }
+
+    const taskStatusProbe = this._companionEntityId("button", "capture_task_status_probe");
+    if (taskStatusProbe) {
+      helpers.push({
+        label: "Task Status",
+        icon: "mdi:list-status",
+        disabled: false,
+        handler: () => this._pressButton(taskStatusProbe),
       });
     }
 
