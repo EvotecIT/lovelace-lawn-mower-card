@@ -70,6 +70,18 @@ type PlannedRunDetails = {
   activeMap?: string;
   target?: string;
   needsMapSwitch?: boolean;
+  selectedZonePreferences?: SelectedZonePreferenceDetails;
+};
+
+type SelectedZonePreferenceDetails = {
+  zoneLabel?: string;
+  mowingHeight?: string;
+  efficiencyMode?: string;
+  directionMode?: string;
+  obstacleAvoidance?: string;
+  obstacleDistance?: string;
+  obstacleHeight?: string;
+  obstacleClasses?: string;
 };
 
 declare global {
@@ -1332,6 +1344,27 @@ export class LawnMowerCard extends LitElement {
     if (entityId.endsWith("_selected_map")) {
       return "Selected Map";
     }
+    if (entityId.endsWith("_selected_zone_mowing_height")) {
+      return "Mowing Height";
+    }
+    if (entityId.endsWith("_selected_zone_efficiency_mode")) {
+      return "Efficiency";
+    }
+    if (entityId.endsWith("_selected_zone_direction_mode")) {
+      return "Direction";
+    }
+    if (entityId.endsWith("_selected_zone_obstacle_avoidance")) {
+      return "Obstacle Avoidance";
+    }
+    if (entityId.endsWith("_selected_zone_obstacle_distance")) {
+      return "Obstacle Distance";
+    }
+    if (entityId.endsWith("_selected_zone_obstacle_height")) {
+      return "Obstacle Height";
+    }
+    if (entityId.endsWith("_selected_zone_obstacle_classes")) {
+      return "Obstacle Classes";
+    }
     if (entityId.endsWith("_mowing_action")) {
       return "Mowing Action";
     }
@@ -1453,6 +1486,50 @@ export class LawnMowerCard extends LitElement {
     return typeof value === "number" && Number.isInteger(value) ? value : undefined;
   }
 
+  private _entityAttributeRecord(
+    entity: HassEntity,
+    attribute: string,
+  ): Record<string, unknown> | undefined {
+    const value = entity.attributes[attribute];
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  }
+
+  private _recordString(
+    record: Record<string, unknown> | undefined,
+    attribute: string,
+  ): string | undefined {
+    const value = record?.[attribute];
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  }
+
+  private _recordNumber(
+    record: Record<string, unknown> | undefined,
+    attribute: string,
+  ): number | undefined {
+    const value = record?.[attribute];
+    return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  }
+
+  private _recordBoolean(
+    record: Record<string, unknown> | undefined,
+    attribute: string,
+  ): boolean | undefined {
+    const value = record?.[attribute];
+    return typeof value === "boolean" ? value : undefined;
+  }
+
+  private _recordStringArray(
+    record: Record<string, unknown> | undefined,
+    attribute: string,
+  ): string[] | undefined {
+    const value = record?.[attribute];
+    return Array.isArray(value) && value.every((item) => typeof item === "string")
+      ? value
+      : undefined;
+  }
+
   private _numberAttribute(entity: HassEntity, attribute: string): number | undefined {
     const value = entity.attributes[attribute];
     if (typeof value === "number" && Number.isFinite(value)) {
@@ -1476,7 +1553,124 @@ export class LawnMowerCard extends LitElement {
     return Number.isInteger(value) ? `${value}` : value.toFixed(1);
   }
 
+  private _formatCentimeters(value: number): string {
+    const normalized = Number.isInteger(value) ? `${Math.round(value)}` : value.toFixed(1);
+    return `${normalized} cm`;
+  }
+
+  private _formatOptionalCentimeters(value: number | undefined): string | undefined {
+    return value !== undefined ? this._formatCentimeters(value) : undefined;
+  }
+
+  private _humanizedOptionalBoolean(value: boolean | undefined): string | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    return value ? "Enabled" : "Disabled";
+  }
+
+  private _humanizedOptionalList(values: string[] | undefined): string | undefined {
+    if (!values?.length) {
+      return undefined;
+    }
+    return values.map((value) => this._humanizeValue(value)).join(", ");
+  }
+
+  private _humanizedOptionalValue(value: string | undefined): string | undefined {
+    return value ? this._humanizeValue(value) : undefined;
+  }
+
+  private _selectedZoneDirectionLabel(
+    preference: Record<string, unknown> | undefined,
+  ): string | undefined {
+    const mode = this._recordString(preference, "mowing_direction_mode_name");
+    const degrees = this._recordNumber(preference, "mowing_direction_degrees");
+    const modeLabel = this._humanizedOptionalValue(mode);
+    if (modeLabel && degrees !== undefined) {
+      return `${modeLabel} (${Math.round(degrees)}°)`;
+    }
+    if (modeLabel) {
+      return modeLabel;
+    }
+    if (degrees !== undefined) {
+      return `${Math.round(degrees)}°`;
+    }
+    return undefined;
+  }
+
+  private _selectedZonePreferenceDetails(
+    mower: HassEntity,
+    target?: string,
+  ): SelectedZonePreferenceDetails | undefined {
+    const selectedZoneId = this._entityAttributeInteger(mower, "selected_zone_id");
+    const selectedAction = this._entityAttributeString(mower, "selected_mowing_action");
+    const preference = this._entityAttributeRecord(mower, "selected_zone_preference");
+    const targetLabel = target?.toLowerCase();
+    const hasZoneContext =
+      selectedAction === "zone" ||
+      (targetLabel?.includes("zone") ?? false);
+    if (!hasZoneContext) {
+      return undefined;
+    }
+
+    const mowingHeight =
+      this._companionState("sensor", "selected_zone_mowing_height") ||
+      this._formatOptionalCentimeters(this._recordNumber(preference, "mowing_height_cm"));
+    const efficiencyMode =
+      this._companionState("sensor", "selected_zone_efficiency_mode") ||
+      this._humanizedOptionalValue(this._recordString(preference, "efficient_mode_name"));
+    const directionMode =
+      this._companionState("sensor", "selected_zone_direction_mode") ||
+      this._selectedZoneDirectionLabel(preference);
+    const obstacleAvoidance =
+      this._companionState("sensor", "selected_zone_obstacle_avoidance") ||
+      this._humanizedOptionalBoolean(this._recordBoolean(preference, "obstacle_avoidance_enabled"));
+    const obstacleDistance =
+      this._companionState("sensor", "selected_zone_obstacle_distance") ||
+      this._formatOptionalCentimeters(
+        this._recordNumber(preference, "obstacle_avoidance_distance_cm"),
+      );
+    const obstacleHeight =
+      this._companionState("sensor", "selected_zone_obstacle_height") ||
+      this._formatOptionalCentimeters(
+        this._recordNumber(preference, "obstacle_avoidance_height_cm"),
+      );
+    const obstacleClasses =
+      this._companionState("sensor", "selected_zone_obstacle_classes") ||
+      this._humanizedOptionalList(
+        this._recordStringArray(preference, "obstacle_avoidance_ai_classes"),
+      );
+    const zoneLabel =
+      this._recordString(preference, "label") ||
+      (selectedZoneId !== undefined ? `Zone #${selectedZoneId}` : undefined);
+
+    if (
+      !zoneLabel &&
+      !mowingHeight &&
+      !efficiencyMode &&
+      !directionMode &&
+      !obstacleAvoidance &&
+      !obstacleDistance &&
+      !obstacleHeight &&
+      !obstacleClasses
+    ) {
+      return undefined;
+    }
+
+    return {
+      zoneLabel,
+      mowingHeight,
+      efficiencyMode,
+      directionMode,
+      obstacleAvoidance,
+      obstacleDistance,
+      obstacleHeight,
+      obstacleClasses,
+    };
+  }
+
   private _plannedRunDetails(mower: HassEntity): PlannedRunDetails | undefined {
+    const selectedActionKey = this._entityAttributeString(mower, "selected_mowing_action");
     const action =
       this._companionState("sensor", "selected_mowing_action") ||
       this._entityAttributeString(mower, "selected_mowing_action_label") ||
@@ -1492,17 +1686,25 @@ export class LawnMowerCard extends LitElement {
     const needsMapSwitch = mower.attributes.selected_map_matches_active_app_map === false;
 
     let target = selectedTarget;
-    if (!target && selectedContourLabel) {
-      target = selectedContourLabel;
-    } else if (!target && selectedZoneId !== undefined) {
-      target = `Zone ${selectedZoneId}`;
-    } else if (!target && selectedSpotId !== undefined) {
-      target = `Spot #${selectedSpotId}`;
+    if (!target) {
+      if (selectedActionKey === "edge" && selectedContourLabel) {
+        target = selectedContourLabel;
+      } else if (selectedActionKey === "spot" && selectedSpotId !== undefined) {
+        target = `Spot #${selectedSpotId}`;
+      } else if (selectedZoneId !== undefined) {
+        target = `Zone #${selectedZoneId}`;
+      } else if (selectedContourLabel) {
+        target = selectedContourLabel;
+      } else if (selectedSpotId !== undefined) {
+        target = `Spot #${selectedSpotId}`;
+      }
     }
 
     if (!action && !selectedMap && !activeMap && !target && !needsMapSwitch) {
       return undefined;
     }
+
+    const selectedZonePreferences = this._selectedZonePreferenceDetails(mower, target);
 
     return {
       action,
@@ -1510,6 +1712,7 @@ export class LawnMowerCard extends LitElement {
       activeMap,
       target,
       needsMapSwitch,
+      selectedZonePreferences,
     };
   }
 
@@ -1640,6 +1843,56 @@ export class LawnMowerCard extends LitElement {
       metrics.push({
         label: "Target",
         value: plannedRun.target,
+      });
+    }
+
+    const zonePreferences = plannedRun.selectedZonePreferences;
+    if (zonePreferences?.zoneLabel && zonePreferences.zoneLabel !== plannedRun.target) {
+      metrics.push({
+        label: "Zone",
+        value: zonePreferences.zoneLabel,
+      });
+    }
+    if (zonePreferences?.mowingHeight) {
+      metrics.push({
+        label: "Mowing Height",
+        value: zonePreferences.mowingHeight,
+      });
+    }
+    if (zonePreferences?.efficiencyMode) {
+      metrics.push({
+        label: "Efficiency",
+        value: zonePreferences.efficiencyMode,
+      });
+    }
+    if (zonePreferences?.directionMode) {
+      metrics.push({
+        label: "Direction",
+        value: zonePreferences.directionMode,
+      });
+    }
+    if (zonePreferences?.obstacleAvoidance) {
+      metrics.push({
+        label: "Obstacle Avoidance",
+        value: zonePreferences.obstacleAvoidance,
+      });
+    }
+    if (zonePreferences?.obstacleDistance) {
+      metrics.push({
+        label: "Obstacle Distance",
+        value: zonePreferences.obstacleDistance,
+      });
+    }
+    if (zonePreferences?.obstacleHeight) {
+      metrics.push({
+        label: "Obstacle Height",
+        value: zonePreferences.obstacleHeight,
+      });
+    }
+    if (zonePreferences?.obstacleClasses) {
+      metrics.push({
+        label: "Obstacle AI",
+        value: zonePreferences.obstacleClasses,
       });
     }
 

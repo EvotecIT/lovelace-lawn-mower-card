@@ -204,9 +204,24 @@ the card renders a small `Planned Run` panel that summarizes:
 - selected map
 - active map when it differs from the selected map
 - the selected zone, spot, or edge target
+- selected-zone mowing preferences such as height, efficiency, direction, and obstacle avoidance
 
 For Dreame mower setups this helps confirm the scoped run before pressing the
 main `Start` action.
+
+When available, the card reads these companion sensors directly:
+
+- `sensor.my_mower_selected_zone_mowing_height`
+- `sensor.my_mower_selected_zone_efficiency_mode`
+- `sensor.my_mower_selected_zone_direction_mode`
+- `sensor.my_mower_selected_zone_obstacle_avoidance`
+- `sensor.my_mower_selected_zone_obstacle_distance`
+- `sensor.my_mower_selected_zone_obstacle_height`
+- `sensor.my_mower_selected_zone_obstacle_classes`
+
+If some of those sensors are missing, the card can still fall back to the mower
+entity's `selected_zone_preference` attributes when the integration exposes
+them.
 
 ## Live Session Panel
 
