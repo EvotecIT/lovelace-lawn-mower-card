@@ -70,7 +70,15 @@ type PlannedRunDetails = {
   activeMap?: string;
   target?: string;
   needsMapSwitch?: boolean;
+  selectedMapPreferences?: SelectedMapPreferenceDetails;
   selectedZonePreferences?: SelectedZonePreferenceDetails;
+};
+
+type SelectedMapPreferenceDetails = {
+  modeLabel?: string;
+  modeKey?: string;
+  areaCount?: string;
+  preferenceCount?: string;
 };
 
 type SelectedZonePreferenceDetails = {
@@ -1630,6 +1638,13 @@ export class LawnMowerCard extends LitElement {
     return value ? this._humanizeValue(value) : undefined;
   }
 
+  private _formatOptionalCount(value: number | undefined): string | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    return `${Math.round(value)}`;
+  }
+
   private _selectedZoneDirectionLabel(
     preference: Record<string, unknown> | undefined,
   ): string | undefined {
@@ -1719,6 +1734,34 @@ export class LawnMowerCard extends LitElement {
     };
   }
 
+  private _selectedMapPreferenceDetails(
+    mower: HassEntity,
+  ): SelectedMapPreferenceDetails | undefined {
+    const preference = this._entityAttributeRecord(mower, "selected_map_preference");
+    const modeSensor = this._companionState("sensor", "selected_map_preference_mode");
+    const modeKey =
+      this._recordString(preference, "mode_name") ||
+      this._entityAttributeString(mower, "selected_map_preference_mode");
+    const modeLabel = modeSensor || this._humanizedOptionalValue(modeKey);
+    const areaCount =
+      this._companionState("sensor", "selected_map_preference_area_count") ||
+      this._formatOptionalCount(this._recordNumber(preference, "area_count"));
+    const preferenceCount =
+      this._companionState("sensor", "selected_map_preference_count") ||
+      this._formatOptionalCount(this._recordNumber(preference, "preference_count"));
+
+    if (!modeLabel && !areaCount && !preferenceCount) {
+      return undefined;
+    }
+
+    return {
+      modeLabel,
+      modeKey: modeKey?.trim().toLowerCase(),
+      areaCount,
+      preferenceCount,
+    };
+  }
+
   private _plannedRunDetails(mower: HassEntity): PlannedRunDetails | undefined {
     const selectedActionKey = this._entityAttributeString(mower, "selected_mowing_action");
     const action =
@@ -1750,7 +1793,9 @@ export class LawnMowerCard extends LitElement {
       }
     }
 
-    if (!action && !selectedMap && !activeMap && !target && !needsMapSwitch) {
+    const selectedMapPreferences = this._selectedMapPreferenceDetails(mower);
+
+    if (!action && !selectedMap && !activeMap && !target && !needsMapSwitch && !selectedMapPreferences) {
       return undefined;
     }
 
@@ -1762,6 +1807,7 @@ export class LawnMowerCard extends LitElement {
       activeMap,
       target,
       needsMapSwitch,
+      selectedMapPreferences,
       selectedZonePreferences,
     };
   }
@@ -1896,6 +1942,26 @@ export class LawnMowerCard extends LitElement {
       });
     }
 
+    const mapPreferences = plannedRun.selectedMapPreferences;
+    if (mapPreferences?.modeLabel) {
+      metrics.push({
+        label: "Preference Mode",
+        value: mapPreferences.modeLabel,
+      });
+    }
+    if (mapPreferences?.areaCount) {
+      metrics.push({
+        label: "Preference Areas",
+        value: mapPreferences.areaCount,
+      });
+    }
+    if (mapPreferences?.preferenceCount) {
+      metrics.push({
+        label: "Stored Preferences",
+        value: mapPreferences.preferenceCount,
+      });
+    }
+
     const zonePreferences = plannedRun.selectedZonePreferences;
     if (zonePreferences?.zoneLabel && zonePreferences.zoneLabel !== plannedRun.target) {
       metrics.push({
@@ -1966,6 +2032,14 @@ export class LawnMowerCard extends LitElement {
             `,
           )}
         </div>
+        ${mapPreferences?.modeKey === "global" && zonePreferences
+          ? html`
+              <div class="target-note">
+                The selected map is still using global preferences, so zone-specific mowing
+                settings may not apply until custom mode is enabled.
+              </div>
+            `
+          : nothing}
         ${plannedRun.needsMapSwitch
           ? html`
               <div class="target-note">

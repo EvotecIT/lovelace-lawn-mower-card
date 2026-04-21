@@ -212,12 +212,14 @@ the card renders a small `Planned Run` panel that summarizes:
 
 - selected mowing action
 - selected map
+- selected map preference mode when the integration exposes it
 - active map when it differs from the selected map
 - the selected zone, spot, or edge target
 - selected-zone mowing preferences such as height, efficiency, direction, and obstacle avoidance
 
 For Dreame mower setups this helps confirm the scoped run before pressing the
-main `Start` action.
+main `Start` action. When the selected map is still in global preference mode,
+the panel also warns that zone-specific mowing settings may not be active yet.
 
 When available, the card reads these companion sensors directly:
 
