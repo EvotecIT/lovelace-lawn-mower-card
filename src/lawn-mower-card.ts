@@ -1181,6 +1181,16 @@ export class LawnMowerCard extends LitElement {
       });
     }
 
+    const livePathMap = this._companionEntityId("camera", "live_path_map");
+    if (livePathMap) {
+      helpers.push({
+        label: "Live Map",
+        icon: "mdi:map-marker-path",
+        disabled: false,
+        handler: () => this._showMoreInfo(livePathMap),
+      });
+    }
+
     const allMaps = this._companionEntityId("camera", "all_maps");
     if (allMaps) {
       helpers.push({
@@ -2418,8 +2428,8 @@ export class LawnMowerCardEditor extends LitElement {
           "Map camera",
           config.map_entity,
           "map_entity",
-          "camera.my_mower_map",
-          "Optional camera entity used for the map preview.",
+          "camera.my_mower_live_path_map",
+          "Optional camera entity used for the map preview. Live path cameras work best when available.",
           ["camera"],
         )}
         ${this._toggle(
@@ -3005,6 +3015,7 @@ export class LawnMowerCardEditor extends LitElement {
       values.find((value) => Boolean(value));
 
     const mapEntity = first(
+      companion("camera", "live_path_map"),
       companion("camera", "map"),
       companion("camera", "all_maps"),
       companion("camera", "map_data"),

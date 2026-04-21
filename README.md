@@ -12,7 +12,7 @@ vacuum card adaptation. It starts with the basics that work across mower
 integrations today:
 
 - mower state and activity
-- optional map camera
+- optional map camera, with live-path overlays preferred when the integration exposes them
 - start, pause, and dock controls
 - optional selector controls for map, mowing action, zone, spot, and edge entities
 - planned-run preview for selected map, action, and scoped target
@@ -58,7 +58,7 @@ type: custom:lawn-mower-card
 entity: lawn_mower.dreame_a2_bodzio
 name: Backyard mower
 layout: wide
-map_entity: camera.dreame_a2_bodzio_map
+map_entity: camera.dreame_a2_bodzio_live_path_map
 show_map: true
 status_entity: sensor.dreame_a2_bodzio_state_name
 battery_entity: sensor.dreame_a2_bodzio_battery
@@ -95,7 +95,9 @@ tiles:
 - `entity`: required `lawn_mower` entity id
 - `name`: optional card title override
 - `layout`: optional `default`, `compact`, or `wide`
-- `map_entity`: optional camera entity for the mower map
+- `map_entity`: optional camera entity for the mower map. If your integration
+  exposes a live-path or runtime-overlay camera, prefer that over a static map
+  camera so the card can show the current cut path.
 - `show_map`: optional boolean override for the map section
 - `status_entity`: optional entity shown as the primary subtitle
 - `battery_entity`: optional entity shown in a stat tile
@@ -128,6 +130,9 @@ chips such as current zone, cut area, mowing time, and active segments when
 those sensors exist. When the mower entity or companion sensors expose selected
 map and mowing scope details, the card also shows a `Planned Run` panel so it
 is clearer what pressing `Start` will do.
+When multiple mower cameras exist, the card now prefers a `live_path_map`
+camera first so the main preview follows the currently cut area instead of only
+the broader stored map.
 
 ## Layout Modes
 
@@ -175,6 +180,7 @@ Current auto-detected helpers include:
 - all-schedules calendar
 - last-schedule-write diagnostic sensor
 - map diagnostics camera
+- live-path map camera
 - all-maps camera
 - weather probe button
 - preference probe button
