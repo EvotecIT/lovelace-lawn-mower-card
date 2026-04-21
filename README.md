@@ -125,9 +125,9 @@ companion entities such as map, state, battery, status tiles, and mower select
 controls without overwriting deliberate custom choices. With the Dreame mower
 integration, that companion autofill now also picks up live-session summary
 chips such as current zone, cut area, mowing time, and active segments when
-those sensors exist. When the mower entity exposes selected map and mowing
-scope attributes, the card also shows a `Planned Run` panel so it is clearer
-what pressing `Start` will do.
+those sensors exist. When the mower entity or companion sensors expose selected
+map and mowing scope details, the card also shows a `Planned Run` panel so it
+is clearer what pressing `Start` will do.
 
 ## Layout Modes
 
@@ -143,7 +143,8 @@ By default it will try to use:
 
 - battery from the configured battery entity or mower attributes
 - activity and task from mower attributes
-- companion binary sensors such as `docked`, `charging`, and `rain_delay_active`
+- companion binary sensors such as `docked`, `charging`, `bluetooth_connected`,
+  and `rain_delay_active`
 - companion sensors such as `weather_protection_status`
 - active error information
 
@@ -158,6 +159,8 @@ including:
 - `sensor.my_mower_current_cleaned_area`
 - `sensor.my_mower_current_cleaning_time`
 - `sensor.my_mower_active_segment_count`
+- `sensor.my_mower_selected_target`
+- `sensor.my_mower_selected_map`
 - `sensor.my_mower_current_app_map_trajectory_point_count`
 
 ## Smart Helper Actions
@@ -194,8 +197,8 @@ companions from the mower object id.
 
 ## Planned Run Preview
 
-When the mower entity exposes current selection attributes, the card renders a
-small `Planned Run` panel that summarizes:
+When the mower entity or companion sensors expose current selection details,
+the card renders a small `Planned Run` panel that summarizes:
 
 - selected mowing action
 - selected map
@@ -204,6 +207,21 @@ small `Planned Run` panel that summarizes:
 
 For Dreame mower setups this helps confirm the scoped run before pressing the
 main `Start` action.
+
+## Live Session Panel
+
+When the card can see live-session companions, it renders a `Live Session`
+panel that can summarize:
+
+- runtime mission progress
+- current and total area coverage
+- current zone
+- Bluetooth connectivity
+- live runtime trail length, points, segments, heading, and position
+
+If a map camera is configured, the panel also reads runtime overlay details
+from the map entity attributes. If no map camera is configured, the panel still
+shows the companion sensor and binary-sensor data it can resolve.
 
 ## Development
 

@@ -50,6 +50,11 @@ type ConfigChangedDetail = {
 };
 
 type RuntimeSessionDetails = {
+  missionProgress?: string;
+  currentArea?: string;
+  totalArea?: string;
+  currentZone?: string;
+  bluetoothState?: string;
   trailLengthM?: number;
   pointCount?: number;
   segmentCount?: number;
@@ -776,6 +781,11 @@ export class LawnMowerCard extends LitElement {
       summary.push(charging);
     }
 
+    const bluetooth = this._companionSummaryFromBinary("bluetooth_connected", "Bluetooth");
+    if (bluetooth) {
+      summary.push(bluetooth);
+    }
+
     const rainDelay = this._companionSummaryFromBinary("rain_delay_active", "Rain Delay");
     if (rainDelay) {
       summary.push(rainDelay);
@@ -832,6 +842,8 @@ export class LawnMowerCard extends LitElement {
       `sensor.${objectId}_runtime_mission_progress`,
       `sensor.${objectId}_runtime_current_area`,
       `sensor.${objectId}_runtime_total_area`,
+      `sensor.${objectId}_selected_target`,
+      `sensor.${objectId}_selected_map`,
       `sensor.${objectId}_current_zone`,
       `sensor.${objectId}_current_cleaned_area`,
       `sensor.${objectId}_current_cleaning_time`,
@@ -1311,6 +1323,15 @@ export class LawnMowerCard extends LitElement {
     if (entityId.endsWith("_battery")) {
       return "Battery";
     }
+    if (entityId.endsWith("_selected_mowing_action")) {
+      return "Selected Action";
+    }
+    if (entityId.endsWith("_selected_target")) {
+      return "Selected Target";
+    }
+    if (entityId.endsWith("_selected_map")) {
+      return "Selected Map";
+    }
     if (entityId.endsWith("_mowing_action")) {
       return "Mowing Action";
     }
@@ -1343,6 +1364,15 @@ export class LawnMowerCard extends LitElement {
     }
     if (entityId.endsWith("_runtime_heading")) {
       return "Heading";
+    }
+    if (entityId.endsWith("_runtime_live_track_length")) {
+      return "Live Trail";
+    }
+    if (entityId.endsWith("_runtime_live_track_point_count")) {
+      return "Live Points";
+    }
+    if (entityId.endsWith("_runtime_live_track_segment_count")) {
+      return "Live Segments";
     }
     if (entityId.endsWith("_current_cleaned_area")) {
       return "Cut Area";
@@ -1448,21 +1478,25 @@ export class LawnMowerCard extends LitElement {
 
   private _plannedRunDetails(mower: HassEntity): PlannedRunDetails | undefined {
     const action =
+      this._companionState("sensor", "selected_mowing_action") ||
       this._entityAttributeString(mower, "selected_mowing_action_label") ||
       this._entityAttributeString(mower, "task_status_name");
-    const selectedMap = this._entityAttributeString(mower, "selected_map_label");
+    const selectedMap =
+      this._companionState("sensor", "selected_map") ||
+      this._entityAttributeString(mower, "selected_map_label");
     const activeMap = this._entityAttributeString(mower, "app_current_map_label");
+    const selectedTarget = this._companionState("sensor", "selected_target");
     const selectedZoneId = this._entityAttributeInteger(mower, "selected_zone_id");
     const selectedSpotId = this._entityAttributeInteger(mower, "selected_spot_id");
     const selectedContourLabel = this._entityAttributeString(mower, "selected_contour_label");
     const needsMapSwitch = mower.attributes.selected_map_matches_active_app_map === false;
 
-    let target: string | undefined;
-    if (selectedContourLabel) {
+    let target = selectedTarget;
+    if (!target && selectedContourLabel) {
       target = selectedContourLabel;
-    } else if (selectedZoneId !== undefined) {
+    } else if (!target && selectedZoneId !== undefined) {
       target = `Zone ${selectedZoneId}`;
-    } else if (selectedSpotId !== undefined) {
+    } else if (!target && selectedSpotId !== undefined) {
       target = `Spot #${selectedSpotId}`;
     }
 
@@ -1481,30 +1515,60 @@ export class LawnMowerCard extends LitElement {
 
   private _runtimeSessionDetails(): RuntimeSessionDetails | undefined {
     const mapEntity = this._mapEntity();
-    if (!mapEntity) {
-      return undefined;
-    }
+    const missionProgress =
+      this._companionState("sensor", "runtime_mission_progress") ||
+      this._companionState("sensor", "mowing_progress");
+    const currentArea =
+      this._companionState("sensor", "runtime_current_area") ||
+      this._companionState("sensor", "current_cleaned_area");
+    const totalArea = this._companionState("sensor", "runtime_total_area");
+    const currentZone = this._companionState("sensor", "current_zone");
+    const bluetoothState =
+      this._companionBinaryStateLabel("bluetooth_connected", "Connected", "Disconnected") ||
+      undefined;
 
-    const trailLengthM = this._numberAttribute(mapEntity, "runtime_track_length_m");
-    const pointCount = this._numberAttribute(mapEntity, "runtime_track_point_count");
-    const segmentCount = this._numberAttribute(mapEntity, "runtime_track_segment_count");
-    const headingDeg = this._numberAttribute(mapEntity, "runtime_heading_deg");
-    const positionX = this._numberAttribute(mapEntity, "runtime_pose_x");
-    const positionY = this._numberAttribute(mapEntity, "runtime_pose_y");
+    const trailLengthM = mapEntity
+      ? this._numberAttribute(mapEntity, "runtime_track_length_m")
+      : undefined;
+    const pointCount = mapEntity
+      ? this._numberAttribute(mapEntity, "runtime_track_point_count")
+      : undefined;
+    const segmentCount = mapEntity
+      ? this._numberAttribute(mapEntity, "runtime_track_segment_count")
+      : undefined;
+    const headingDeg = mapEntity
+      ? this._numberAttribute(mapEntity, "runtime_heading_deg")
+      : undefined;
+    const positionX = mapEntity ? this._numberAttribute(mapEntity, "runtime_pose_x") : undefined;
+    const positionY = mapEntity ? this._numberAttribute(mapEntity, "runtime_pose_y") : undefined;
     const source =
-      typeof mapEntity.attributes.source === "string" && mapEntity.attributes.source
+      mapEntity &&
+      typeof mapEntity.attributes.source === "string" &&
+      mapEntity.attributes.source
         ? mapEntity.attributes.source
         : undefined;
 
-    const hasLiveRuntimeTrail =
+    const hasAnyRuntimeData =
+      missionProgress !== undefined ||
+      currentArea !== undefined ||
+      totalArea !== undefined ||
+      currentZone !== undefined ||
+      bluetoothState !== undefined ||
       (trailLengthM !== undefined && trailLengthM > 0) ||
       (pointCount !== undefined && pointCount > 1) ||
-      (segmentCount !== undefined && segmentCount > 0);
-    if (!hasLiveRuntimeTrail) {
+      (segmentCount !== undefined && segmentCount > 0) ||
+      headingDeg !== undefined ||
+      (positionX !== undefined && positionY !== undefined);
+    if (!hasAnyRuntimeData) {
       return undefined;
     }
 
     return {
+      missionProgress,
+      currentArea,
+      totalArea,
+      currentZone,
+      bluetoothState,
       trailLengthM,
       pointCount,
       segmentCount,
@@ -1539,6 +1603,10 @@ export class LawnMowerCard extends LitElement {
     const heading = runtimeSession.headingDeg;
     if (heading !== undefined && hasLiveRuntimeTrail) {
       summary.push(`Heading ${Math.round(heading)}°`);
+    }
+
+    if (runtimeSession.bluetoothState === "Connected") {
+      summary.push("Bluetooth Connected");
     }
 
     return summary;
@@ -1609,6 +1677,39 @@ export class LawnMowerCard extends LitElement {
 
   private _renderRuntimeSessionPanel(runtimeSession: RuntimeSessionDetails) {
     const metrics: Array<{ label: string; value: string }> = [];
+
+    if (runtimeSession.missionProgress) {
+      metrics.push({
+        label: "Progress",
+        value: runtimeSession.missionProgress,
+      });
+    }
+
+    if (runtimeSession.currentArea && runtimeSession.totalArea) {
+      metrics.push({
+        label: "Coverage",
+        value: `${runtimeSession.currentArea} / ${runtimeSession.totalArea}`,
+      });
+    } else if (runtimeSession.currentArea) {
+      metrics.push({
+        label: "Current Area",
+        value: runtimeSession.currentArea,
+      });
+    }
+
+    if (runtimeSession.currentZone) {
+      metrics.push({
+        label: "Current Zone",
+        value: runtimeSession.currentZone,
+      });
+    }
+
+    if (runtimeSession.bluetoothState) {
+      metrics.push({
+        label: "Bluetooth",
+        value: runtimeSession.bluetoothState,
+      });
+    }
 
     if (runtimeSession.trailLengthM !== undefined && runtimeSession.trailLengthM > 0) {
       metrics.push({
@@ -1774,6 +1875,28 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     return this._entityState(entityId);
+  }
+
+  private _companionBinaryStateLabel(
+    suffix: string,
+    onLabel: string,
+    offLabel?: string,
+  ): string | undefined {
+    const entityId = this._companionEntityId("binary_sensor", suffix);
+    if (!entityId) {
+      return undefined;
+    }
+    const entity = this.hass.states[entityId];
+    if (!entity || ["unknown", "unavailable", ""].includes(entity.state)) {
+      return undefined;
+    }
+    if (entity.state === "on") {
+      return onLabel;
+    }
+    if (entity.state === "off" && offLabel) {
+      return offLabel;
+    }
+    return this._friendlyState(entity);
   }
 
   private _canStart(state: string): boolean {
