@@ -15,6 +15,7 @@ integrations today:
 - optional map camera
 - start, pause, and dock controls
 - optional selector controls for map, mowing action, zone, spot, and edge entities
+- planned-run preview for selected map, action, and scoped target
 - configurable status tiles
 - room to grow into richer map and zone workflows later
 
@@ -124,7 +125,9 @@ companion entities such as map, state, battery, status tiles, and mower select
 controls without overwriting deliberate custom choices. With the Dreame mower
 integration, that companion autofill now also picks up live-session summary
 chips such as current zone, cut area, mowing time, and active segments when
-those sensors exist.
+those sensors exist. When the mower entity exposes selected map and mowing
+scope attributes, the card also shows a `Planned Run` panel so it is clearer
+what pressing `Start` will do.
 
 ## Layout Modes
 
@@ -188,6 +191,19 @@ that expose entities such as:
 
 If you do not set `control_entities`, the card will try to auto-detect these
 companions from the mower object id.
+
+## Planned Run Preview
+
+When the mower entity exposes current selection attributes, the card renders a
+small `Planned Run` panel that summarizes:
+
+- selected mowing action
+- selected map
+- active map when it differs from the selected map
+- the selected zone, spot, or edge target
+
+For Dreame mower setups this helps confirm the scoped run before pressing the
+main `Start` action.
 
 ## Development
 

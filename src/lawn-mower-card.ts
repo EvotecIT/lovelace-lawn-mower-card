@@ -59,6 +59,14 @@ type RuntimeSessionDetails = {
   source?: string;
 };
 
+type PlannedRunDetails = {
+  action?: string;
+  selectedMap?: string;
+  activeMap?: string;
+  target?: string;
+  needsMapSwitch?: boolean;
+};
+
 declare global {
   interface Window {
     customCards?: Array<Record<string, unknown>>;
@@ -260,6 +268,79 @@ export class LawnMowerCard extends LitElement {
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font: inherit;
+    }
+
+    .target-panel {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--divider-color) 78%);
+      border-radius: 12px;
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--card-background-color) 93%, var(--primary-color) 7%),
+          color-mix(in srgb, var(--card-background-color) 98%, var(--primary-color) 2%)
+        );
+    }
+
+    .target-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .target-title {
+      font-size: 0.86rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .target-badge {
+      border: 1px solid color-mix(in srgb, var(--primary-color) 28%, var(--divider-color) 72%);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 0.76rem;
+      color: var(--secondary-text-color);
+      background: color-mix(in srgb, var(--card-background-color) 92%, var(--primary-color) 8%);
+      white-space: nowrap;
+    }
+
+    .target-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .target-metric {
+      border: 1px solid var(--divider-color);
+      border-radius: 10px;
+      padding: 10px;
+      background: color-mix(in srgb, var(--card-background-color) 96%, var(--primary-color) 4%);
+      min-width: 0;
+    }
+
+    .target-metric-label {
+      color: var(--secondary-text-color);
+      font-size: 0.76rem;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .target-metric-value {
+      font-size: 0.98rem;
+      font-weight: 600;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .target-note {
+      color: var(--secondary-text-color);
+      font-size: 0.84rem;
+      line-height: 1.4;
     }
 
     .session-panel {
@@ -487,6 +568,7 @@ export class LawnMowerCard extends LitElement {
     const actionGroups = this._buildActionGroups(mower.state);
     const headerSummary = this._buildHeaderSummary();
     const controlEntities = this._resolvedControlEntities();
+    const plannedRun = this._plannedRunDetails(mower);
     const runtimeSession = this._runtimeSessionDetails();
 
     return html`
@@ -522,6 +604,10 @@ export class LawnMowerCard extends LitElement {
           </div>
 
           <div class="side">
+            ${plannedRun
+              ? this._renderPlannedRunPanel(plannedRun)
+              : nothing}
+
             ${runtimeSession
               ? this._renderRuntimeSessionPanel(runtimeSession)
               : nothing}
@@ -584,12 +670,12 @@ export class LawnMowerCard extends LitElement {
     const showMap = this._config?.show_map ?? Boolean(this._config?.map_entity);
     const layout = this._config?.layout || "default";
     if (layout === "compact") {
-      return showMap ? 7 : 5;
+      return showMap ? 8 : 6;
     }
     if (layout === "wide") {
-      return showMap ? 9 : 7;
+      return showMap ? 10 : 8;
     }
-    return showMap ? 8 : 6;
+    return showMap ? 9 : 7;
   }
 
   private _buildTiles(): Array<{ label: string; value: string }> {
@@ -1327,6 +1413,16 @@ export class LawnMowerCard extends LitElement {
     return this.hass.states[this._config.map_entity];
   }
 
+  private _entityAttributeString(entity: HassEntity, attribute: string): string | undefined {
+    const value = entity.attributes[attribute];
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  }
+
+  private _entityAttributeInteger(entity: HassEntity, attribute: string): number | undefined {
+    const value = entity.attributes[attribute];
+    return typeof value === "number" && Number.isInteger(value) ? value : undefined;
+  }
+
   private _numberAttribute(entity: HassEntity, attribute: string): number | undefined {
     const value = entity.attributes[attribute];
     if (typeof value === "number" && Number.isFinite(value)) {
@@ -1348,6 +1444,39 @@ export class LawnMowerCard extends LitElement {
 
   private _formatCoordinate(value: number): string {
     return Number.isInteger(value) ? `${value}` : value.toFixed(1);
+  }
+
+  private _plannedRunDetails(mower: HassEntity): PlannedRunDetails | undefined {
+    const action =
+      this._entityAttributeString(mower, "selected_mowing_action_label") ||
+      this._entityAttributeString(mower, "task_status_name");
+    const selectedMap = this._entityAttributeString(mower, "selected_map_label");
+    const activeMap = this._entityAttributeString(mower, "app_current_map_label");
+    const selectedZoneId = this._entityAttributeInteger(mower, "selected_zone_id");
+    const selectedSpotId = this._entityAttributeInteger(mower, "selected_spot_id");
+    const selectedContourLabel = this._entityAttributeString(mower, "selected_contour_label");
+    const needsMapSwitch = mower.attributes.selected_map_matches_active_app_map === false;
+
+    let target: string | undefined;
+    if (selectedContourLabel) {
+      target = selectedContourLabel;
+    } else if (selectedZoneId !== undefined) {
+      target = `Zone ${selectedZoneId}`;
+    } else if (selectedSpotId !== undefined) {
+      target = `Spot #${selectedSpotId}`;
+    }
+
+    if (!action && !selectedMap && !activeMap && !target && !needsMapSwitch) {
+      return undefined;
+    }
+
+    return {
+      action,
+      selectedMap,
+      activeMap,
+      target,
+      needsMapSwitch,
+    };
   }
 
   private _runtimeSessionDetails(): RuntimeSessionDetails | undefined {
@@ -1413,6 +1542,69 @@ export class LawnMowerCard extends LitElement {
     }
 
     return summary;
+  }
+
+  private _renderPlannedRunPanel(plannedRun: PlannedRunDetails) {
+    const metrics: Array<{ label: string; value: string }> = [];
+
+    if (plannedRun.action) {
+      metrics.push({
+        label: "Action",
+        value: plannedRun.action,
+      });
+    }
+
+    if (plannedRun.selectedMap) {
+      metrics.push({
+        label: "Selected Map",
+        value: plannedRun.selectedMap,
+      });
+    }
+
+    if (plannedRun.activeMap && plannedRun.activeMap !== plannedRun.selectedMap) {
+      metrics.push({
+        label: "Active Map",
+        value: plannedRun.activeMap,
+      });
+    }
+
+    if (plannedRun.target) {
+      metrics.push({
+        label: "Target",
+        value: plannedRun.target,
+      });
+    }
+
+    if (!metrics.length && !plannedRun.needsMapSwitch) {
+      return nothing;
+    }
+
+    return html`
+      <div class="target-panel">
+        <div class="target-header">
+          <div class="target-title">Planned Run</div>
+          <div class="target-badge">Start Preview</div>
+        </div>
+        <div class="target-grid">
+          ${metrics.map(
+            (metric) => html`
+              <div class="target-metric">
+                <div class="target-metric-label">${metric.label}</div>
+                <div class="target-metric-value">${metric.value}</div>
+              </div>
+            `,
+          )}
+        </div>
+        ${plannedRun.needsMapSwitch
+          ? html`
+              <div class="target-note">
+                The selected map does not match the mower's active app map yet. Switch maps before
+                starting a scoped run.
+              </div>
+            `
+          : nothing}
+      </div>
+    `;
   }
 
   private _renderRuntimeSessionPanel(runtimeSession: RuntimeSessionDetails) {
