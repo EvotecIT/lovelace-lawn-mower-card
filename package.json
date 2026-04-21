@@ -1,6 +1,6 @@
 {
   "name": "lovelace-lawn-mower-card",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "A Lovelace card for robotic lawn mowers in Home Assistant.",
   "type": "module",
