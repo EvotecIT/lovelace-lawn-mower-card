@@ -246,12 +246,15 @@ export class LawnMowerCard extends LitElement {
       overflow: hidden;
       background: color-mix(in srgb, var(--card-background-color) 90%, black 10%);
       min-height: 180px;
+      display: grid;
+      place-items: center;
     }
 
     .map img {
       display: block;
       width: 100%;
-      height: auto;
+      max-height: min(62vh, 560px);
+      object-fit: contain;
     }
 
     .map-placeholder {
@@ -767,7 +770,7 @@ export class LawnMowerCard extends LitElement {
 
     for (const entityId of this._resolvedSummaryEntities()) {
       const entity = this.hass.states[entityId];
-      if (!entity) {
+      if (!entity || this._isUnavailableEntity(entity)) {
         continue;
       }
       const label = this._friendlyName(entity) || this._entityName(entityId);
@@ -1287,7 +1290,7 @@ export class LawnMowerCard extends LitElement {
 
   private _tileFromEntity(entityId: string, fallbackLabel?: string, icon?: string) {
     const entity = this.hass.states[entityId];
-    if (!entity) {
+    if (!entity || this._isUnavailableEntity(entity)) {
       return {
         label: fallbackLabel || this._preferredEntityLabel(entityId),
         value: "Unavailable",
@@ -1318,7 +1321,9 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     const entity = this.hass.states[entityId];
-    return entity ? this._friendlyState(entity) : undefined;
+    return entity && !this._isUnavailableEntity(entity)
+      ? this._friendlyState(entity)
+      : undefined;
   }
 
   private _stringAttribute(
@@ -1852,7 +1857,6 @@ export class LawnMowerCard extends LitElement {
       currentArea !== undefined ||
       totalArea !== undefined ||
       currentZone !== undefined ||
-      bluetoothState !== undefined ||
       (trailLengthM !== undefined && trailLengthM > 0) ||
       (pointCount !== undefined && pointCount > 1) ||
       (segmentCount !== undefined && segmentCount > 0) ||
@@ -2240,7 +2244,7 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     const entity = this.hass.states[entityId];
-    if (!entity || ["unknown", "unavailable", ""].includes(entity.state)) {
+    if (!entity || this._isUnavailableEntity(entity)) {
       return undefined;
     }
     return `${label} ${this._friendlyState(entity)}`;
@@ -2251,7 +2255,15 @@ export class LawnMowerCard extends LitElement {
     if (!entityId) {
       return undefined;
     }
-    return this._entityState(entityId);
+    const entity = this.hass.states[entityId];
+    if (!entity || this._isUnavailableEntity(entity)) {
+      return undefined;
+    }
+    return this._friendlyState(entity);
+  }
+
+  private _isUnavailableEntity(entity: HassEntity): boolean {
+    return ["unknown", "unavailable", ""].includes(String(entity.state).trim().toLowerCase());
   }
 
   private _companionBinaryStateLabel(
@@ -2264,7 +2276,7 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     const entity = this.hass.states[entityId];
-    if (!entity || ["unknown", "unavailable", ""].includes(entity.state)) {
+    if (!entity || this._isUnavailableEntity(entity)) {
       return undefined;
     }
     if (entity.state === "on") {
