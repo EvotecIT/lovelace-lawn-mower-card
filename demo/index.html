@@ -656,7 +656,7 @@
                   </div>
                   <div class="feed-item">
                     <strong>Helper entities available</strong>
-                    <span>Map diagnostics, all maps, schedules, and probe buttons detected.</span>
+                    <span>Live video, live map, all maps, and schedule detected.</span>
                   </div>
                 </div>
               </section>
@@ -699,6 +699,21 @@
           state: "monitoring",
           attributes: { friendly_name: "Weather" },
         },
+        "sensor.backyard_mower_runtime_mission_progress": {
+          entity_id: "sensor.backyard_mower_runtime_mission_progress",
+          state: "62",
+          attributes: { friendly_name: "Progress", unit_of_measurement: "%" },
+        },
+        "sensor.backyard_mower_runtime_current_area": {
+          entity_id: "sensor.backyard_mower_runtime_current_area",
+          state: "329",
+          attributes: { friendly_name: "Current area", unit_of_measurement: "m²" },
+        },
+        "sensor.backyard_mower_runtime_total_area": {
+          entity_id: "sensor.backyard_mower_runtime_total_area",
+          state: "531",
+          attributes: { friendly_name: "Total area", unit_of_measurement: "m²" },
+        },
         "binary_sensor.backyard_mower_docked": {
           entity_id: "binary_sensor.backyard_mower_docked",
           state: "off",
@@ -728,6 +743,34 @@
           entity_id: "camera.backyard_mower_all_maps",
           state: "idle",
           attributes: { friendly_name: "All Maps" },
+        },
+        "camera.garden_backyard_mower_live_video": {
+          entity_id: "camera.garden_backyard_mower_live_video",
+          state: "idle",
+          attributes: { friendly_name: "Live Video" },
+        },
+        "camera.backyard_mower_live_path_map": {
+          entity_id: "camera.backyard_mower_live_path_map",
+          state: "idle",
+          attributes: { friendly_name: "Live Map" },
+        },
+        "select.backyard_mower_map": {
+          entity_id: "select.backyard_mower_map",
+          state: "Map 1",
+          attributes: { friendly_name: "Map", options: ["Map 1", "Map 2"] },
+        },
+        "select.backyard_mower_mowing_action": {
+          entity_id: "select.backyard_mower_mowing_action",
+          state: "All area",
+          attributes: {
+            friendly_name: "Mowing action",
+            options: ["All area", "Zone", "Spot", "Edge"],
+          },
+        },
+        "select.backyard_mower_zone": {
+          entity_id: "select.backyard_mower_zone",
+          state: "Zone 1",
+          attributes: { friendly_name: "Zone", options: ["Zone 1", "Zone 2"] },
         },
         "calendar.backyard_mower_schedule": {
           entity_id: "calendar.backyard_mower_schedule",
@@ -765,6 +808,18 @@
         states: stateStore,
         async callService(domain, service, data) {
           console.log("Mock service call:", { domain, service, data });
+          if (domain === "select" && service === "select_option") {
+            const entityId = data?.entity_id;
+            if (typeof entityId === "string" && stateStore[entityId]) {
+              stateStore[entityId] = {
+                ...stateStore[entityId],
+                state: String(data.option),
+              };
+              for (const card of Object.values(cards)) {
+                card.requestUpdate();
+              }
+            }
+          }
         },
       };
 
@@ -788,17 +843,10 @@
         show_map: true,
         status_entity: "sensor.backyard_mower_state_name",
         battery_entity: "sensor.backyard_mower_battery",
-        progress_entity: "sensor.backyard_mower_weather_protection_status",
+        progress_entity: "sensor.backyard_mower_runtime_mission_progress",
         show_default_actions: true,
         show_helper_actions: true,
-        summary_entities: [
-          "sensor.backyard_mower_weather_protection_status"
-        ],
-        tiles: [
-          { entity: "binary_sensor.backyard_mower_docked", label: "Docked" },
-          { entity: "binary_sensor.backyard_mower_charging", label: "Charging" },
-          { entity: "binary_sensor.backyard_mower_rain_delay_active", label: "Rain Delay" }
-        ]
+        show_advanced_details: false,
       };
 
       function applyConfig(overrides = {}) {
@@ -856,7 +904,7 @@
             },
             {
               title: "Helper entities available",
-              body: "Map diagnostics, all maps, schedules, and probe buttons detected.",
+              body: "Live video, live map, all maps, and schedule detected.",
             },
           ],
           paused: [
