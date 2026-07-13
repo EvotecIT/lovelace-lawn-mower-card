@@ -1,5 +1,6 @@
 export type MinimalHassEntity = {
   state: string;
+  attributes?: Record<string, unknown>;
 };
 
 export type HelperEntity = {
@@ -38,7 +39,10 @@ export function autoDetectedControlEntities(
     (value): value is string => Boolean(value),
   );
   const actionEntityId = companion("mowing_action");
-  const action = actionEntityId ? states[actionEntityId]?.state.trim().toLowerCase() : "";
+  if (!actionEntityId) {
+    return controls;
+  }
+  const action = states[actionEntityId]?.state.trim().toLowerCase() || "";
   const targetSuffix = action.includes("zone")
     ? "zone"
     : action.includes("spot")
@@ -72,6 +76,29 @@ export function configuredHeaderSummaryEntities(
   configured: string[] | undefined,
 ): string[] {
   return configured?.filter(Boolean) || [];
+}
+
+export function entitySummaryLabel(
+  entityId: string,
+  entity: MinimalHassEntity,
+  preferredLabel?: string,
+): string {
+  const friendlyName = entity.attributes?.friendly_name;
+  if (typeof friendlyName === "string" && friendlyName.trim()) {
+    return friendlyName.trim();
+  }
+  if (preferredLabel) {
+    return preferredLabel;
+  }
+  return entityId.split(".")[1]?.replace(/_/g, " ") || entityId;
+}
+
+export function prioritizedHeaderSummary(
+  configured: string[],
+  automatic: string[],
+  limit = 4,
+): string[] {
+  return [...new Set([...configured, ...automatic])].slice(0, limit);
 }
 
 export function defaultHelperEntities(

@@ -4,6 +4,8 @@ import { customElement, property, state } from "lit/decorators.js";
 import {
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
+  entitySummaryLabel,
+  prioritizedHeaderSummary,
   resolvedControlEntities,
 } from "./card-logic";
 
@@ -729,24 +731,25 @@ export class LawnMowerCard extends LitElement {
       return [];
     }
 
-    const summary: string[] = [];
+    const automaticSummary: string[] = [];
+    const configuredSummary: string[] = [];
     const mower = this.hass.states[this._config.entity];
     if (!mower) {
-      return summary;
+      return automaticSummary;
     }
 
     const error =
       this._stringAttribute(mower, "error_display") ||
       this._stringAttribute(mower, "error_text");
     if (error && !["none", "no error"].includes(error.toLowerCase())) {
-      summary.push(`Error ${error}`);
+      automaticSummary.push(`Error ${error}`);
     }
 
     const battery =
       this._entityState(this._config.battery_entity) ||
       this._stringAttribute(mower, "battery_level", "%");
     if (battery) {
-      summary.push(`Battery ${battery}`);
+      automaticSummary.push(`Battery ${battery}`);
     }
 
     const configured = configuredHeaderSummaryEntities(
@@ -758,30 +761,47 @@ export class LawnMowerCard extends LitElement {
         if (!entity || this._isUnavailableEntity(entity)) {
           continue;
         }
-        const label = this._preferredEntityLabel(entityId) || this._entityName(entityId);
-        summary.push(`${label} ${this._friendlyState(entity)}`);
+        const label = entitySummaryLabel(
+          entityId,
+          entity,
+          this._preferredEntityLabel(entityId),
+        );
+        configuredSummary.push(`${label} ${this._friendlyState(entity)}`);
       }
     } else {
+      const progressEntityId = this._config.progress_entity;
+      const progressEntity = progressEntityId
+        ? this.hass.states[progressEntityId]
+        : undefined;
+      const configuredProgress = this._entityState(progressEntityId);
       const progress =
-        this._entityState(this._config.progress_entity) ||
+        configuredProgress ||
         this._companionState("sensor", "runtime_mission_progress") ||
         this._companionState("sensor", "mowing_progress");
       if (progress) {
-        summary.push(`Progress ${progress}`);
+        const label =
+          configuredProgress && progressEntity && progressEntityId
+            ? entitySummaryLabel(
+                progressEntityId,
+                progressEntity,
+                this._preferredEntityLabel(progressEntityId),
+              )
+            : "Progress";
+        automaticSummary.push(`${label} ${progress}`);
       }
       const currentArea = this._companionState("sensor", "runtime_current_area");
       const totalArea = this._companionState("sensor", "runtime_total_area");
       if (currentArea && totalArea) {
-        summary.push(`Coverage ${currentArea} / ${totalArea}`);
+        automaticSummary.push(`Coverage ${currentArea} / ${totalArea}`);
       }
     }
 
     const rainDelay = this._companionSummaryFromBinary("rain_delay_active", "Rain Delay");
     if (rainDelay) {
-      summary.push(rainDelay);
+      automaticSummary.push(rainDelay);
     }
 
-    return [...new Set(summary)].slice(0, 4);
+    return prioritizedHeaderSummary(configuredSummary, automaticSummary);
   }
 
   private _resolvedControlEntities(): string[] {

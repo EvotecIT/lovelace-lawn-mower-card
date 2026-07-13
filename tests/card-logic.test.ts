@@ -5,6 +5,8 @@ import {
   autoDetectedControlEntities,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
+  entitySummaryLabel,
+  prioritizedHeaderSummary,
   resolvedControlEntities,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
@@ -42,6 +44,22 @@ test("zone mowing shows only the zone target", () => {
   ]);
 });
 
+test("target selectors remain visible when no mowing action selector exists", () => {
+  const states = {
+    "select.garden_map": entity("Map 1"),
+    "select.garden_edge": entity("Edge 1"),
+    "select.garden_zone": entity("Zone 1"),
+    "select.garden_spot": entity("Spot 1"),
+  };
+
+  assert.deepEqual(autoDetectedControlEntities(states, "lawn_mower.garden"), [
+    "select.garden_map",
+    "select.garden_edge",
+    "select.garden_zone",
+    "select.garden_spot",
+  ]);
+});
+
 test("explicitly configured selectors are preserved", () => {
   const states = {
     "select.garden_map": entity("Map 1"),
@@ -68,6 +86,40 @@ test("explicitly configured summary chips are preserved", () => {
   assert.deepEqual(
     configuredHeaderSummaryEntities(configured),
     configured,
+  );
+});
+
+test("summary labels prefer Home Assistant friendly names", () => {
+  const progress = {
+    state: "77%",
+    attributes: { friendly_name: "Front lawn progress" },
+  };
+
+  assert.equal(
+    entitySummaryLabel(
+      "sensor.garden_runtime_mission_progress",
+      progress,
+      "Progress",
+    ),
+    "Front lawn progress",
+  );
+  assert.equal(
+    entitySummaryLabel(
+      "sensor.garden_weather_protection_status",
+      entity("enabled"),
+      "Rain protection",
+    ),
+    "Rain protection",
+  );
+});
+
+test("explicit summary chips are prioritized before automatic chips", () => {
+  assert.deepEqual(
+    prioritizedHeaderSummary(
+      ["Custom one", "Custom two", "Custom three"],
+      ["Error blocked", "Battery 78%", "Rain Delay On"],
+    ),
+    ["Custom one", "Custom two", "Custom three", "Error blocked"],
   );
 });
 
