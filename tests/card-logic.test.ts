@@ -7,6 +7,7 @@ import {
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
+  firstAvailableEntity,
   prioritizedHeaderSummary,
   resolvedControlEntities,
   type MinimalHassEntity,
@@ -43,6 +44,15 @@ test("camera URLs use stable Home Assistant revisions instead of render time", (
   assert.equal(
     cameraImageUrl("camera.garden", entity("idle")),
     "/api/camera_proxy/camera.garden",
+  );
+});
+
+test("progress fallback skips unavailable companion entities", () => {
+  const fallback = entity("42");
+
+  assert.equal(
+    firstAvailableEntity([entity("unavailable"), entity("unknown"), fallback]),
+    fallback,
   );
 });
 

@@ -6,6 +6,7 @@ import {
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
+  firstAvailableEntity,
   prioritizedHeaderSummary,
   resolvedControlEntities,
 } from "./card-logic";
@@ -1342,11 +1343,13 @@ export class LawnMowerCard extends LitElement {
     );
     const entity = configuredIsProgress
       ? configured
-      : this._companionEntity("sensor", "runtime_mission_progress") ||
-        this._companionEntity("sensor", "mowing_progress");
+      : firstAvailableEntity([
+          this._companionEntity("sensor", "runtime_mission_progress"),
+          this._companionEntity("sensor", "mowing_progress"),
+        ]);
     return {
       label: entity?.attributes.cached === true ? "Last mission" : "Mission",
-      value: entity && !this._isUnavailableEntity(entity) ? this._friendlyState(entity) : undefined,
+      value: entity ? this._friendlyState(entity) : undefined,
     };
   }
 

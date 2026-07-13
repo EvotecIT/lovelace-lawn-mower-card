@@ -27,6 +27,18 @@ export function cameraImageUrl(entityId: string, entity: MinimalHassEntity): str
   return `${base}${separator}v=${encodeURIComponent(revision)}`;
 }
 
+export function firstAvailableEntity<T extends MinimalHassEntity>(
+  entities: readonly (T | undefined)[],
+): T | undefined {
+  return entities.find(
+    (candidate): candidate is T =>
+      Boolean(
+        candidate &&
+          !["unknown", "unavailable", ""].includes(candidate.state.trim().toLowerCase()),
+      ),
+  );
+}
+
 function mowerObjectId(entityId: string): string | undefined {
   return entityId.split(".", 2)[1] || undefined;
 }
