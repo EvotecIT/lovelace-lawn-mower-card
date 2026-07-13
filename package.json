@@ -1,6 +1,6 @@
 {
   "name": "lovelace-lawn-mower-card",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "description": "A Lovelace card for robotic lawn mowers in Home Assistant.",
   "type": "module",
@@ -10,6 +10,7 @@
     "dev": "node build.mjs --watch",
     "serve": "node server.mjs",
     "preview": "npm run build && node server.mjs",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "check": "tsc --noEmit",
     "lint": "tsc --noEmit"
   },

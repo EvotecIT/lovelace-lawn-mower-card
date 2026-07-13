@@ -14,8 +14,9 @@ integrations today:
 - mower state and activity
 - optional map camera, with live-path overlays preferred when the integration exposes them
 - start, pause, and dock controls
-- optional selector controls for map, mowing action, zone, spot, and edge entities
-- planned-run preview for selected map, action, and scoped target
+- context-aware selectors for the map, mowing action, and current target
+- direct access to live video, schedules, and mower maps when those entities exist
+- optional advanced planning and live-session telemetry
 - configurable status tiles
 - room to grow into richer map and zone workflows later
 
@@ -65,22 +66,10 @@ battery_entity: sensor.dreame_a2_bodzio_battery
 progress_entity: sensor.dreame_a2_bodzio_weather_protection_status
 show_default_actions: true
 show_helper_actions: true
-control_entities:
-  - select.dreame_a2_bodzio_mowing_action
-  - select.dreame_a2_bodzio_zone
-  - select.dreame_a2_bodzio_spot
-summary_entities:
-  - sensor.dreame_a2_bodzio_state_name
-  - sensor.dreame_a2_bodzio_weather_protection_status
+show_advanced_details: false
 actions:
   - type: more-info
     label: Details
-  - type: service
-    label: Weather
-    icon: mdi:weather-rainy
-    service: button.press
-    service_data:
-      entity_id: button.dreame_a2_bodzio_capture_weather_probe
 tiles:
   - entity: binary_sensor.dreame_a2_bodzio_docked
     label: Docked
@@ -100,10 +89,12 @@ tiles:
   camera so the card can show the current cut path.
 - `show_map`: optional boolean override for the map section
 - `status_entity`: optional entity shown as the primary subtitle
-- `battery_entity`: optional entity shown in a stat tile
-- `progress_entity`: optional entity shown in a stat tile
+- `battery_entity`: optional entity used for the compact header summary
+- `progress_entity`: optional progress or status entity used in the header summary
 - `show_default_actions`: optional boolean, defaults to `true`
 - `show_helper_actions`: optional boolean, defaults to `true`
+- `show_advanced_details`: optional boolean, defaults to `false`; shows the
+  Planned Run and Live Session panels
 - `control_entities`: optional list of `select` entities rendered as inline mower controls
 - `summary_entities`: optional list of entities rendered as header summary chips
 - `actions`: optional list of extra action chips
@@ -125,11 +116,9 @@ fields offer browser suggestions from the entities Home Assistant already knows
 about. When you select a mower entity, the editor also tries to prefill common
 companion entities such as map, state, battery, status tiles, and mower select
 controls without overwriting deliberate custom choices. With the Dreame mower
-integration, that companion autofill now also picks up live-session summary
-chips such as current zone, cut area, mowing time, and active segments when
-those sensors exist. When the mower entity or companion sensors expose selected
-map and mowing scope details, the card also shows a `Planned Run` panel so it
-is clearer what pressing `Start` will do.
+integration, the normal card stays focused on current state and actions. Enable
+`show_advanced_details` when you want the selected-map plan and detailed runtime
+telemetry on the dashboard.
 When multiple mower cameras exist, the card now prefers a `live_path_map`
 camera first so the main preview follows the currently cut area instead of only
 the broader stored map.
@@ -147,26 +136,13 @@ The card builds header summary chips from the best information it can find.
 By default it will try to use:
 
 - battery from the configured battery entity or mower attributes
-- activity and task from mower attributes
-- companion binary sensors such as `docked`, `charging`, `bluetooth_connected`,
-  and `rain_delay_active`
-- companion sensors such as `weather_protection_status`
+- runtime mission progress
+- current and total area coverage
+- an active rain delay
 - active error information
 
 You can also add explicit `summary_entities` when you want tighter control over
 what appears in the header.
-
-If you leave `summary_entities` empty, the card and visual editor will try to
-auto-detect live-session companions for integrations that expose them,
-including:
-
-- `sensor.my_mower_current_zone`
-- `sensor.my_mower_current_cleaned_area`
-- `sensor.my_mower_current_cleaning_time`
-- `sensor.my_mower_active_segment_count`
-- `sensor.my_mower_selected_target`
-- `sensor.my_mower_selected_map`
-- `sensor.my_mower_current_app_map_trajectory_point_count`
 
 ## Smart Helper Actions
 
@@ -176,19 +152,13 @@ they exist. This is especially useful with `homeassistant-dreamelawnmower`.
 
 Current auto-detected helpers include:
 
+- live-video camera
 - schedule calendar
-- all-schedules calendar
-- last-schedule-write diagnostic sensor
-- map diagnostics camera
 - live-path map camera
 - all-maps camera
-- weather probe button
-- preference probe button
-- last-preference-write diagnostic sensor
-- schedule probe button
-- task-status probe button
-- map probe button
-- operation snapshot button
+
+Diagnostic probes and maintenance operations remain available on the Home
+Assistant device page, but the card does not present them as everyday actions.
 
 ## Control Selectors
 
@@ -203,12 +173,16 @@ that expose entities such as:
 - `select.my_mower_spot`
 
 If you do not set `control_entities`, the card will try to auto-detect these
-companions from the mower object id.
+companions from the mower object id. It always shows the map and mowing-action
+selectors when available, then shows only the target selector relevant to the
+current action. For example, `All area` hides the edge, zone, and spot fields;
+`Zone` shows only the zone field. An explicit `control_entities` list is left
+unchanged.
 
 ## Planned Run Preview
 
-When the mower entity or companion sensors expose current selection details,
-the card renders a small `Planned Run` panel that summarizes:
+When `show_advanced_details` is enabled and the mower exposes current selection
+details, the card renders a `Planned Run` panel that summarizes:
 
 - selected mowing action
 - selected map
@@ -237,8 +211,8 @@ them.
 
 ## Live Session Panel
 
-When the card can see live-session companions, it renders a `Live Session`
-panel that can summarize:
+When `show_advanced_details` is enabled and the card can see live-session
+companions, it renders a `Live Session` panel that can summarize:
 
 - runtime mission progress
 - current and total area coverage
@@ -254,6 +228,8 @@ shows the companion sensor and binary-sensor data it can resolve.
 
 ```bash
 npm install
+npm test
+npm run check
 npm run build
 ```
 

@@ -1,6 +1,8 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
+import { autoDetectedControlEntities, defaultHelperEntities } from "./card-logic";
+
 type HassEntity = {
   entity_id: string;
   state: string;
@@ -39,6 +41,7 @@ type LawnMowerCardConfig = {
   progress_entity?: string;
   show_default_actions?: boolean;
   show_helper_actions?: boolean;
+  show_advanced_details?: boolean;
   control_entities?: string[];
   summary_entities?: string[];
   actions?: LawnMowerActionConfig[];
@@ -598,6 +601,7 @@ export class LawnMowerCard extends LitElement {
     const controlEntities = this._resolvedControlEntities();
     const plannedRun = this._plannedRunDetails(mower);
     const runtimeSession = this._runtimeSessionDetails();
+    const showAdvancedDetails = this._config.show_advanced_details ?? false;
 
     return html`
       <ha-card>
@@ -632,11 +636,11 @@ export class LawnMowerCard extends LitElement {
           </div>
 
           <div class="side">
-            ${plannedRun
+            ${showAdvancedDetails && plannedRun
               ? this._renderPlannedRunPanel(plannedRun)
               : nothing}
 
-            ${runtimeSession
+            ${showAdvancedDetails && runtimeSession
               ? this._renderRuntimeSessionPanel(runtimeSession)
               : nothing}
 
@@ -711,50 +715,9 @@ export class LawnMowerCard extends LitElement {
       return [];
     }
 
-    const tiles: Array<{ label: string; value: string }> = [];
-
-    if (this._config.battery_entity) {
-      tiles.push(this._tileFromEntity(this._config.battery_entity, "Battery"));
-    } else {
-      const fallbackBattery = this._tileFromMowerAttribute("battery_level", "Battery", "%");
-      if (fallbackBattery) {
-        tiles.push(fallbackBattery);
-      }
-    }
-
-    if (this._config.progress_entity) {
-      tiles.push(
-        this._tileFromEntity(
-          this._config.progress_entity,
-          this._preferredEntityLabel(this._config.progress_entity, "Status"),
-        ),
-      );
-    } else {
-      const fallbackTask =
-        this._tileFromMowerAttribute("task_status_name", "Task") ||
-        this._tileFromMowerAttribute("activity", "Activity");
-      if (fallbackTask) {
-        tiles.push(fallbackTask);
-      }
-    }
-
-    for (const tile of this._config.tiles || []) {
-      tiles.push(this._tileFromEntity(tile.entity, tile.label, tile.icon));
-    }
-
-    if (!(this._config.tiles || []).length) {
-      const runtimeAreaTile = this._runtimeCoverageTile();
-      if (runtimeAreaTile) {
-        tiles.push(runtimeAreaTile);
-      }
-
-      const liveTrackTile = this._runtimeLiveTrackTile();
-      if (liveTrackTile) {
-        tiles.push(liveTrackTile);
-      }
-    }
-
-    return tiles.filter((tile) => tile.value !== "Unavailable");
+    return (this._config.tiles || [])
+      .map((tile) => this._tileFromEntity(tile.entity, tile.label, tile.icon))
+      .filter((tile) => tile.value !== "Unavailable");
   }
 
   private _buildHeaderSummary(): string[] {
@@ -768,13 +731,11 @@ export class LawnMowerCard extends LitElement {
       return summary;
     }
 
-    for (const entityId of this._resolvedSummaryEntities()) {
-      const entity = this.hass.states[entityId];
-      if (!entity || this._isUnavailableEntity(entity)) {
-        continue;
-      }
-      const label = this._friendlyName(entity) || this._entityName(entityId);
-      summary.push(`${label} ${this._friendlyState(entity)}`);
+    const error =
+      this._stringAttribute(mower, "error_display") ||
+      this._stringAttribute(mower, "error_text");
+    if (error && !["none", "no error"].includes(error.toLowerCase())) {
+      summary.push(`Error ${error}`);
     }
 
     const battery =
@@ -784,29 +745,29 @@ export class LawnMowerCard extends LitElement {
       summary.push(`Battery ${battery}`);
     }
 
-    const activity = this._stringAttribute(mower, "activity");
-    if (activity) {
-      summary.push(`Activity ${activity}`);
-    }
-
-    const task = this._stringAttribute(mower, "task_status_name");
-    if (task && !this._isUnknownLike(task)) {
-      summary.push(`Task ${task}`);
-    }
-
-    const docked = this._companionSummaryFromBinary("docked", "Docked");
-    if (docked) {
-      summary.push(docked);
-    }
-
-    const charging = this._companionSummaryFromBinary("charging", "Charging");
-    if (charging) {
-      summary.push(charging);
-    }
-
-    const bluetooth = this._companionSummaryFromBinary("bluetooth_connected", "Bluetooth");
-    if (bluetooth) {
-      summary.push(bluetooth);
+    const configured = (this._config.summary_entities || []).filter(Boolean);
+    if (configured.length) {
+      for (const entityId of configured) {
+        const entity = this.hass.states[entityId];
+        if (!entity || this._isUnavailableEntity(entity)) {
+          continue;
+        }
+        const label = this._preferredEntityLabel(entityId) || this._entityName(entityId);
+        summary.push(`${label} ${this._friendlyState(entity)}`);
+      }
+    } else {
+      const progress =
+        this._entityState(this._config.progress_entity) ||
+        this._companionState("sensor", "runtime_mission_progress") ||
+        this._companionState("sensor", "mowing_progress");
+      if (progress) {
+        summary.push(`Progress ${progress}`);
+      }
+      const currentArea = this._companionState("sensor", "runtime_current_area");
+      const totalArea = this._companionState("sensor", "runtime_total_area");
+      if (currentArea && totalArea) {
+        summary.push(`Coverage ${currentArea} / ${totalArea}`);
+      }
     }
 
     const rainDelay = this._companionSummaryFromBinary("rain_delay_active", "Rain Delay");
@@ -814,69 +775,7 @@ export class LawnMowerCard extends LitElement {
       summary.push(rainDelay);
     }
 
-    const weatherStatus = this._companionSummaryFromEntity(
-      "sensor",
-      "weather_protection_status",
-      "Rain protection",
-    );
-    if (weatherStatus) {
-      summary.push(weatherStatus);
-    }
-
-    const error = this._stringAttribute(mower, "error_display") || this._stringAttribute(mower, "error_text");
-    if (error && !["none", "no error"].includes(error.toLowerCase())) {
-      summary.push(`Error ${error}`);
-    }
-
-    summary.push(...this._runtimeMapSummaryItems());
-
-    return [...new Set(summary)].slice(0, 6);
-  }
-
-  private _resolvedSummaryEntities(): string[] {
-    if (!this._config) {
-      return [];
-    }
-
-    const configured = (this._config.summary_entities || []).filter(Boolean);
-    if (configured.length) {
-      return configured;
-    }
-
-    return this._autoDetectedSummaryEntities(this._config.entity);
-  }
-
-  private _autoDetectedSummaryEntities(entityId?: string): string[] {
-    if (!entityId || !this.hass?.states) {
-      return [];
-    }
-
-    const objectId = entityId.split(".", 2)[1];
-    if (!objectId) {
-      return [];
-    }
-
-    const firstAvailable = (...candidates: string[]): string[] => {
-      const match = candidates.find((candidate) => Boolean(this.hass.states[candidate]));
-      return match ? [match] : [];
-    };
-
-    return [
-      `sensor.${objectId}_runtime_mission_progress`,
-      `sensor.${objectId}_runtime_current_area`,
-      `sensor.${objectId}_runtime_total_area`,
-      `sensor.${objectId}_selected_target`,
-      `sensor.${objectId}_selected_map`,
-      `sensor.${objectId}_current_zone`,
-      `sensor.${objectId}_current_cleaned_area`,
-      `sensor.${objectId}_current_cleaning_time`,
-      `sensor.${objectId}_active_segment_count`,
-      ...firstAvailable(
-        `sensor.${objectId}_current_app_map_trajectory_length`,
-        `sensor.${objectId}_current_app_map_mow_path_length`,
-        `sensor.${objectId}_current_app_map_trajectory_point_count`,
-      ),
-    ].filter((candidate) => Boolean(this.hass.states[candidate]));
+    return [...new Set(summary)].slice(0, 4);
   }
 
   private _resolvedControlEntities(): string[] {
@@ -896,15 +795,7 @@ export class LawnMowerCard extends LitElement {
     if (!entityId || !this.hass?.states) {
       return [];
     }
-
-    const objectId = entityId.split(".", 2)[1];
-    if (!objectId) {
-      return [];
-    }
-
-    return ["map", "mowing_action", "edge", "zone", "spot"]
-      .map((suffix) => `select.${objectId}_${suffix}`)
-      .filter((candidate) => Boolean(this.hass.states[candidate]));
+    return autoDetectedControlEntities(this.hass.states, entityId);
   }
 
   private _renderSelectControl(entityId: string) {
@@ -940,67 +831,6 @@ export class LawnMowerCard extends LitElement {
         </select>
       </label>
     `;
-  }
-
-  private _tileFromMowerAttribute(
-    attribute: string,
-    label: string,
-    unit?: string,
-  ): { label: string; value: string } | undefined {
-    const mower = this._config ? this.hass.states[this._config.entity] : undefined;
-    const value = mower?.attributes[attribute];
-    if (value === undefined || value === null || value === "") {
-      return undefined;
-    }
-
-    return {
-      label,
-      value: unit ? `${String(value)} ${unit}` : this._humanizeValue(String(value)),
-    };
-  }
-
-  private _runtimeCoverageTile(): { label: string; value: string } | undefined {
-    const currentArea = this._companionState("sensor", "runtime_current_area");
-    const totalArea = this._companionState("sensor", "runtime_total_area");
-
-    if (currentArea && totalArea) {
-      return {
-        label: "Coverage",
-        value: `${currentArea} / ${totalArea}`,
-      };
-    }
-
-    if (currentArea) {
-      return {
-        label: "Current Area",
-        value: currentArea,
-      };
-    }
-
-    return undefined;
-  }
-
-  private _runtimeLiveTrackTile(): { label: string; value: string } | undefined {
-    const runtimeSession = this._runtimeSessionDetails();
-    if (!runtimeSession) {
-      return undefined;
-    }
-
-    if (runtimeSession.trailLengthM !== undefined && runtimeSession.trailLengthM > 0) {
-      return {
-        label: "Live Trail",
-        value: this._formatMeters(runtimeSession.trailLengthM),
-      };
-    }
-
-    if (runtimeSession.pointCount !== undefined && runtimeSession.pointCount > 1) {
-      return {
-        label: "Live Points",
-        value: `${Math.round(runtimeSession.pointCount)}`,
-      };
-    }
-
-    return undefined;
   }
 
   private _buildActionGroups(
@@ -1145,147 +975,15 @@ export class LawnMowerCard extends LitElement {
     disabled: boolean;
     handler: () => Promise<void> | void;
   }> {
-    const helpers: Array<{
-      label: string;
-      icon?: string;
-      disabled: boolean;
-      handler: () => Promise<void> | void;
-    }> = [];
-
-    const schedule = this._companionEntityId("calendar", "schedule");
-    if (schedule) {
-      helpers.push({
-        label: "Schedule",
-        icon: "mdi:calendar",
-        disabled: false,
-        handler: () => this._showMoreInfo(schedule),
-      });
+    if (!this._config) {
+      return [];
     }
-
-    const allSchedules = this._companionEntityId("calendar", "all_schedules");
-    if (allSchedules) {
-      helpers.push({
-        label: "All Schedules",
-        icon: "mdi:calendar-multiselect",
-        disabled: false,
-        handler: () => this._showMoreInfo(allSchedules),
-      });
-    }
-
-    const lastScheduleWrite = this._companionEntityId("sensor", "last_schedule_write");
-    if (lastScheduleWrite) {
-      helpers.push({
-        label: "Last Schedule Write",
-        icon: "mdi:calendar-check-outline",
-        disabled: false,
-        handler: () => this._showMoreInfo(lastScheduleWrite),
-      });
-    }
-
-    const mapDiagnostics = this._companionEntityId("camera", "map_data");
-    if (mapDiagnostics) {
-      helpers.push({
-        label: "Map Diagnostics",
-        icon: "mdi:map-search-outline",
-        disabled: false,
-        handler: () => this._showMoreInfo(mapDiagnostics),
-      });
-    }
-
-    const livePathMap = this._companionEntityId("camera", "live_path_map");
-    if (livePathMap) {
-      helpers.push({
-        label: "Live Map",
-        icon: "mdi:map-marker-path",
-        disabled: false,
-        handler: () => this._showMoreInfo(livePathMap),
-      });
-    }
-
-    const allMaps = this._companionEntityId("camera", "all_maps");
-    if (allMaps) {
-      helpers.push({
-        label: "All Maps",
-        icon: "mdi:map-multiple-outline",
-        disabled: false,
-        handler: () => this._showMoreInfo(allMaps),
-      });
-    }
-
-    const weatherProbe = this._companionEntityId("button", "capture_weather_probe");
-    if (weatherProbe) {
-      helpers.push({
-        label: "Weather",
-        icon: "mdi:weather-rainy",
-        disabled: false,
-        handler: () => this._pressButton(weatherProbe),
-      });
-    }
-
-    const preferenceProbe = this._companionEntityId("button", "capture_preference_probe");
-    if (preferenceProbe) {
-      helpers.push({
-        label: "Preferences",
-        icon: "mdi:tune-variant",
-        disabled: false,
-        handler: () => this._pressButton(preferenceProbe),
-      });
-    }
-
-    const lastPreferenceWrite = this._companionEntityId("sensor", "last_preference_write");
-    if (lastPreferenceWrite) {
-      helpers.push({
-        label: "Last Preference Write",
-        icon: "mdi:tune",
-        disabled: false,
-        handler: () => this._showMoreInfo(lastPreferenceWrite),
-      });
-    }
-
-    const scheduleProbe = this._companionEntityId("button", "capture_schedule_probe");
-    if (scheduleProbe) {
-      helpers.push({
-        label: "Refresh Schedules",
-        icon: "mdi:calendar-search",
-        disabled: false,
-        handler: () => this._pressButton(scheduleProbe),
-      });
-    }
-
-    const taskStatusProbe = this._companionEntityId("button", "capture_task_status_probe");
-    if (taskStatusProbe) {
-      helpers.push({
-        label: "Task Status",
-        icon: "mdi:list-status",
-        disabled: false,
-        handler: () => this._pressButton(taskStatusProbe),
-      });
-    }
-
-    const mapProbe = this._companionEntityId("button", "capture_map_probe");
-    if (mapProbe) {
-      helpers.push({
-        label: "Probe Map",
-        icon: "mdi:map-search",
-        disabled: false,
-        handler: () => this._pressButton(mapProbe),
-      });
-    }
-
-    const operationSnapshot = this._companionEntityId(
-      "button",
-      "capture_operation_snapshot",
-    );
-    if (operationSnapshot) {
-      helpers.push({
-        label: "Snapshot",
-        icon: "mdi:clipboard-pulse-outline",
-        disabled: false,
-        handler: () => this._pressButton(operationSnapshot),
-      });
-    }
-
-    return helpers;
+    return defaultHelperEntities(this.hass.states, this._config.entity).map((helper) => ({
+      label: helper.label,
+      icon: helper.icon,
+      disabled: false,
+      handler: () => this._showMoreInfo(helper.entityId),
+    }));
   }
 
   private _tileFromEntity(entityId: string, fallbackLabel?: string, icon?: string) {
@@ -1882,39 +1580,6 @@ export class LawnMowerCard extends LitElement {
     };
   }
 
-  private _runtimeMapSummaryItems(): string[] {
-    const runtimeSession = this._runtimeSessionDetails();
-    if (!runtimeSession) {
-      return [];
-    }
-
-    const summary: string[] = [];
-    const liveTrackLength = runtimeSession.trailLengthM;
-    const liveTrackPoints = runtimeSession.pointCount;
-    const hasLiveRuntimeTrail =
-      (liveTrackLength !== undefined && liveTrackLength > 0) ||
-      (liveTrackPoints !== undefined && liveTrackPoints > 1);
-
-    if (liveTrackLength !== undefined && liveTrackLength > 0) {
-      summary.push(`Live trail ${this._formatMeters(liveTrackLength)}`);
-    } else {
-      if (liveTrackPoints !== undefined && liveTrackPoints > 1) {
-        summary.push(`Live points ${Math.round(liveTrackPoints)}`);
-      }
-    }
-
-    const heading = runtimeSession.headingDeg;
-    if (heading !== undefined && hasLiveRuntimeTrail) {
-      summary.push(`Heading ${Math.round(heading)}°`);
-    }
-
-    if (runtimeSession.bluetoothState === "Connected") {
-      summary.push("Bluetooth Connected");
-    }
-
-    return summary;
-  }
-
   private _renderPlannedRunPanel(plannedRun: PlannedRunDetails) {
     const metrics: Array<{ label: string; value: string }> = [];
 
@@ -2183,12 +1848,6 @@ export class LawnMowerCard extends LitElement {
     await this.hass.callService(domain, name, serviceData || {});
   }
 
-  private async _pressButton(entityId: string) {
-    await this.hass.callService("button", "press", {
-      entity_id: entityId,
-    });
-  }
-
   private async _selectOption(entityId: string, event: Event) {
     const target = event.currentTarget as HTMLSelectElement;
     const option = target.value;
@@ -2232,22 +1891,6 @@ export class LawnMowerCard extends LitElement {
       return label;
     }
     return undefined;
-  }
-
-  private _companionSummaryFromEntity(
-    domain: string,
-    suffix: string,
-    label: string,
-  ): string | undefined {
-    const entityId = this._companionEntityId(domain, suffix);
-    if (!entityId) {
-      return undefined;
-    }
-    const entity = this.hass.states[entityId];
-    if (!entity || this._isUnavailableEntity(entity)) {
-      return undefined;
-    }
-    return `${label} ${this._friendlyState(entity)}`;
   }
 
   private _companionState(domain: string, suffix: string): string | undefined {
@@ -2557,6 +2200,11 @@ export class LawnMowerCardEditor extends LitElement {
           config.show_helper_actions ?? true,
           "show_helper_actions",
         )}
+        ${this._toggle(
+          "Show advanced planning and live telemetry",
+          config.show_advanced_details ?? false,
+          "show_advanced_details",
+        )}
         ${this._controlEntitiesSection(config.control_entities || [])}
         ${this._summaryEntitiesSection(config.summary_entities || [])}
         ${this._tilesSection(config.tiles || [])}
@@ -2607,7 +2255,11 @@ export class LawnMowerCardEditor extends LitElement {
   private _toggle(
     label: string,
     value: boolean,
-    key: "show_map" | "show_default_actions" | "show_helper_actions",
+    key:
+      | "show_map"
+      | "show_default_actions"
+      | "show_helper_actions"
+      | "show_advanced_details",
   ) {
     return html`
       <label class="toggle">
@@ -3157,6 +2809,7 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_map"
       | "show_default_actions"
       | "show_helper_actions"
+      | "show_advanced_details"
       | undefined;
     if (!key) {
       return;
