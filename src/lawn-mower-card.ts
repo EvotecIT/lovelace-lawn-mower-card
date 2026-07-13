@@ -1,7 +1,12 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
-import { autoDetectedControlEntities, defaultHelperEntities } from "./card-logic";
+import {
+  contextualControlEntities,
+  defaultHelperEntities,
+  autoDetectedSummaryEntities,
+  headerSummaryEntities,
+} from "./card-logic";
 
 type HassEntity = {
   entity_id: string;
@@ -745,7 +750,15 @@ export class LawnMowerCard extends LitElement {
       summary.push(`Battery ${battery}`);
     }
 
-    const configured = (this._config.summary_entities || []).filter(Boolean);
+    const autoDetected = autoDetectedSummaryEntities(
+      this.hass.states,
+      this._config.entity,
+    );
+    const configured = headerSummaryEntities(
+      this._config.summary_entities,
+      autoDetected,
+      this._config.show_advanced_details ?? false,
+    );
     if (configured.length) {
       for (const entityId of configured) {
         const entity = this.hass.states[entityId];
@@ -784,18 +797,14 @@ export class LawnMowerCard extends LitElement {
     }
 
     const configured = (this._config.control_entities || []).filter(Boolean);
-    if (configured.length) {
-      return configured;
-    }
-
-    return this._autoDetectedControlEntities(this._config.entity);
-  }
-
-  private _autoDetectedControlEntities(entityId?: string): string[] {
-    if (!entityId || !this.hass?.states) {
+    if (!this._config.entity || !this.hass?.states) {
       return [];
     }
-    return autoDetectedControlEntities(this.hass.states, entityId);
+    return contextualControlEntities(
+      this.hass.states,
+      this._config.entity,
+      configured.length ? configured : undefined,
+    );
   }
 
   private _renderSelectControl(entityId: string) {
@@ -2658,8 +2667,16 @@ export class LawnMowerCardEditor extends LitElement {
     this._replaceAutoEntityField("status_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("battery_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("progress_entity", next, previousDetected, nextDetected);
-    this._replaceAutoControlEntities(next, previousDetected, nextDetected);
-    this._replaceAutoSummaryEntities(next, previousDetected, nextDetected);
+    this._removeReplacedAutoEntityList(
+      "control_entities",
+      next,
+      previousDetected,
+    );
+    this._removeReplacedAutoEntityList(
+      "summary_entities",
+      next,
+      previousDetected,
+    );
 
     const previousAutoShowMap = Boolean(previousDetected.map_entity);
     if (next.show_map === undefined || next.show_map === previousAutoShowMap) {
@@ -2671,47 +2688,17 @@ export class LawnMowerCardEditor extends LitElement {
     }
   }
 
-  private _replaceAutoControlEntities(
+  private _removeReplacedAutoEntityList(
+    key: "control_entities" | "summary_entities",
     next: LawnMowerCardConfig,
     previousDetected: Partial<LawnMowerCardConfig>,
-    nextDetected: Partial<LawnMowerCardConfig>,
   ) {
-    const current = (next.control_entities || []).filter(Boolean);
-    const previousAuto = Array.isArray(previousDetected.control_entities)
-      ? previousDetected.control_entities.filter(Boolean)
+    const current = (next[key] || []).filter(Boolean);
+    const previousAuto = Array.isArray(previousDetected[key])
+      ? previousDetected[key].filter(Boolean)
       : [];
-    const nextAuto = Array.isArray(nextDetected.control_entities)
-      ? nextDetected.control_entities.filter(Boolean)
-      : [];
-
     if (!current.length || this._sameEntityList(current, previousAuto)) {
-      if (nextAuto.length) {
-        next.control_entities = nextAuto;
-      } else {
-        delete next.control_entities;
-      }
-    }
-  }
-
-  private _replaceAutoSummaryEntities(
-    next: LawnMowerCardConfig,
-    previousDetected: Partial<LawnMowerCardConfig>,
-    nextDetected: Partial<LawnMowerCardConfig>,
-  ) {
-    const current = (next.summary_entities || []).filter(Boolean);
-    const previousAuto = Array.isArray(previousDetected.summary_entities)
-      ? previousDetected.summary_entities.filter(Boolean)
-      : [];
-    const nextAuto = Array.isArray(nextDetected.summary_entities)
-      ? nextDetected.summary_entities.filter(Boolean)
-      : [];
-
-    if (!current.length || this._sameEntityList(current, previousAuto)) {
-      if (nextAuto.length) {
-        next.summary_entities = nextAuto;
-      } else {
-        delete next.summary_entities;
-      }
+      delete next[key];
     }
   }
 
@@ -2783,19 +2770,8 @@ export class LawnMowerCardEditor extends LitElement {
         companion("select", "spot"),
       ].filter((value): value is string => Boolean(value)),
       summary_entities: [
-        companion("sensor", "runtime_mission_progress"),
-        companion("sensor", "runtime_current_area"),
-        companion("sensor", "runtime_total_area"),
-        companion("sensor", "current_zone"),
-        companion("sensor", "current_cleaned_area"),
-        companion("sensor", "current_cleaning_time"),
-        companion("sensor", "active_segment_count"),
-        first(
-          companion("sensor", "current_app_map_trajectory_length"),
-          companion("sensor", "current_app_map_mow_path_length"),
-          companion("sensor", "current_app_map_trajectory_point_count"),
-        ),
-      ].filter((value): value is string => Boolean(value)),
+        ...autoDetectedSummaryEntities(this.hass.states, entityId),
+      ],
     };
   }
 
