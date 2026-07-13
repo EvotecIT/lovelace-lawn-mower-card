@@ -5,28 +5,33 @@
 [![Release](https://img.shields.io/github/actions/workflow/status/EvotecIT/lovelace-lawn-mower-card/release.yml?label=Release)](https://github.com/EvotecIT/lovelace-lawn-mower-card/actions/workflows/release.yml)
 [![License](https://img.shields.io/github/license/EvotecIT/lovelace-lawn-mower-card)](LICENSE)
 
-Custom Lovelace card for robotic lawn mowers in Home Assistant.
+Give a Home Assistant lawn mower a dashboard that looks and behaves like a
+mower—not a renamed vacuum card.
 
-This card is intended to be a mower-native dashboard surface rather than a
-vacuum card adaptation. It starts with the basics that work across mower
-integrations today:
+![Lawn Mower Card Hero layout preview](assets/lawn-mower-card-hero.png)
+
+The Hero layout puts state, battery, mission coverage, map, live camera, and the
+primary controls on one responsive surface. Traditional compact, default, and
+wide layouts remain available for denser dashboards.
+
+The card works with a standard `lawn_mower` entity and becomes richer when an
+integration exposes companion map, camera, schedule, and telemetry entities:
 
 - mower state and activity
 - optional map camera, with live-path overlays preferred when the integration exposes them
 - start, pause, and dock controls
 - context-aware selectors for the map, mowing action, and current target
 - direct access to live video, schedules, and mower maps when those entities exist
-- an optional image-led Hero layout with in-card Overview, Map, and Camera views
+- an image-led Hero layout with in-card Overview, Map, and Camera views
 - optional advanced planning and live-session telemetry
 - configurable status tiles
 - room to grow into richer map and zone workflows later
 
-The first target is the Dreame and MOVA mower protocol family through
-`homeassistant-dreamelawnmower`, but the card is designed to stay useful for
-other integrations that expose a standard `lawn_mower` entity plus companion
-entities.
+The first fully exercised pairing is
+[Dreame Lawn Mower](https://github.com/EvotecIT/homeassistant-dreamelawnmower),
+but the card remains integration-agnostic at its core.
 
-![Lawn Mower Card demo](assets/lawn-mower-card-demo.png)
+![Live-path map inside the Lawn Mower Card Hero layout](assets/lawn-mower-card-map.png)
 
 ## Installation
 
@@ -55,9 +60,23 @@ type: module
 
 ## Configuration
 
-The image-led Hero layout keeps the main controls and live telemetry on one
-surface, then switches the media area between the overview artwork, mower map,
-and live camera. The camera starts only after you open the Camera view.
+The Hero layout keeps the main controls and telemetry on one surface, then
+switches the media area between overview artwork, mower map, and live camera.
+It preloads the map with a stable Home Assistant entity revision, avoiding a new
+cache-busting request on every dashboard update. Live video still starts only
+after you open Camera, so a dashboard view never opens an expensive mower video
+session by itself.
+
+For compatible integrations, this minimal configuration is often enough:
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.dreame_a2_bodzio
+layout: hero
+```
+
+Use explicit companion entities when your entity names differ from the mower's
+object id:
 
 ```yaml
 type: custom:lawn-mower-card
@@ -91,7 +110,7 @@ map_entity: camera.dreame_a2_bodzio_live_path_map
 show_map: true
 status_entity: sensor.dreame_a2_bodzio_state_name
 battery_entity: sensor.dreame_a2_bodzio_battery
-progress_entity: sensor.dreame_a2_bodzio_weather_protection_status
+progress_entity: sensor.dreame_a2_bodzio_runtime_mission_progress
 show_default_actions: true
 show_helper_actions: true
 show_advanced_details: false
@@ -120,7 +139,8 @@ tiles:
 - `show_map`: optional boolean override for the map section
 - `status_entity`: optional entity shown as the primary subtitle
 - `battery_entity`: optional entity used for the compact header summary
-- `progress_entity`: optional progress or status entity used in the header summary
+- `progress_entity`: optional mission-progress sensor, normally measured in `%`;
+  unrelated status entities are ignored by the Hero mission tile
 - `show_default_actions`: optional boolean, defaults to `true`
 - `show_helper_actions`: optional boolean, defaults to `true`
 - `show_advanced_details`: optional boolean, defaults to `false`; shows the
@@ -160,6 +180,12 @@ the broader stored map.
 - `wide`: puts the map on the left and actions/stats on the right when space allows
 - `hero`: image-led overview with live battery, mission, and coverage values;
   Overview, Map, and Camera views; and a compact primary action rail
+
+With the Dreame integration, completed runtime mission and area values remain
+available after docking. The Hero layout labels those values `Last mission` and
+`Last coverage`, then switches back to live labels when the next mowing session
+starts. Other integrations can opt into the same presentation by exposing
+`cached: true` on their progress or coverage entity attributes.
 
 ## Header Summary
 

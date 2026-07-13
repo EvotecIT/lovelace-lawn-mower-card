@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   autoDetectedControlEntities,
+  cameraImageUrl,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
@@ -26,6 +27,23 @@ test("all-area mowing hides irrelevant target selectors", () => {
     "select.garden_map",
     "select.garden_mowing_action",
   ]);
+});
+
+test("camera URLs use stable Home Assistant revisions instead of render time", () => {
+  const entityPicture = {
+    state: "idle",
+    attributes: { entity_picture: "/api/camera_proxy/camera.garden?token=abc" },
+    last_updated: "2026-07-13T15:05:00+00:00",
+  };
+
+  assert.equal(
+    cameraImageUrl("camera.garden", entityPicture),
+    "/api/camera_proxy/camera.garden?token=abc&v=2026-07-13T15%3A05%3A00%2B00%3A00",
+  );
+  assert.equal(
+    cameraImageUrl("camera.garden", entity("idle")),
+    "/api/camera_proxy/camera.garden",
+  );
 });
 
 test("zone mowing shows only the zone target", () => {
