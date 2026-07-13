@@ -1,6 +1,8 @@
 export type MinimalHassEntity = {
   state: string;
   attributes?: Record<string, unknown>;
+  last_changed?: string;
+  last_updated?: string;
 };
 
 export type HelperEntity = {
@@ -10,6 +12,32 @@ export type HelperEntity = {
 };
 
 type HassStates = Record<string, MinimalHassEntity>;
+
+export function cameraImageUrl(entityId: string, entity: MinimalHassEntity): string {
+  const entityPicture = entity.attributes?.entity_picture;
+  const base =
+    typeof entityPicture === "string" && entityPicture
+      ? entityPicture
+      : `/api/camera_proxy/${entityId}`;
+  const revision = entity.last_updated || entity.last_changed;
+  if (!revision) {
+    return base;
+  }
+  const separator = base.includes("?") ? "&" : "?";
+  return `${base}${separator}v=${encodeURIComponent(revision)}`;
+}
+
+export function firstAvailableEntity<T extends MinimalHassEntity>(
+  entities: readonly (T | undefined)[],
+): T | undefined {
+  return entities.find(
+    (candidate): candidate is T =>
+      Boolean(
+        candidate &&
+          !["unknown", "unavailable", ""].includes(candidate.state.trim().toLowerCase()),
+      ),
+  );
+}
 
 function mowerObjectId(entityId: string): string | undefined {
   return entityId.split(".", 2)[1] || undefined;

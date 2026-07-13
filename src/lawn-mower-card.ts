@@ -2,9 +2,11 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import {
+  cameraImageUrl,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
+  firstAvailableEntity,
   prioritizedHeaderSummary,
   resolvedControlEntities,
 } from "./card-logic";
@@ -18,6 +20,8 @@ type HassEntity = {
   entity_id: string;
   state: string;
   attributes: Record<string, unknown>;
+  last_changed?: string;
+  last_updated?: string;
 };
 
 type HomeAssistant = {
@@ -77,6 +81,11 @@ type RuntimeSessionDetails = {
   positionX?: number;
   positionY?: number;
   source?: string;
+};
+
+type HeroMetric = {
+  label: string;
+  value?: string;
 };
 
 type PlannedRunDetails = {
@@ -755,14 +764,8 @@ export class LawnMowerCard extends LitElement {
     const battery =
       this._entityState(this._config.battery_entity) ||
       this._stringAttribute(mower, "battery_level", "%");
-    const progress =
-      this._entityState(this._config.progress_entity) ||
-      this._companionState("sensor", "runtime_mission_progress") ||
-      this._companionState("sensor", "mowing_progress");
-    const currentArea = this._companionState("sensor", "runtime_current_area");
-    const totalArea = this._companionState("sensor", "runtime_total_area");
-    const coverage =
-      currentArea && totalArea ? `${currentArea} / ${totalArea}` : currentArea || totalArea;
+    const progress = this._heroMissionMetric();
+    const coverage = this._heroCoverageMetric();
     const activeView =
       (this._heroView === "camera" && !cameraEntity) ||
       (this._heroView === "map" && !mapUrl)
@@ -775,8 +778,10 @@ export class LawnMowerCard extends LitElement {
       stateLabel: this._friendlyMowerState(mower.state),
       stateKey: mower.state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-"),
       battery,
-      progress,
-      coverage,
+      progress: progress.value,
+      progressLabel: progress.label,
+      coverage: coverage.value,
+      coverageLabel: coverage.label,
       activeView,
       mapUrl,
       cameraEntity,
@@ -1323,13 +1328,57 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _cameraUrl(entity: HassEntity): string {
-    const entityPicture = entity.attributes.entity_picture;
-    if (typeof entityPicture === "string" && entityPicture) {
-      return entityPicture;
-    }
+    return cameraImageUrl(entity.entity_id, entity);
+  }
 
-    const entityId = entity.entity_id;
-    return `/api/camera_proxy/${entityId}?v=${Date.now()}`;
+  private _heroMissionMetric(): HeroMetric {
+    const configuredId = this._config?.progress_entity;
+    const configured = configuredId ? this.hass.states[configuredId] : undefined;
+    const configuredUnit = configured?.attributes.unit_of_measurement;
+    const configuredIsProgress = Boolean(
+      configuredId &&
+        configured &&
+        !this._isUnavailableEntity(configured) &&
+        (configuredUnit === "%" || configuredId.endsWith("_progress")),
+    );
+    const entity = configuredIsProgress
+      ? configured
+      : firstAvailableEntity([
+          this._companionEntity("sensor", "runtime_mission_progress"),
+          this._companionEntity("sensor", "mowing_progress"),
+        ]);
+    return {
+      label: entity?.attributes.cached === true ? "Last mission" : "Mission",
+      value: entity ? this._friendlyState(entity) : undefined,
+    };
+  }
+
+  private _heroCoverageMetric(): HeroMetric {
+    const current = this._companionEntity("sensor", "runtime_current_area");
+    const total = this._companionEntity("sensor", "runtime_total_area");
+    const currentValue =
+      current && !this._isUnavailableEntity(current) ? this._friendlyState(current) : undefined;
+    const totalValue =
+      total && !this._isUnavailableEntity(total) ? this._friendlyState(total) : undefined;
+    const currentUnit = current?.attributes.unit_of_measurement;
+    const totalUnit = total?.attributes.unit_of_measurement;
+    const combinedValue =
+      currentValue &&
+      totalValue &&
+      typeof currentUnit === "string" &&
+      currentUnit &&
+      currentUnit === totalUnit
+        ? `${current?.state} / ${total?.state} ${currentUnit}`
+        : currentValue && totalValue
+          ? `${currentValue} / ${totalValue}`
+          : currentValue || totalValue;
+    return {
+      label:
+        current?.attributes.cached === true || total?.attributes.cached === true
+          ? "Last coverage"
+          : "Coverage",
+      value: combinedValue,
+    };
   }
 
   private _mapEntity(): HassEntity | undefined {
@@ -1996,15 +2045,16 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _companionState(domain: string, suffix: string): string | undefined {
-    const entityId = this._companionEntityId(domain, suffix);
-    if (!entityId) {
-      return undefined;
-    }
-    const entity = this.hass.states[entityId];
+    const entity = this._companionEntity(domain, suffix);
     if (!entity || this._isUnavailableEntity(entity)) {
       return undefined;
     }
     return this._friendlyState(entity);
+  }
+
+  private _companionEntity(domain: string, suffix: string): HassEntity | undefined {
+    const entityId = this._companionEntityId(domain, suffix);
+    return entityId ? this.hass.states[entityId] : undefined;
   }
 
   private _isUnavailableEntity(entity: HassEntity): boolean {
@@ -2845,10 +2895,6 @@ export class LawnMowerCardEditor extends LitElement {
       progress_entity: first(
         companion("sensor", "runtime_mission_progress"),
         companion("sensor", "mowing_progress"),
-        companion("sensor", "weather_protection_status"),
-        companion("sensor", "task_status_name"),
-        companion("sensor", "task_status"),
-        companion("sensor", "error"),
       ),
     };
   }

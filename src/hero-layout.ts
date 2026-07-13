@@ -11,7 +11,9 @@ export type HeroLayoutModel = {
   stateKey: string;
   battery?: string;
   progress?: string;
+  progressLabel?: string;
   coverage?: string;
+  coverageLabel?: string;
   activeView: HeroView;
   mapUrl?: string;
   cameraEntity?: object;
@@ -124,6 +126,14 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
       <div class="hero-shell">
         <section class=${`hero-stage view-${model.activeView}`}>
           ${renderView(model)}
+          ${model.activeView !== "map" && model.mapUrl
+            ? html`<img
+                class="hero-map-preload"
+                src=${model.mapUrl}
+                alt=""
+                aria-hidden="true"
+              />`
+            : nothing}
           <div class="hero-scrim" aria-hidden="true"></div>
 
           <div class="hero-heading">
@@ -142,8 +152,16 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             ? html`
                 <div class="hero-metrics">
                   ${renderMetric("mdi:battery-high", "Battery", model.battery)}
-                  ${renderMetric("mdi:progress-clock", "Mission", model.progress)}
-                  ${renderMetric("mdi:grass", "Coverage", model.coverage)}
+                  ${renderMetric(
+                    "mdi:progress-clock",
+                    model.progressLabel || "Mission",
+                    model.progress,
+                  )}
+                  ${renderMetric(
+                    "mdi:grass",
+                    model.coverageLabel || "Coverage",
+                    model.coverage,
+                  )}
                 </div>
               `
             : nothing}
@@ -233,6 +251,14 @@ export const heroLayoutStyles = css`
     height: 100%;
   }
 
+  .hero-map-preload {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .hero-art {
     object-fit: cover;
     object-position: center;
@@ -288,6 +314,8 @@ export const heroLayoutStyles = css`
     position: absolute;
     z-index: 2;
     inset: 0 0 auto;
+    width: 100%;
+    box-sizing: border-box;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -296,6 +324,7 @@ export const heroLayoutStyles = css`
   }
 
   .hero-title-block {
+    flex: 1 1 auto;
     min-width: 0;
     display: grid;
     gap: 4px;
@@ -325,6 +354,7 @@ export const heroLayoutStyles = css`
   }
 
   .hero-state {
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -494,8 +524,10 @@ export const heroLayoutStyles = css`
 
   @media (max-width: 560px) {
     .hero-stage {
+      width: 100%;
+      min-width: 0;
       min-height: 310px;
-      aspect-ratio: 4 / 3;
+      aspect-ratio: auto;
     }
 
     .hero-heading {
@@ -503,7 +535,9 @@ export const heroLayoutStyles = css`
     }
 
     .hero-metrics {
-      inset: auto 12px 12px;
+      inset: auto auto 12px 12px;
+      width: calc(100% - 24px);
+      box-sizing: border-box;
       gap: 6px;
     }
 
@@ -515,18 +549,23 @@ export const heroLayoutStyles = css`
       text-align: center;
     }
 
+    .hero-metric strong {
+      font-size: 0.76rem;
+    }
+
     .hero-metric-label {
       display: none;
     }
 
     .hero-actions {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
       padding: 9px;
     }
 
     .hero-action {
-      min-height: 48px;
-      font-size: 0;
+      min-height: 52px;
+      font-size: 0.7rem;
     }
 
     .hero-action ha-icon {

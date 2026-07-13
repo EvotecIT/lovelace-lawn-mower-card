@@ -745,6 +745,7 @@
           entity_id: "camera.backyard_mower_map",
           state: "idle",
           attributes: { friendly_name: "Map", entity_picture: mapImage },
+          last_updated: "2026-07-13T15:05:00+00:00",
         },
         "camera.backyard_mower_map_data": {
           entity_id: "camera.backyard_mower_map_data",
@@ -1010,6 +1011,20 @@
                 : nextState === "paused"
                 ? "paused"
                   : "docked";
+          for (const entityId of [
+            "sensor.backyard_mower_runtime_mission_progress",
+            "sensor.backyard_mower_runtime_current_area",
+            "sensor.backyard_mower_runtime_total_area",
+          ]) {
+            const attributes = stateStore[entityId].attributes;
+            if (nextState === "docked") {
+              attributes.cached = true;
+              attributes.captured_at = "2026-07-13T15:05:00+00:00";
+            } else {
+              delete attributes.cached;
+              delete attributes.captured_at;
+            }
+          }
           applyConfig();
           updatePreviewMeta(nextState);
         });
