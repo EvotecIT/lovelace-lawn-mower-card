@@ -6,6 +6,7 @@ const context = await esbuild.context({
   entryPoints: ["src/lawn-mower-card.ts"],
   outfile: "lawn-mower-card.js",
   bundle: true,
+  loader: { ".jpg": "dataurl" },
   format: "esm",
   target: "es2021",
   minify: !watch,
@@ -20,4 +21,3 @@ if (watch) {
   await context.rebuild();
   await context.dispose();
 }
-
