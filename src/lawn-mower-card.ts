@@ -2,10 +2,9 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import {
-  contextualControlEntities,
+  configuredHeaderSummaryEntities,
   defaultHelperEntities,
-  autoDetectedSummaryEntities,
-  headerSummaryEntities,
+  resolvedControlEntities,
 } from "./card-logic";
 
 type HassEntity = {
@@ -750,14 +749,8 @@ export class LawnMowerCard extends LitElement {
       summary.push(`Battery ${battery}`);
     }
 
-    const autoDetected = autoDetectedSummaryEntities(
-      this.hass.states,
-      this._config.entity,
-    );
-    const configured = headerSummaryEntities(
+    const configured = configuredHeaderSummaryEntities(
       this._config.summary_entities,
-      autoDetected,
-      this._config.show_advanced_details ?? false,
     );
     if (configured.length) {
       for (const entityId of configured) {
@@ -800,10 +793,10 @@ export class LawnMowerCard extends LitElement {
     if (!this._config.entity || !this.hass?.states) {
       return [];
     }
-    return contextualControlEntities(
+    return resolvedControlEntities(
       this.hass.states,
       this._config.entity,
-      configured.length ? configured : undefined,
+      configured,
     );
   }
 
@@ -2667,16 +2660,6 @@ export class LawnMowerCardEditor extends LitElement {
     this._replaceAutoEntityField("status_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("battery_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("progress_entity", next, previousDetected, nextDetected);
-    this._removeReplacedAutoEntityList(
-      "control_entities",
-      next,
-      previousDetected,
-    );
-    this._removeReplacedAutoEntityList(
-      "summary_entities",
-      next,
-      previousDetected,
-    );
 
     const previousAutoShowMap = Boolean(previousDetected.map_entity);
     if (next.show_map === undefined || next.show_map === previousAutoShowMap) {
@@ -2685,20 +2668,6 @@ export class LawnMowerCardEditor extends LitElement {
       } else {
         delete next.show_map;
       }
-    }
-  }
-
-  private _removeReplacedAutoEntityList(
-    key: "control_entities" | "summary_entities",
-    next: LawnMowerCardConfig,
-    previousDetected: Partial<LawnMowerCardConfig>,
-  ) {
-    const current = (next[key] || []).filter(Boolean);
-    const previousAuto = Array.isArray(previousDetected[key])
-      ? previousDetected[key].filter(Boolean)
-      : [];
-    if (!current.length || this._sameEntityList(current, previousAuto)) {
-      delete next[key];
     }
   }
 
@@ -2762,21 +2731,7 @@ export class LawnMowerCardEditor extends LitElement {
         companion("sensor", "task_status"),
         companion("sensor", "error"),
       ),
-      control_entities: [
-        companion("select", "map"),
-        companion("select", "mowing_action"),
-        companion("select", "edge"),
-        companion("select", "zone"),
-        companion("select", "spot"),
-      ].filter((value): value is string => Boolean(value)),
-      summary_entities: [
-        ...autoDetectedSummaryEntities(this.hass.states, entityId),
-      ],
     };
-  }
-
-  private _sameEntityList(left: string[], right: string[]) {
-    return left.length === right.length && left.every((value, index) => value === right[index]);
   }
 
   private _toggleChanged(event: Event) {

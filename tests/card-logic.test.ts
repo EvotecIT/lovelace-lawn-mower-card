@@ -3,10 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   autoDetectedControlEntities,
-  autoDetectedSummaryEntities,
-  contextualControlEntities,
+  configuredHeaderSummaryEntities,
   defaultHelperEntities,
-  headerSummaryEntities,
+  resolvedControlEntities,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
@@ -43,7 +42,7 @@ test("zone mowing shows only the zone target", () => {
   ]);
 });
 
-test("editor-autofilled selectors keep the same action context filtering", () => {
+test("explicitly configured selectors are preserved", () => {
   const states = {
     "select.garden_map": entity("Map 1"),
     "select.garden_mowing_action": entity("All area"),
@@ -51,36 +50,24 @@ test("editor-autofilled selectors keep the same action context filtering", () =>
     "select.garden_zone": entity("Zone 1"),
     "select.garden_spot": entity("Spot 1"),
   };
-  const editorAutofill = Object.keys(states);
+  const configured = Object.keys(states);
 
   assert.deepEqual(
-    contextualControlEntities(states, "lawn_mower.garden", editorAutofill),
-    ["select.garden_map", "select.garden_mowing_action"],
+    resolvedControlEntities(states, "lawn_mower.garden", configured),
+    configured,
   );
 });
 
-test("editor-autofilled telemetry is concise until advanced details are enabled", () => {
-  const states = {
-    "sensor.garden_runtime_mission_progress": entity("77%"),
-    "sensor.garden_runtime_current_area": entity("412 m2"),
-    "sensor.garden_runtime_total_area": entity("531 m2"),
-  };
-  const editorAutofill = autoDetectedSummaryEntities(
-    states,
-    "lawn_mower.garden",
-  );
+test("explicitly configured summary chips are preserved", () => {
+  const configured = [
+    "sensor.garden_runtime_mission_progress",
+    "sensor.garden_runtime_current_area",
+    "sensor.garden_runtime_total_area",
+  ];
 
   assert.deepEqual(
-    headerSummaryEntities(editorAutofill, editorAutofill, false),
-    [],
-  );
-  assert.deepEqual(
-    headerSummaryEntities(editorAutofill, editorAutofill, true),
-    editorAutofill,
-  );
-  assert.deepEqual(
-    headerSummaryEntities(["sensor.garden_weather"], editorAutofill, false),
-    ["sensor.garden_weather"],
+    configuredHeaderSummaryEntities(configured),
+    configured,
   );
 });
 

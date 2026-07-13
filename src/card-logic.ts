@@ -18,14 +18,6 @@ export function autoDetectedControlEntities(
   states: HassStates,
   mowerEntityId: string,
 ): string[] {
-  return contextualControlEntities(states, mowerEntityId);
-}
-
-export function contextualControlEntities(
-  states: HassStates,
-  mowerEntityId: string,
-  configured?: string[],
-): string[] {
   const objectId = mowerObjectId(mowerEntityId);
   if (!objectId) {
     return [];
@@ -42,8 +34,9 @@ export function contextualControlEntities(
     zone: companion("zone"),
     spot: companion("spot"),
   };
-  const controls = configured?.filter(Boolean) ||
-    Object.values(companions).filter((value): value is string => Boolean(value));
+  const controls = Object.values(companions).filter(
+    (value): value is string => Boolean(value),
+  );
   const actionEntityId = companion("mowing_action");
   const action = actionEntityId ? states[actionEntityId]?.state.trim().toLowerCase() : "";
   const targetSuffix = action.includes("zone")
@@ -64,49 +57,21 @@ export function contextualControlEntities(
   );
 }
 
-export function headerSummaryEntities(
-  configured: string[] | undefined,
-  autoDetected: string[] | undefined,
-  showAdvanced: boolean,
-): string[] {
-  const cleaned = configured?.filter(Boolean) || [];
-  const automatic = autoDetected?.filter(Boolean) || [];
-  const isEditorAutofill =
-    cleaned.length === automatic.length &&
-    cleaned.every((entityId, index) => entityId === automatic[index]);
-  return !showAdvanced && isEditorAutofill ? [] : cleaned;
-}
-
-export function autoDetectedSummaryEntities(
+export function resolvedControlEntities(
   states: HassStates,
   mowerEntityId: string,
+  configured: string[] | undefined,
 ): string[] {
-  const objectId = mowerObjectId(mowerEntityId);
-  if (!objectId) {
-    return [];
-  }
+  const cleaned = configured?.filter(Boolean) || [];
+  return cleaned.length
+    ? cleaned
+    : autoDetectedControlEntities(states, mowerEntityId);
+}
 
-  const companion = (suffix: string): string | undefined => {
-    const entityId = `sensor.${objectId}_${suffix}`;
-    return states[entityId] ? entityId : undefined;
-  };
-  const first = (...values: Array<string | undefined>): string | undefined =>
-    values.find((value) => Boolean(value));
-
-  return [
-    companion("runtime_mission_progress"),
-    companion("runtime_current_area"),
-    companion("runtime_total_area"),
-    companion("current_zone"),
-    companion("current_cleaned_area"),
-    companion("current_cleaning_time"),
-    companion("active_segment_count"),
-    first(
-      companion("current_app_map_trajectory_length"),
-      companion("current_app_map_mow_path_length"),
-      companion("current_app_map_trajectory_point_count"),
-    ),
-  ].filter((value): value is string => Boolean(value));
+export function configuredHeaderSummaryEntities(
+  configured: string[] | undefined,
+): string[] {
+  return configured?.filter(Boolean) || [];
 }
 
 export function defaultHelperEntities(
