@@ -311,6 +311,10 @@
         gap: 10px;
       }
 
+      .preset.hero {
+        grid-column: 1 / -1;
+      }
+
       .preset-title {
         margin: 0;
         font-size: 0.95rem;
@@ -528,6 +532,7 @@
                     <span style="margin-right: 8px;">Layout</span>
                     <select id="layout">
                       <option value="all" selected>All presets</option>
+                      <option value="hero">Hero only</option>
                       <option value="default">Default only</option>
                       <option value="compact">Compact only</option>
                       <option value="wide">Wide only</option>
@@ -540,11 +545,18 @@
                 <div class="panel-header">
                   <div>
                     <h2>Card comparison</h2>
-                    <p>All three presets share the same mocked mower state and helper entities.</p>
+                    <p>All four presets share the same mocked mower state and helper entities.</p>
                   </div>
                   <div class="compact-note" id="layout-summary">Showing all presets</div>
                 </div>
                 <div class="preview-grid">
+                  <div class="preset hero">
+                    <h2 class="preset-title">
+                      <strong>Hero</strong>
+                      Image-led overview with integrated map, camera, and primary controls.
+                    </h2>
+                    <lawn-mower-card id="preview-card-hero"></lawn-mower-card>
+                  </div>
                   <div class="preset">
                     <h2 class="preset-title">
                       <strong>Wide</strong>
@@ -824,6 +836,7 @@
       };
 
       const cards = {
+        hero: document.getElementById("preview-card-hero"),
         wide: document.getElementById("preview-card-wide"),
         default: document.getElementById("preview-card-default"),
         compact: document.getElementById("preview-card-compact"),
@@ -850,6 +863,10 @@
       };
 
       function applyConfig(overrides = {}) {
+        cards.hero.hass = hass;
+        cards.hero.setConfig({ ...baseConfig, ...overrides, layout: "hero" });
+        cards.hero.requestUpdate();
+
         cards.wide.hass = hass;
         cards.wide.setConfig({ ...baseConfig, ...overrides, layout: "wide" });
         cards.wide.requestUpdate();
@@ -1011,12 +1028,14 @@
 
       document.getElementById("layout").addEventListener("change", (event) => {
         const only = event.target.value;
-        const hidden = { wide: false, default: false, compact: false };
+        const hidden = { hero: false, wide: false, default: false, compact: false };
         if (only !== "all") {
+          hidden.hero = only !== "hero";
           hidden.wide = only !== "wide";
           hidden.default = only !== "default";
           hidden.compact = only !== "compact";
         }
+        cards.hero.parentElement.hidden = hidden.hero;
         cards.wide.parentElement.hidden = hidden.wide;
         cards.default.parentElement.hidden = hidden.default;
         cards.compact.parentElement.hidden = hidden.compact;

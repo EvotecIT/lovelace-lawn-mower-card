@@ -8,6 +8,11 @@ import {
   prioritizedHeaderSummary,
   resolvedControlEntities,
 } from "./card-logic";
+import {
+  heroLayoutStyles,
+  renderHeroLayout,
+  type HeroView,
+} from "./hero-layout";
 
 type HassEntity = {
   entity_id: string;
@@ -39,8 +44,9 @@ type LawnMowerCardConfig = {
   type: string;
   entity: string;
   name?: string;
-  layout?: "default" | "compact" | "wide";
+  layout?: "default" | "compact" | "wide" | "hero";
   map_entity?: string;
+  camera_entity?: string;
   show_map?: boolean;
   status_entity?: string;
   battery_entity?: string;
@@ -132,8 +138,9 @@ export class LawnMowerCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _config?: LawnMowerCardConfig;
+  @state() private _heroView: HeroView = "overview";
 
-  public static styles = css`
+  public static styles = [css`
     :host {
       display: block;
     }
@@ -558,7 +565,7 @@ export class LawnMowerCard extends LitElement {
         grid-template-columns: 1fr;
       }
     }
-  `;
+  `, heroLayoutStyles];
 
   public static getStubConfig(): LawnMowerCardConfig {
     return {
@@ -608,6 +615,10 @@ export class LawnMowerCard extends LitElement {
     const plannedRun = this._plannedRunDetails(mower);
     const runtimeSession = this._runtimeSessionDetails();
     const showAdvancedDetails = this._config.show_advanced_details ?? false;
+
+    if (layout === "hero") {
+      return this._renderHeroCard(mower, title, subtitle, showMap ? mapUrl : undefined);
+    }
 
     return html`
       <ha-card>
@@ -707,6 +718,9 @@ export class LawnMowerCard extends LitElement {
   public getCardSize(): number {
     const showMap = this._config?.show_map ?? Boolean(this._config?.map_entity);
     const layout = this._config?.layout || "default";
+    if (layout === "hero") {
+      return 8;
+    }
     if (layout === "compact") {
       return showMap ? 8 : 6;
     }
@@ -714,6 +728,72 @@ export class LawnMowerCard extends LitElement {
       return showMap ? 10 : 8;
     }
     return showMap ? 9 : 7;
+  }
+
+  private _renderHeroCard(
+    mower: HassEntity,
+    title: string,
+    subtitle: string,
+    mapUrl?: string,
+  ) {
+    if (!this._config) {
+      return nothing;
+    }
+
+    const cameraEntityId =
+      this._config.camera_entity ||
+      defaultHelperEntities(this.hass.states, this._config.entity).find(
+        (helper) => helper.label === "Live Video",
+      )?.entityId;
+    const candidateCameraEntity = cameraEntityId
+      ? this.hass.states[cameraEntityId]
+      : undefined;
+    const cameraEntity =
+      candidateCameraEntity && !this._isUnavailableEntity(candidateCameraEntity)
+        ? candidateCameraEntity
+        : undefined;
+    const battery =
+      this._entityState(this._config.battery_entity) ||
+      this._stringAttribute(mower, "battery_level", "%");
+    const progress =
+      this._entityState(this._config.progress_entity) ||
+      this._companionState("sensor", "runtime_mission_progress") ||
+      this._companionState("sensor", "mowing_progress");
+    const currentArea = this._companionState("sensor", "runtime_current_area");
+    const totalArea = this._companionState("sensor", "runtime_total_area");
+    const coverage =
+      currentArea && totalArea ? `${currentArea} / ${totalArea}` : currentArea || totalArea;
+    const activeView =
+      (this._heroView === "camera" && !cameraEntity) ||
+      (this._heroView === "map" && !mapUrl)
+        ? "overview"
+        : this._heroView;
+
+    return renderHeroLayout({
+      title,
+      subtitle,
+      stateLabel: this._friendlyMowerState(mower.state),
+      stateKey: mower.state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-"),
+      battery,
+      progress,
+      coverage,
+      activeView,
+      mapUrl,
+      cameraEntity,
+      hass: this.hass,
+      canStart: this._canStart(mower.state),
+      canPause: this._canPause(mower.state),
+      canDock: this._canDock(mower.state),
+      showDefaultActions: this._config.show_default_actions ?? true,
+      showHelperActions: this._config.show_helper_actions ?? true,
+      onView: (view) => {
+        this._heroView = view;
+      },
+      onStart: () => this._startMowing(),
+      onPause: () => this._pauseMowing(),
+      onDock: () => this._dockMower(),
+      onMoreInfo: () => this._showMoreInfo(),
+    });
   }
 
   private _buildTiles(): Array<{ label: string; value: string }> {
@@ -2183,6 +2263,14 @@ export class LawnMowerCardEditor extends LitElement {
           "Optional camera entity used for the map preview. Live path cameras work best when available.",
           ["camera"],
         )}
+        ${this._field(
+          "Live video camera",
+          config.camera_entity,
+          "camera_entity",
+          "camera.my_mower_live_video",
+          "Optional camera entity used by the Hero layout. The integration camera is detected automatically when available.",
+          ["camera"],
+        )}
         ${this._toggle(
           "Show map section",
           config.show_map ?? Boolean(config.map_entity),
@@ -2235,7 +2323,7 @@ export class LawnMowerCardEditor extends LitElement {
     `;
   }
 
-  private _layoutField(value: "default" | "compact" | "wide") {
+  private _layoutField(value: "default" | "compact" | "wide" | "hero") {
     return html`
       <label>
         <span>Layout</span>
@@ -2243,6 +2331,7 @@ export class LawnMowerCardEditor extends LitElement {
           <option value="default">Default</option>
           <option value="compact">Compact</option>
           <option value="wide">Wide</option>
+          <option value="hero">Hero</option>
         </select>
         <span class="hint">Choose how the card balances map, actions, and stats.</span>
       </label>
@@ -2677,6 +2766,7 @@ export class LawnMowerCardEditor extends LitElement {
     const nextDetected = this._autoDetectedCompanions(next.entity);
 
     this._replaceAutoEntityField("map_entity", next, previousDetected, nextDetected);
+    this._replaceAutoEntityField("camera_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("status_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("battery_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("progress_entity", next, previousDetected, nextDetected);
@@ -2692,7 +2782,12 @@ export class LawnMowerCardEditor extends LitElement {
   }
 
   private _replaceAutoEntityField(
-    key: "map_entity" | "status_entity" | "battery_entity" | "progress_entity",
+    key:
+      | "map_entity"
+      | "camera_entity"
+      | "status_entity"
+      | "battery_entity"
+      | "progress_entity",
     next: LawnMowerCardConfig,
     previousDetected: Partial<LawnMowerCardConfig>,
     nextDetected: Partial<LawnMowerCardConfig>,
@@ -2734,9 +2829,13 @@ export class LawnMowerCardEditor extends LitElement {
       companion("camera", "all_maps"),
       companion("camera", "map_data"),
     );
+    const cameraEntity = defaultHelperEntities(this.hass.states, entityId).find(
+      (helper) => helper.label === "Live Video",
+    )?.entityId;
 
     return {
       map_entity: mapEntity,
+      camera_entity: cameraEntity,
       status_entity: first(
         companion("sensor", "state_name"),
         companion("sensor", "activity"),
@@ -2782,7 +2881,7 @@ export class LawnMowerCardEditor extends LitElement {
     const target = event.currentTarget as HTMLSelectElement;
     const next: LawnMowerCardConfig = {
       ...(this._config || LawnMowerCard.getStubConfig()),
-      layout: target.value as "default" | "compact" | "wide",
+      layout: target.value as "default" | "compact" | "wide" | "hero",
     };
 
     if (!next.entity) {
@@ -3091,5 +3190,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "lawn-mower-card",
   name: "Lawn Mower Card",
-  description: "A mower-native Home Assistant card with controls, map, and status tiles.",
+  description: "A mower-native Home Assistant card with image-led, map, camera, and control layouts.",
 });

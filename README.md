@@ -16,6 +16,7 @@ integrations today:
 - start, pause, and dock controls
 - context-aware selectors for the map, mowing action, and current target
 - direct access to live video, schedules, and mower maps when those entities exist
+- an optional image-led Hero layout with in-card Overview, Map, and Camera views
 - optional advanced planning and live-session telemetry
 - configurable status tiles
 - room to grow into richer map and zone workflows later
@@ -54,6 +55,33 @@ type: module
 
 ## Configuration
 
+The image-led Hero layout keeps the main controls and live telemetry on one
+surface, then switches the media area between the overview artwork, mower map,
+and live camera. The camera starts only after you open the Camera view.
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.dreame_a2_bodzio
+name: Backyard mower
+layout: hero
+map_entity: camera.dreame_a2_bodzio_live_path_map
+camera_entity: camera.ogrod_dreame_a2_bodzio_live_video
+status_entity: sensor.dreame_a2_bodzio_state_name
+battery_entity: sensor.dreame_a2_bodzio_battery
+progress_entity: sensor.dreame_a2_bodzio_runtime_mission_progress
+```
+
+The visual editor and automatic companion discovery can fill most of these
+entities for compatible integrations. Existing dashboards keep their current
+layout unless `layout: hero` is selected.
+
+The Hero action rail follows `show_default_actions` and
+`show_helper_actions`. Extra configured tiles, custom actions, and advanced
+planning panels remain available in the traditional layouts.
+
+For the traditional map-and-controls layouts, the full configuration remains
+available:
+
 ```yaml
 type: custom:lawn-mower-card
 entity: lawn_mower.dreame_a2_bodzio
@@ -83,10 +111,12 @@ tiles:
 
 - `entity`: required `lawn_mower` entity id
 - `name`: optional card title override
-- `layout`: optional `default`, `compact`, or `wide`
+- `layout`: optional `default`, `compact`, `wide`, or `hero`
 - `map_entity`: optional camera entity for the mower map. If your integration
   exposes a live-path or runtime-overlay camera, prefer that over a static map
   camera so the card can show the current cut path.
+- `camera_entity`: optional live-video camera used by the Hero Camera view. A
+  compatible companion camera is detected automatically when this is omitted.
 - `show_map`: optional boolean override for the map section
 - `status_entity`: optional entity shown as the primary subtitle
 - `battery_entity`: optional entity used for the compact header summary
@@ -128,6 +158,8 @@ the broader stored map.
 - `default`: balanced layout for most dashboards
 - `compact`: tighter spacing for smaller grid cards
 - `wide`: puts the map on the left and actions/stats on the right when space allows
+- `hero`: image-led overview with live battery, mission, and coverage values;
+  Overview, Map, and Camera views; and a compact primary action rail
 
 ## Header Summary
 
