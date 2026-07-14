@@ -15,6 +15,11 @@ import {
   renderHeroLayout,
   type HeroView,
 } from "./hero-layout";
+import {
+  normalizeHeroImage,
+  normalizeHeroImagePosition,
+  type HeroImagePosition,
+} from "./hero-image";
 
 type HassEntity = {
   entity_id: string;
@@ -49,6 +54,8 @@ type LawnMowerCardConfig = {
   entity: string;
   name?: string;
   layout?: "default" | "compact" | "wide" | "hero";
+  hero_image?: string;
+  hero_image_position?: HeroImagePosition;
   map_entity?: string;
   camera_entity?: string;
   show_map?: boolean;
@@ -782,6 +789,8 @@ export class LawnMowerCard extends LitElement {
       progressLabel: progress.label,
       coverage: coverage.value,
       coverageLabel: coverage.label,
+      heroImage: normalizeHeroImage(this._config.hero_image),
+      heroImagePosition: normalizeHeroImagePosition(this._config.hero_image_position),
       activeView,
       mapUrl,
       cameraEntity,
@@ -2305,6 +2314,7 @@ export class LawnMowerCardEditor extends LitElement {
           "Optional card title override.",
         )}
         ${this._layoutField(config.layout || "default")}
+        ${config.layout === "hero" ? this._heroAppearanceSection(config) : nothing}
         ${this._field(
           "Map camera",
           config.map_entity,
@@ -2384,6 +2394,49 @@ export class LawnMowerCardEditor extends LitElement {
           <option value="hero">Hero</option>
         </select>
         <span class="hint">Choose how the card balances map, actions, and stats.</span>
+      </label>
+    `;
+  }
+
+  private _heroAppearanceSection(config: LawnMowerCardConfig) {
+    return html`
+      <div class="section">
+        <div class="section-title">
+          <strong>Hero appearance</strong>
+          <span class="hint">
+            Personalize the overview without replacing files installed by HACS.
+          </span>
+        </div>
+        ${this._field(
+          "Background image",
+          config.hero_image,
+          "hero_image",
+          "/local/mower/my-mower.jpg",
+          "Use a /local/... path for a file in Home Assistant's config/www folder, or an HTTPS URL. Clear the field to restore the built-in image.",
+        )}
+        ${this._heroImagePositionField(
+          normalizeHeroImagePosition(config.hero_image_position),
+        )}
+      </div>
+    `;
+  }
+
+  private _heroImagePositionField(value: HeroImagePosition) {
+    return html`
+      <label>
+        <span>Image focus</span>
+        <select
+          data-key="hero_image_position"
+          .value=${value}
+          @change=${this._valueChanged}
+        >
+          <option value="center">Center</option>
+          <option value="left">Left</option>
+          <option value="right">Right</option>
+          <option value="top">Top</option>
+          <option value="bottom">Bottom</option>
+        </select>
+        <span class="hint">Choose which part of a wide or tall image stays visible.</span>
       </label>
     `;
   }
@@ -2779,7 +2832,7 @@ export class LawnMowerCardEditor extends LitElement {
   }
 
   private _valueChanged(event: Event) {
-    const target = event.currentTarget as HTMLInputElement;
+    const target = event.currentTarget as HTMLInputElement | HTMLSelectElement;
     const key = target.dataset.key as keyof LawnMowerCardConfig | undefined;
     if (!key) {
       return;

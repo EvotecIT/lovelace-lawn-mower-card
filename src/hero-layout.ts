@@ -1,6 +1,11 @@
 import { css, html, nothing, type TemplateResult } from "lit";
 
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
+import {
+  normalizeHeroImage,
+  normalizeHeroImagePosition,
+  type HeroImagePosition,
+} from "./hero-image";
 
 export type HeroView = "overview" | "map" | "camera";
 
@@ -14,6 +19,8 @@ export type HeroLayoutModel = {
   progressLabel?: string;
   coverage?: string;
   coverageLabel?: string;
+  heroImage?: string;
+  heroImagePosition?: HeroImagePosition;
   activeView: HeroView;
   mapUrl?: string;
   cameraEntity?: object;
@@ -29,6 +36,13 @@ export type HeroLayoutModel = {
   onDock(): void | Promise<void>;
   onMoreInfo(): void;
 };
+
+function useBuiltInHeroArtwork(event: Event): void {
+  const image = event.currentTarget as HTMLImageElement;
+  if (image.getAttribute("src") !== heroArtwork) {
+    image.src = heroArtwork;
+  }
+}
 
 function renderView(model: HeroLayoutModel): TemplateResult {
   if (model.activeView === "map") {
@@ -61,7 +75,17 @@ function renderView(model: HeroLayoutModel): TemplateResult {
         `;
   }
 
-  return html`<img class="hero-art" src=${heroArtwork} alt="" aria-hidden="true" />`;
+  const image = normalizeHeroImage(model.heroImage) || heroArtwork;
+  const position = normalizeHeroImagePosition(model.heroImagePosition);
+  return html`
+    <img
+      class=${`hero-art position-${position}`}
+      src=${image}
+      alt=""
+      aria-hidden="true"
+      @error=${useBuiltInHeroArtwork}
+    />
+  `;
 }
 
 function renderMetric(icon: string, label: string, value?: string): TemplateResult {
@@ -261,8 +285,27 @@ export const heroLayoutStyles = css`
 
   .hero-art {
     object-fit: cover;
-    object-position: center;
     transform: scale(1.015);
+  }
+
+  .hero-art.position-center {
+    object-position: center;
+  }
+
+  .hero-art.position-left {
+    object-position: left center;
+  }
+
+  .hero-art.position-right {
+    object-position: right center;
+  }
+
+  .hero-art.position-top {
+    object-position: center top;
+  }
+
+  .hero-art.position-bottom {
+    object-position: center bottom;
   }
 
   .hero-map {
