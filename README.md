@@ -37,10 +37,12 @@ but the card remains integration-agnostic at its core.
 
 ### HACS
 
-1. Open HACS.
-2. Add this repository as a custom frontend repository.
-3. Install **Lawn Mower Card**.
-4. Add the resource if HACS does not do it automatically:
+1. Open HACS and search for **Lawn Mower Card** in the dashboard catalog.
+2. Install the card and restart Home Assistant if HACS asks you to.
+3. If the card is not in the catalog yet, add
+   `https://github.com/EvotecIT/lovelace-lawn-mower-card` as a custom
+   **Dashboard** repository, then install it.
+4. Add the resource only if HACS does not do it automatically:
 
 ```yaml
 url: /hacsfiles/lovelace-lawn-mower-card/lawn-mower-card.js
@@ -59,6 +61,50 @@ type: module
 ```
 
 ## Configuration
+
+### Visual editor (recommended)
+
+You do not need to write YAML to use the card:
+
+1. Open a dashboard and choose **Edit dashboard**.
+2. Select **Add card**, then search for **Lawn Mower Card**.
+3. Choose the mower entity and a layout. The editor safely fills compatible
+   map, live-video, state, battery, progress, and control entities when it can.
+4. Review the live preview and save the card.
+
+The editor also supports explicit companion entities, control selectors,
+summary chips, extra tiles, custom actions, and advanced planning and telemetry
+without requiring raw configuration changes.
+
+### Custom Hero background
+
+Select the **Hero** layout to reveal a **Hero appearance** section in the visual
+editor. Enter either an HTTPS image URL or a Home Assistant `/local/...` path,
+then choose the part of the image that should stay in focus.
+
+For an image stored on your Home Assistant instance:
+
+1. Copy it to `/config/www/mower/my-mower.jpg`.
+2. Set **Background image** to `/local/mower/my-mower.jpg`.
+3. Choose **Center**, **Left**, **Right**, **Top**, or **Bottom** under
+   **Image focus**.
+
+Do not put personal images inside the HACS card directory: HACS owns that folder
+and can replace it during an update. Clear **Background image** to restore the
+built-in artwork. If a custom image cannot be loaded, the card also falls back
+to the built-in artwork automatically.
+
+The equivalent optional YAML is:
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.dreame_a2_bodzio
+layout: hero
+hero_image: /local/mower/my-mower.jpg
+hero_image_position: right
+```
+
+### YAML (optional)
 
 The Hero layout keeps the main controls and telemetry on one surface, then
 switches the media area between overview artwork, mower map, and live camera.
@@ -90,9 +136,9 @@ battery_entity: sensor.dreame_a2_bodzio_battery
 progress_entity: sensor.dreame_a2_bodzio_runtime_mission_progress
 ```
 
-The visual editor and automatic companion discovery can fill most of these
-entities for compatible integrations. Existing dashboards keep their current
-layout unless `layout: hero` is selected.
+Automatic companion discovery can fill most of these entities for compatible
+integrations. Existing dashboards keep their current layout unless
+`layout: hero` is selected.
 
 The Hero action rail follows `show_default_actions` and
 `show_helper_actions`. Extra configured tiles, custom actions, and advanced
@@ -131,6 +177,10 @@ tiles:
 - `entity`: required `lawn_mower` entity id
 - `name`: optional card title override
 - `layout`: optional `default`, `compact`, `wide`, or `hero`
+- `hero_image`: optional Hero overview background. Use an HTTPS URL or a
+  `/local/...` path for a file stored under Home Assistant's `config/www`.
+- `hero_image_position`: optional image focus: `center` (default), `left`,
+  `right`, `top`, or `bottom`
 - `map_entity`: optional camera entity for the mower map. If your integration
   exposes a live-path or runtime-overlay camera, prefer that over a static map
   camera so the card can show the current cut path.
@@ -159,8 +209,9 @@ tiles:
   - `label`: optional tile label override
   - `icon`: optional MDI icon override
 
-The built-in visual editor now covers the main card fields, explicit
-`control_entities`, `summary_entities`, extra `tiles`, and custom `actions`.
+The built-in visual editor covers the main card fields, Hero appearance,
+explicit `control_entities`, `summary_entities`, extra `tiles`, and custom
+`actions`.
 `service_data` for service actions is edited as JSON in the editor, and entity
 fields offer browser suggestions from the entities Home Assistant already knows
 about. When you select a mower entity, the editor also tries to prefill common
