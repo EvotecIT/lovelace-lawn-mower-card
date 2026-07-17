@@ -26,7 +26,7 @@ jobs:
       checks: read
       contents: write
       pull-requests: read
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-homeassistant-release.yml@PowerForge-v1.0.2
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-homeassistant-release.yml@e88d91b6c4e7347b8daadbbc54428a6191bddb7a # PowerForge-v1.0.2 with receiver trust hardening
     with:
       pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
       merge_commit_sha: ${{ github.event.pull_request.merge_commit_sha || inputs.merge_commit_sha }}
