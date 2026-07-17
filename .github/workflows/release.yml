@@ -27,7 +27,7 @@ jobs:
       checks: read
       contents: write
       pull-requests: read
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-homeassistant-release.yml@32ad81d872f65daf4d52af549b5efb137fc9b62e # PowerForge v1.0.3 with manual-dispatch fix
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-homeassistant-release.yml@457a36d5e3692245c466b19a9cf4092d9d4f5399 # PowerForge v1.0.4
     with:
       pr_number: ${{ format('{0}', github.event.pull_request.number || inputs.pr_number) }}
       merge_commit_sha: ${{ github.event.pull_request.merge_commit_sha || inputs.merge_commit_sha }}
