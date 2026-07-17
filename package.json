@@ -1,15 +1,15 @@
 {
   "name": "lovelace-lawn-mower-card",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "private": true,
   "description": "A Lovelace card for robotic lawn mowers in Home Assistant.",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "pack": "npm run build && node pack-release.mjs",
+    "pack": "npm run build \u0026\u0026 node pack-release.mjs",
     "dev": "node build.mjs --watch",
     "serve": "node server.mjs",
-    "preview": "npm run build && node server.mjs",
+    "preview": "npm run build \u0026\u0026 node server.mjs",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "check": "tsc --noEmit",
     "lint": "tsc --noEmit"
@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/EvotecIT/lovelace-lawn-mower-card.git"
+    "url": "git\u002Bhttps://github.com/EvotecIT/lovelace-lawn-mower-card.git"
   },
   "bugs": {
     "url": "https://github.com/EvotecIT/lovelace-lawn-mower-card/issues"
