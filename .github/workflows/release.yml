@@ -8,7 +8,7 @@ on:
       pr_number:
         description: Merged pull request number to release or recover
         required: true
-        type: number
+        type: string
       merge_commit_sha:
         description: Expected merge commit SHA
         required: false
@@ -27,9 +27,9 @@ jobs:
       checks: read
       contents: write
       pull-requests: read
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-homeassistant-release.yml@93386bdc88f3b3d2d591fffd3a22ca2289097e38 # PowerForge-v1.0.3 immutable release workflow
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-homeassistant-release.yml@32ad81d872f65daf4d52af549b5efb137fc9b62e # PowerForge v1.0.3 with manual-dispatch fix
     with:
-      pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
+      pr_number: ${{ format('{0}', github.event.pull_request.number || inputs.pr_number) }}
       merge_commit_sha: ${{ github.event.pull_request.merge_commit_sha || inputs.merge_commit_sha }}
       default_branch: ${{ github.event.repository.default_branch }}
       increment: ${{ inputs.increment || 'auto' }}
