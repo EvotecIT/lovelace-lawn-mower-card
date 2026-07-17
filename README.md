@@ -374,12 +374,15 @@ side.
 
 ## Releases
 
-Version tags in the `vX.Y.Z` format trigger the release workflow. Each tagged
-release rebuilds the card, packages the release payload, and attaches
-`lawn-mower-card.js`, `README.md`, `hacs.json`, and `LICENSE` to the GitHub
-release so frontend users have a clean downloadable artifact. You can also run
-the workflow manually to verify the packaging step without publishing a
-release.
+Merged pull requests drive releases. Add one release label before merging when
+the default policy is not enough: `release:none`, `release:patch`,
+`release:minor`, or `release:major`. PowerForge updates the package metadata,
+runs the repository tests and type check, packages `lawn-mower-card.js`, and
+publishes the matching GitHub release from the prepared version commit.
+
+The Release workflow can also recover a merged pull request. Run it manually
+with the pull request number and, when available, its merge commit SHA; leave
+the increment on `auto` unless the original label decision must be overridden.
 
 ## Scope
 
