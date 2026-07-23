@@ -33,6 +33,35 @@ but the card remains integration-agnostic at its core.
 
 ![Live-path map inside the Lawn Mower Card Hero layout](assets/lawn-mower-card-map.png)
 
+## 🧩 More from Evotec
+
+Our Home Assistant projects:
+
+- [Dreame Lawn Mower](https://github.com/EvotecIT/homeassistant-dreamelawnmower)
+  with its companion
+  [Lawn Mower Card](https://github.com/EvotecIT/lovelace-lawn-mower-card)
+- [Siegenia](https://github.com/EvotecIT/homeassistant-siegenia) for local
+  window control
+- [KEF](https://github.com/EvotecIT/homeassistant-kef) for local speaker control
+- [Devialet](https://github.com/EvotecIT/homeassistant-devialet) for local
+  speaker control
+- [EasyControlX](https://github.com/EvotecIT/homeassistant-easycontrolx) for
+  workstation control
+
+Our Apple apps:
+
+- [CasaRay](https://casaray.dev/) offers a calm whole-home view on iPhone, iPad,
+  and Mac. [View it on the App Store](https://apps.apple.com/us/app/casaray/id6778025328).
+- [Tactra Remote](https://tactra.dev/) focuses on Home Assistant media control
+  across iPhone, iPad, Apple Watch, and Mac.
+  [View it on the App Store](https://apps.apple.com/us/app/tactra-remote/id6775426723).
+
+CasaRay's complete-home Free experience remains genuinely useful. CasaRay Plus
+and Tactra purchases help fund continued work on that free experience and these
+open-source Home Assistant projects. If you prefer to support the open-source
+work directly, [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) is
+another option. None of them is required to use this project.
+
 ## Installation
 
 ### HACS
