@@ -32,9 +32,11 @@
   },
   "homepage": "https://github.com/EvotecIT/lovelace-lawn-mower-card#readme",
   "dependencies": {
-    "lit": "^3.3.1"
+    "lit": "^3.3.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
+    "@types/three": "^0.185.1",
     "esbuild": "^0.28.1",
     "typescript": "^5.9.3"
   }

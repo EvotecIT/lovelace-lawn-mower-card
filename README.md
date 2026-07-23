@@ -10,9 +10,9 @@ mower—not a renamed vacuum card.
 
 ![Lawn Mower Card Hero layout preview](assets/lawn-mower-card-hero.png)
 
-The Hero layout puts state, battery, mission coverage, map, live camera, and the
-primary controls on one responsive surface. Traditional compact, default, and
-wide layouts remain available for denser dashboards.
+The Hero layout puts state, battery, mission coverage, 2D/3D maps, live camera,
+and the primary controls on one responsive surface. Traditional compact,
+default, and wide layouts remain available for denser dashboards.
 
 The card works with a standard `lawn_mower` entity and becomes richer when an
 integration exposes companion map, camera, schedule, and telemetry entities:
@@ -22,7 +22,7 @@ integration exposes companion map, camera, schedule, and telemetry entities:
 - start, pause, and dock controls
 - context-aware selectors for the map, mowing action, and current target
 - direct access to live video, schedules, and mower maps when those entities exist
-- an image-led Hero layout with in-card Overview, Map, and Camera views
+- an image-led Hero layout with in-card Overview, Map, 3D, and Camera views
 - optional advanced planning and live-session telemetry
 - configurable status tiles
 - room to grow into richer map and zone workflows later
@@ -107,7 +107,8 @@ hero_image_position: right
 ### YAML (optional)
 
 The Hero layout keeps the main controls and telemetry on one surface, then
-switches the media area between overview artwork, mower map, and live camera.
+switches the media area between overview artwork, mower map, 3D point cloud, and
+live camera.
 It preloads the map with a stable Home Assistant entity revision, avoiding a new
 cache-busting request on every dashboard update. Live video still starts only
 after you open Camera, so a dashboard view never opens an expensive mower video
@@ -130,6 +131,7 @@ entity: lawn_mower.dreame_a2_bodzio
 name: Backyard mower
 layout: hero
 map_entity: camera.dreame_a2_bodzio_live_path_map
+show_point_cloud: true
 camera_entity: camera.ogrod_dreame_a2_bodzio_live_video
 status_entity: sensor.dreame_a2_bodzio_state_name
 battery_entity: sensor.dreame_a2_bodzio_battery
@@ -156,6 +158,7 @@ name: Backyard mower
 layout: wide
 map_entity: camera.dreame_a2_bodzio_live_path_map
 show_map: true
+show_point_cloud: true
 status_entity: sensor.dreame_a2_bodzio_state_name
 battery_entity: sensor.dreame_a2_bodzio_battery
 progress_entity: sensor.dreame_a2_bodzio_runtime_mission_progress
@@ -185,10 +188,13 @@ tiles:
   `right`, `top`, or `bottom`
 - `map_entity`: optional camera entity for the mower map. If your integration
   exposes a live-path or runtime-overlay camera, prefer that over a static map
-  camera so the card can show the current cut path.
+  camera so the card can show the current cut path. A local
+  `point_cloud_api_path` attribute enables the 3D viewer.
 - `camera_entity`: optional live-video camera used by the Hero Camera view. A
   compatible companion camera is detected automatically when this is omitted.
 - `show_map`: optional boolean override for the map section
+- `show_point_cloud`: optional boolean override for the 3D point-cloud viewer;
+  defaults to visible when `map_entity` advertises a supported local endpoint
 - `status_entity`: optional entity shown as the primary subtitle
 - `battery_entity`: optional entity used for the compact header summary
 - `progress_entity`: optional mission-progress sensor, normally measured in `%`;
@@ -230,13 +236,33 @@ When multiple mower cameras exist, the card now prefers a `live_path_map`
 camera first so the main preview follows the currently cut area instead of only
 the broader stored map.
 
+## 3D Point Clouds
+
+The Dreame Lawn Mower integration can advertise a local
+`point_cloud_api_path` on its map camera. The card validates that the path
+belongs to `/api/dreame_lawn_mower/point-cloud/`, asks Home Assistant to sign it
+for 60 seconds, and parses the returned PCD with Three.js.
+
+The download is deliberately on demand:
+
+- in Hero, select the **3D** tab
+- in compact, default, or wide layouts, press **Load 3D map**
+- use the viewer to orbit, pan, zoom, change point size, reset, refresh, or save
+  the already-loaded PCD
+
+An ordinary dashboard render does not generate or fetch garden geometry. The
+card never receives the vendor cloud URL or transient object name; it sees only
+the integration-owned Home Assistant path. The integration currently limits
+this endpoint to Home Assistant administrators, so non-admin users receive an
+access message instead of the point cloud.
+
 ## Layout Modes
 
 - `default`: balanced layout for most dashboards
 - `compact`: tighter spacing for smaller grid cards
 - `wide`: puts the map on the left and actions/stats on the right when space allows
 - `hero`: image-led overview with live battery, mission, and coverage values;
-  Overview, Map, and Camera views; and a compact primary action rail
+  Overview, Map, 3D, and Camera views; and a compact primary action rail
 
 With the Dreame integration, completed runtime mission and area values remain
 available after docking. The Hero layout labels those values `Last mission` and
@@ -374,9 +400,10 @@ http://localhost:4173/
 
 The preview page renders multiple layout presets inside a mocked Home Assistant
 dashboard shell so spacing, summary chips, helper actions, and surrounding
-context are easier to judge at a glance. You can switch mower states, toggle
-rain delay, and focus on a single layout preset or compare all of them side by
-side.
+context are easier to judge at a glance. It serves a small synthetic PCD
+fixture—never real garden geometry—for testing the 3D tab and load controls. You
+can switch mower states, toggle rain delay, and focus on a single layout preset
+or compare all of them side by side.
 
 ## Releases
 

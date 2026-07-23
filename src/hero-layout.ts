@@ -7,7 +7,7 @@ import {
   type HeroImagePosition,
 } from "./hero-image";
 
-export type HeroView = "overview" | "map" | "camera";
+export type HeroView = "overview" | "map" | "point-cloud" | "camera";
 
 export type HeroLayoutModel = {
   title: string;
@@ -23,6 +23,7 @@ export type HeroLayoutModel = {
   heroImagePosition?: HeroImagePosition;
   activeView: HeroView;
   mapUrl?: string;
+  pointCloudPath?: string;
   cameraEntity?: object;
   controls?: TemplateResult;
   hass: object;
@@ -46,6 +47,25 @@ function useBuiltInHeroArtwork(event: Event): void {
 }
 
 function renderView(model: HeroLayoutModel): TemplateResult {
+  if (model.activeView === "point-cloud") {
+    return model.pointCloudPath
+      ? html`
+          <lawn-mower-point-cloud
+            class="hero-point-cloud"
+            .hass=${model.hass}
+            .path=${model.pointCloudPath}
+            .active=${true}
+            .compact=${true}
+          ></lawn-mower-point-cloud>
+        `
+      : html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
+            <span>No 3D point cloud is available.</span>
+          </div>
+        `;
+  }
+
   if (model.activeView === "map") {
     return model.mapUrl
       ? html`<img class="hero-map" src=${model.mapUrl} alt=${`${model.title} map`} />`
@@ -197,6 +217,13 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
           ${renderTab(model, "map", "Map", "mdi:map-outline", !model.mapUrl)}
           ${renderTab(
             model,
+            "point-cloud",
+            "3D",
+            "mdi:rotate-3d-variant",
+            !model.pointCloudPath,
+          )}
+          ${renderTab(
+            model,
             "camera",
             "Camera",
             "mdi:video-wireless-outline",
@@ -241,6 +268,15 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
                   disabled: !model.mapUrl,
                   active: model.activeView === "map",
                 })}
+                ${renderAction(
+                  "3D",
+                  "mdi:rotate-3d-variant",
+                  () => model.onView("point-cloud"),
+                  {
+                    disabled: !model.pointCloudPath,
+                    active: model.activeView === "point-cloud",
+                  },
+                )}
               `
             : nothing}
           ${renderAction("More", "mdi:dots-horizontal", model.onMoreInfo)}
@@ -276,6 +312,7 @@ export const heroLayoutStyles = css`
 
   .hero-art,
   .hero-map,
+  .hero-point-cloud,
   .hero-camera,
   .hero-empty {
     position: absolute;
@@ -330,6 +367,13 @@ export const heroLayoutStyles = css`
     background: #050605;
   }
 
+  .hero-point-cloud {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
   .hero-empty {
     box-sizing: border-box;
     display: grid;
@@ -358,6 +402,7 @@ export const heroLayoutStyles = css`
   }
 
   .view-map .hero-scrim,
+  .view-point-cloud .hero-scrim,
   .view-camera .hero-scrim {
     background: linear-gradient(180deg, rgba(3, 5, 4, 0.78) 0%, transparent 34%, rgba(3, 5, 4, 0.2) 100%);
   }
@@ -502,7 +547,7 @@ export const heroLayoutStyles = css`
 
   .hero-tabs {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     padding: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);

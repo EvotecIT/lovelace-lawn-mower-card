@@ -1,4 +1,5 @@
 import esbuild from "esbuild";
+import { readFile, writeFile } from "node:fs/promises";
 
 const watch = process.argv.includes("--watch");
 
@@ -20,4 +21,10 @@ if (watch) {
 } else {
   await context.rebuild();
   await context.dispose();
+  const output = await readFile("lawn-mower-card.js", "utf8");
+  await writeFile(
+    "lawn-mower-card.js",
+    output.replace(/[ \t]+$/gm, "").replace(/^ +\t/gm, "\t"),
+    "utf8",
+  );
 }

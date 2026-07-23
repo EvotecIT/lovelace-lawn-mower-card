@@ -21,6 +21,11 @@ import {
   normalizeHeroImagePosition,
   type HeroImagePosition,
 } from "./hero-image";
+import {
+  pointCloudPathFromEntity,
+} from "./point-cloud-logic";
+import type { PointCloudHomeAssistant } from "./point-cloud-view";
+import "./point-cloud-view";
 
 type HassEntity = {
   entity_id: string;
@@ -33,6 +38,8 @@ type HassEntity = {
 type HomeAssistant = {
   states: Record<string, HassEntity>;
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<void>;
+  callWS<T>(message: Record<string, unknown>): Promise<T>;
+  hassUrl(path: string): string;
 };
 
 type LawnMowerTileConfig = {
@@ -60,6 +67,7 @@ type LawnMowerCardConfig = {
   map_entity?: string;
   camera_entity?: string;
   show_map?: boolean;
+  show_point_cloud?: boolean;
   status_entity?: string;
   battery_entity?: string;
   progress_entity?: string;
@@ -299,6 +307,18 @@ export class LawnMowerCard extends LitElement {
       color: var(--secondary-text-color);
       padding: 16px;
       text-align: center;
+    }
+
+    .point-cloud-panel {
+      min-height: 320px;
+      overflow: hidden;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: #080b09;
+    }
+
+    .layout-compact .point-cloud-panel {
+      min-height: 250px;
     }
 
     .selectors {
@@ -627,6 +647,9 @@ export class LawnMowerCard extends LitElement {
     const mapEntity = this._config.map_entity ? this.hass.states[this._config.map_entity] : undefined;
     const mapUrl = mapEntity ? this._cameraUrl(mapEntity) : undefined;
     const showMap = this._config.show_map ?? Boolean(this._config.map_entity);
+    const pointCloudPath = pointCloudPathFromEntity(mapEntity);
+    const showPointCloud =
+      this._config.show_point_cloud ?? Boolean(pointCloudPath);
     const statTiles = this._buildTiles();
     const actionGroups = this._buildActionGroups(mower.state);
     const headerSummary = this._buildHeaderSummary();
@@ -641,6 +664,7 @@ export class LawnMowerCard extends LitElement {
         title,
         subtitle,
         showMap ? mapUrl : undefined,
+        showPointCloud ? pointCloudPath : undefined,
         controlEntities,
       );
     }
@@ -672,6 +696,17 @@ export class LawnMowerCard extends LitElement {
                     ${mapUrl
                       ? html`<img src=${mapUrl} alt=${title} />`
                       : html`<div class="map-placeholder">No mower map configured yet.</div>`}
+                  </div>
+                `
+              : nothing}
+            ${showPointCloud
+              ? html`
+                  <div class="point-cloud-panel">
+                    <lawn-mower-point-cloud
+                      .hass=${this.hass as PointCloudHomeAssistant}
+                      .path=${pointCloudPath}
+                      .compact=${layout === "compact"}
+                    ></lawn-mower-point-cloud>
                   </div>
                 `
               : nothing}
@@ -742,17 +777,23 @@ export class LawnMowerCard extends LitElement {
 
   public getCardSize(): number {
     const showMap = this._config?.show_map ?? Boolean(this._config?.map_entity);
+    const mapEntity = this._config?.map_entity
+      ? this.hass?.states[this._config.map_entity]
+      : undefined;
+    const showPointCloud =
+      this._config?.show_point_cloud ??
+      Boolean(pointCloudPathFromEntity(mapEntity));
     const layout = this._config?.layout || "default";
     if (layout === "hero") {
       return 8;
     }
     if (layout === "compact") {
-      return showMap ? 8 : 6;
+      return showMap || showPointCloud ? 8 : 6;
     }
     if (layout === "wide") {
-      return showMap ? 10 : 8;
+      return showMap || showPointCloud ? 10 : 8;
     }
-    return showMap ? 9 : 7;
+    return showMap || showPointCloud ? 9 : 7;
   }
 
   private _renderHeroCard(
@@ -760,6 +801,7 @@ export class LawnMowerCard extends LitElement {
     title: string,
     subtitle: string,
     mapUrl?: string,
+    pointCloudPath?: string,
     controlEntities: string[] = [],
   ) {
     if (!this._config) {
@@ -788,7 +830,8 @@ export class LawnMowerCard extends LitElement {
       : undefined;
     const activeView =
       (this._heroView === "camera" && !cameraEntity) ||
-      (this._heroView === "map" && !mapUrl)
+      (this._heroView === "map" && !mapUrl) ||
+      (this._heroView === "point-cloud" && !pointCloudPath)
         ? "overview"
         : this._heroView;
 
@@ -806,6 +849,7 @@ export class LawnMowerCard extends LitElement {
       heroImagePosition: normalizeHeroImagePosition(this._config.hero_image_position),
       activeView,
       mapUrl,
+      pointCloudPath,
       cameraEntity,
       controls,
       hass: this.hass,
@@ -2360,6 +2404,18 @@ export class LawnMowerCardEditor extends LitElement {
           config.show_map ?? Boolean(config.map_entity),
           "show_map",
         )}
+        ${this._toggle(
+          "Show 3D point cloud when supported",
+          config.show_point_cloud ??
+            Boolean(
+              pointCloudPathFromEntity(
+                config.map_entity
+                  ? this.hass?.states[config.map_entity]
+                  : undefined,
+              ),
+            ),
+          "show_point_cloud",
+        )}
         ${this._field(
           "Status entity",
           config.status_entity,
@@ -2511,6 +2567,7 @@ export class LawnMowerCardEditor extends LitElement {
     value: boolean,
     key:
       | "show_map"
+      | "show_point_cloud"
       | "show_default_actions"
       | "show_helper_actions"
       | "show_advanced_details",
@@ -3005,6 +3062,7 @@ export class LawnMowerCardEditor extends LitElement {
     const target = event.currentTarget as HTMLInputElement;
     const key = target.dataset.key as
       | "show_map"
+      | "show_point_cloud"
       | "show_default_actions"
       | "show_helper_actions"
       | "show_advanced_details"
