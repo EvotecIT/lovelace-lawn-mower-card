@@ -744,7 +744,12 @@
         "camera.backyard_mower_map": {
           entity_id: "camera.backyard_mower_map",
           state: "idle",
-          attributes: { friendly_name: "Map", entity_picture: mapImage },
+          attributes: {
+            friendly_name: "Map",
+            entity_picture: mapImage,
+            point_cloud_api_path:
+              "/api/dreame_lawn_mower/point-cloud/demo-entry/0",
+          },
           last_updated: "2026-07-13T15:05:00+00:00",
         },
         "camera.backyard_mower_map_data": {
@@ -819,6 +824,15 @@
 
       const hass = {
         states: stateStore,
+        async callWS(message) {
+          if (message?.type !== "auth/sign_path") {
+            throw new Error(`Unsupported mock WebSocket call: ${message?.type}`);
+          }
+          return { path: message.path };
+        },
+        hassUrl(path) {
+          return path;
+        },
         async callService(domain, service, data) {
           console.log("Mock service call:", { domain, service, data });
           if (domain === "select" && service === "select_option") {
@@ -855,6 +869,7 @@
         name: "Backyard mower",
         map_entity: "camera.backyard_mower_map",
         show_map: true,
+        show_point_cloud: true,
         status_entity: "sensor.backyard_mower_state_name",
         battery_entity: "sensor.backyard_mower_battery",
         progress_entity: "sensor.backyard_mower_runtime_mission_progress",

@@ -10,13 +10,19 @@ const contentTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".pcd": "application/octet-stream",
   ".png": "image/png",
   ".svg": "image/svg+xml",
 };
 
 function safePath(urlPath) {
   const decoded = decodeURIComponent(urlPath.split("?")[0]);
-  const relative = decoded === "/" ? "/demo/index.html" : decoded;
+  const relative =
+    decoded === "/api/dreame_lawn_mower/point-cloud/demo-entry/0"
+      ? "/demo/sample-point-cloud.pcd"
+      : decoded === "/"
+        ? "/demo/index.html"
+        : decoded;
   const fullPath = normalize(join(root, relative));
   return fullPath.startsWith(root) ? fullPath : null;
 }
@@ -37,4 +43,3 @@ const server = http.createServer((request, response) => {
 server.listen(port, () => {
   console.log(`Lawn mower card preview available at http://localhost:${port}/`);
 });
-
