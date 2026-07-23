@@ -134,6 +134,8 @@ camera_entity: camera.ogrod_dreame_a2_bodzio_live_video
 status_entity: sensor.dreame_a2_bodzio_state_name
 battery_entity: sensor.dreame_a2_bodzio_battery
 progress_entity: sensor.dreame_a2_bodzio_runtime_mission_progress
+coverage_entity: sensor.dreame_a2_bodzio_current_cleaned_area
+coverage_total_entity: sensor.dreame_a2_bodzio_runtime_total_area
 ```
 
 Automatic companion discovery can fill most of these entities for compatible
@@ -191,6 +193,10 @@ tiles:
 - `battery_entity`: optional entity used for the compact header summary
 - `progress_entity`: optional mission-progress sensor, normally measured in `%`;
   unrelated status entities are ignored by the Hero mission tile
+- `coverage_entity`: optional current or completed mowed-area sensor used by the
+  Hero coverage metric
+- `coverage_total_entity`: optional total or target-area sensor displayed
+  alongside `coverage_entity`
 - `show_default_actions`: optional boolean, defaults to `true`
 - `show_helper_actions`: optional boolean, defaults to `true`
 - `show_advanced_details`: optional boolean, defaults to `false`; shows the
@@ -271,9 +277,9 @@ Assistant device page, but the card does not present them as everyday actions.
 
 ## Control Selectors
 
-When compatible `select` entities exist, the card can render them as direct
-inline controls. This is especially useful for Dreame and MOVA mower setups
-that expose entities such as:
+When compatible `select` entities exist, every layout, including Hero, can
+render them as direct inline controls. This is especially useful for Dreame and
+MOVA mower setups that expose entities such as:
 
 - `select.my_mower_map`
 - `select.my_mower_mowing_action`

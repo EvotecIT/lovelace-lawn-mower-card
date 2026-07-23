@@ -11,6 +11,11 @@ export type HelperEntity = {
   icon: string;
 };
 
+export type CoverageEntityIds = {
+  current?: string;
+  total?: string;
+};
+
 type HassStates = Record<string, MinimalHassEntity>;
 
 export function cameraImageUrl(entityId: string, entity: MinimalHassEntity): string {
@@ -98,6 +103,39 @@ export function resolvedControlEntities(
   return cleaned.length
     ? cleaned
     : autoDetectedControlEntities(states, mowerEntityId);
+}
+
+export function resolvedCoverageEntityIds(
+  states: HassStates,
+  mowerEntityId: string,
+  configuredCurrent?: string,
+  configuredTotal?: string,
+): CoverageEntityIds {
+  const objectId = mowerObjectId(mowerEntityId);
+  if (!objectId) {
+    return {};
+  }
+
+  const firstAvailableId = (
+    candidates: readonly (string | undefined)[],
+  ): string | undefined =>
+    candidates.find((entityId) =>
+      entityId ? Boolean(firstAvailableEntity([states[entityId]])) : false,
+    );
+  const companion = (suffix: string): string =>
+    `sensor.${objectId}_${suffix}`;
+
+  return {
+    current: firstAvailableId([
+      configuredCurrent,
+      companion("runtime_current_area"),
+      companion("current_cleaned_area"),
+    ]),
+    total: firstAvailableId([
+      configuredTotal,
+      companion("runtime_total_area"),
+    ]),
+  };
 }
 
 export function configuredHeaderSummaryEntities(
