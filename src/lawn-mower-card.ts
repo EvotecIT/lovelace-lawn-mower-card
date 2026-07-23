@@ -9,6 +9,7 @@ import {
   firstAvailableEntity,
   prioritizedHeaderSummary,
   resolvedControlEntities,
+  resolvedCoverageEntityIds,
 } from "./card-logic";
 import {
   heroLayoutStyles,
@@ -62,6 +63,8 @@ type LawnMowerCardConfig = {
   status_entity?: string;
   battery_entity?: string;
   progress_entity?: string;
+  coverage_entity?: string;
+  coverage_total_entity?: string;
   show_default_actions?: boolean;
   show_helper_actions?: boolean;
   show_advanced_details?: boolean;
@@ -633,7 +636,13 @@ export class LawnMowerCard extends LitElement {
     const showAdvancedDetails = this._config.show_advanced_details ?? false;
 
     if (layout === "hero") {
-      return this._renderHeroCard(mower, title, subtitle, showMap ? mapUrl : undefined);
+      return this._renderHeroCard(
+        mower,
+        title,
+        subtitle,
+        showMap ? mapUrl : undefined,
+        controlEntities,
+      );
     }
 
     return html`
@@ -751,6 +760,7 @@ export class LawnMowerCard extends LitElement {
     title: string,
     subtitle: string,
     mapUrl?: string,
+    controlEntities: string[] = [],
   ) {
     if (!this._config) {
       return nothing;
@@ -773,6 +783,9 @@ export class LawnMowerCard extends LitElement {
       this._stringAttribute(mower, "battery_level", "%");
     const progress = this._heroMissionMetric();
     const coverage = this._heroCoverageMetric();
+    const controls = controlEntities.length
+      ? html`${controlEntities.map((entityId) => this._renderSelectControl(entityId))}`
+      : undefined;
     const activeView =
       (this._heroView === "camera" && !cameraEntity) ||
       (this._heroView === "map" && !mapUrl)
@@ -794,6 +807,7 @@ export class LawnMowerCard extends LitElement {
       activeView,
       mapUrl,
       cameraEntity,
+      controls,
       hass: this.hass,
       canStart: this._canStart(mower.state),
       canPause: this._canPause(mower.state),
@@ -1363,8 +1377,18 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _heroCoverageMetric(): HeroMetric {
-    const current = this._companionEntity("sensor", "runtime_current_area");
-    const total = this._companionEntity("sensor", "runtime_total_area");
+    const coverageEntities = resolvedCoverageEntityIds(
+      this.hass.states,
+      this._config?.entity || "",
+      this._config?.coverage_entity,
+      this._config?.coverage_total_entity,
+    );
+    const current = coverageEntities.current
+      ? this.hass.states[coverageEntities.current]
+      : undefined;
+    const total = coverageEntities.total
+      ? this.hass.states[coverageEntities.total]
+      : undefined;
     const currentValue =
       current && !this._isUnavailableEntity(current) ? this._friendlyState(current) : undefined;
     const totalValue =
@@ -2360,6 +2384,22 @@ export class LawnMowerCardEditor extends LitElement {
           "Optional entity shown as a second stat tile.",
           ["sensor", "binary_sensor", "calendar", "camera", "lawn_mower"],
         )}
+        ${this._field(
+          "Coverage entity",
+          config.coverage_entity,
+          "coverage_entity",
+          "sensor.my_mower_current_cleaned_area",
+          "Optional current or completed mowed-area sensor used by the Hero coverage metric.",
+          ["sensor", "number", "input_number"],
+        )}
+        ${this._field(
+          "Total coverage entity",
+          config.coverage_total_entity,
+          "coverage_total_entity",
+          "sensor.my_mower_runtime_total_area",
+          "Optional total or target-area sensor combined with the current coverage value.",
+          ["sensor", "number", "input_number"],
+        )}
         ${this._toggle(
           "Show default actions",
           config.show_default_actions ?? true,
@@ -2873,6 +2913,8 @@ export class LawnMowerCardEditor extends LitElement {
     this._replaceAutoEntityField("status_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("battery_entity", next, previousDetected, nextDetected);
     this._replaceAutoEntityField("progress_entity", next, previousDetected, nextDetected);
+    this._replaceAutoEntityField("coverage_entity", next, previousDetected, nextDetected);
+    this._replaceAutoEntityField("coverage_total_entity", next, previousDetected, nextDetected);
 
     const previousAutoShowMap = Boolean(previousDetected.map_entity);
     if (next.show_map === undefined || next.show_map === previousAutoShowMap) {
@@ -2890,7 +2932,9 @@ export class LawnMowerCardEditor extends LitElement {
       | "camera_entity"
       | "status_entity"
       | "battery_entity"
-      | "progress_entity",
+      | "progress_entity"
+      | "coverage_entity"
+      | "coverage_total_entity",
     next: LawnMowerCardConfig,
     previousDetected: Partial<LawnMowerCardConfig>,
     nextDetected: Partial<LawnMowerCardConfig>,
@@ -2949,6 +2993,11 @@ export class LawnMowerCardEditor extends LitElement {
         companion("sensor", "runtime_mission_progress"),
         companion("sensor", "mowing_progress"),
       ),
+      coverage_entity: first(
+        companion("sensor", "runtime_current_area"),
+        companion("sensor", "current_cleaned_area"),
+      ),
+      coverage_total_entity: companion("sensor", "runtime_total_area"),
     };
   }
 

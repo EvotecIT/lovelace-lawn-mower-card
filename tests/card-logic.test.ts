@@ -10,6 +10,7 @@ import {
   firstAvailableEntity,
   prioritizedHeaderSummary,
   resolvedControlEntities,
+  resolvedCoverageEntityIds,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
@@ -101,6 +102,51 @@ test("explicitly configured selectors are preserved", () => {
   assert.deepEqual(
     resolvedControlEntities(states, "lawn_mower.garden", configured),
     configured,
+  );
+});
+
+test("coverage uses the runtime pair when it is available", () => {
+  const states = {
+    "sensor.garden_runtime_current_area": entity("125"),
+    "sensor.garden_runtime_total_area": entity("500"),
+    "sensor.garden_current_cleaned_area": entity("120"),
+  };
+
+  assert.deepEqual(
+    resolvedCoverageEntityIds(states, "lawn_mower.garden"),
+    {
+      current: "sensor.garden_runtime_current_area",
+      total: "sensor.garden_runtime_total_area",
+    },
+  );
+});
+
+test("coverage falls back to current mowed area and honors explicit entities", () => {
+  const states = {
+    "sensor.garden_runtime_current_area": entity("unavailable"),
+    "sensor.garden_current_cleaned_area": entity("73"),
+    "sensor.front_lawn_coverage": entity("81"),
+    "sensor.front_lawn_target": entity("240"),
+  };
+
+  assert.deepEqual(
+    resolvedCoverageEntityIds(states, "lawn_mower.garden"),
+    {
+      current: "sensor.garden_current_cleaned_area",
+      total: undefined,
+    },
+  );
+  assert.deepEqual(
+    resolvedCoverageEntityIds(
+      states,
+      "lawn_mower.garden",
+      "sensor.front_lawn_coverage",
+      "sensor.front_lawn_target",
+    ),
+    {
+      current: "sensor.front_lawn_coverage",
+      total: "sensor.front_lawn_target",
+    },
   );
 });
 

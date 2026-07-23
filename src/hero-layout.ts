@@ -24,6 +24,7 @@ export type HeroLayoutModel = {
   activeView: HeroView;
   mapUrl?: string;
   cameraEntity?: object;
+  controls?: TemplateResult;
   hass: object;
   canStart: boolean;
   canPause: boolean;
@@ -202,6 +203,14 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             !model.cameraEntity,
           )}
         </nav>
+
+        ${model.controls
+          ? html`
+              <div class="hero-selectors" aria-label="Mower selections">
+                ${model.controls}
+              </div>
+            `
+          : nothing}
 
         <div class="hero-actions" aria-label="Mower controls">
           ${model.showDefaultActions
@@ -499,6 +508,31 @@ export const heroLayoutStyles = css`
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     background: #0d120e;
+  }
+
+  .hero-selectors {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0d120e;
+  }
+
+  .hero-selectors .selector-card {
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f7faf7;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .hero-selectors .selector-label {
+    color: rgba(232, 240, 228, 0.68);
+  }
+
+  .hero-selectors .selector-card select {
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #f7faf7;
+    background: #151b16;
   }
 
   .hero-tab,
