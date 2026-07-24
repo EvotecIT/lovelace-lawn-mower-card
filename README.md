@@ -294,6 +294,19 @@ the integration-owned Home Assistant path. The integration currently limits
 this endpoint to Home Assistant administrators, so non-admin users receive an
 access message instead of the point cloud.
 
+While the mower prepares a fresh file, the viewer shows elapsed time and the
+integration's normal 45-second generation window. The browser stops a request
+after 65 seconds so a broken connection cannot leave the card spinning
+indefinitely. Newer integration versions return a privacy-safe problem code,
+stage, duration, and retryability flag; the card presents those details with
+the next useful action. Older versions still receive the HTTP-status fallback.
+
+If generation repeatedly fails, retry once and then download the mower
+integration diagnostics before restarting Home Assistant. Include the visible
+`point_cloud_*` reference in the issue report. The card never displays or stores
+vendor URLs, transient object names, or point coordinates as troubleshooting
+data.
+
 ## Layout Modes
 
 - `default`: balanced layout for most dashboards
