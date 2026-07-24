@@ -22,8 +22,11 @@ export function discoverScheduleControls(
   if (!objectId) {
     return [];
   }
-  const directPrefix = `${objectId}_`;
-  const areaSuffix = `_${objectId}_`;
+  const mowerObjectIds = Object.keys(states)
+    .filter((entityId) => entityId.startsWith("lawn_mower."))
+    .map((entityId) => entityId.split(".", 2)[1])
+    .filter((candidate): candidate is string => Boolean(candidate))
+    .sort((left, right) => right.length - left.length);
   return Object.entries(states)
     .filter(([entityId, entity]) => {
       if (!entityId.startsWith("switch.")) {
@@ -33,16 +36,23 @@ export function discoverScheduleControls(
         return false;
       }
       const switchObjectId = entityId.split(".", 2)[1] || "";
-      return (
-        switchObjectId.startsWith(directPrefix) ||
-        switchObjectId.includes(areaSuffix)
-      );
+      return matchingMowerObjectId(switchObjectId, mowerObjectIds) === objectId;
     })
     .map(([entityId, entity]) => scheduleControl(entityId, entity))
     .sort((left, right) => {
       const mapOrder = (left.mapLabel || "").localeCompare(right.mapLabel || "");
       return mapOrder || left.label.localeCompare(right.label);
     });
+}
+
+function matchingMowerObjectId(
+  switchObjectId: string,
+  mowerObjectIds: string[],
+): string | undefined {
+  return mowerObjectIds.find((candidate) =>
+    switchObjectId.startsWith(`${candidate}_`) ||
+    switchObjectId.includes(`_${candidate}_`)
+  );
 }
 
 function scheduleControl(

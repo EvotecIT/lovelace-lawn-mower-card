@@ -6,6 +6,12 @@ import { discoverScheduleControls } from "../src/schedule-controls.ts";
 test("discovers and summarizes mower schedule switches", () => {
   const result = discoverScheduleControls(
     {
+      "lawn_mower.garden_mower": {
+        state: "docked",
+      },
+      "lawn_mower.other_mower": {
+        state: "docked",
+      },
       "switch.garden_mower_map_1_morning": {
         state: "on",
         attributes: {
@@ -46,6 +52,9 @@ test("discovers and summarizes mower schedule switches", () => {
 test("supports area-prefixed companion entity ids", () => {
   const result = discoverScheduleControls(
     {
+      "lawn_mower.garden_mower": {
+        state: "docked",
+      },
       "switch.back_yard_garden_mower_map_2_schedule_1": {
         state: "unavailable",
         attributes: {
@@ -60,4 +69,40 @@ test("supports area-prefixed companion entity ids", () => {
   assert.equal(result.length, 1);
   assert.equal(result[0].available, false);
   assert.equal(result[0].enabled, false);
+});
+
+test("does not claim schedules from a mower with a longer shared prefix", () => {
+  const states = {
+    "lawn_mower.mower": {
+      state: "docked",
+    },
+    "lawn_mower.mower_2": {
+      state: "docked",
+    },
+    "switch.mower_map_1_schedule_1": {
+      state: "on",
+      attributes: {
+        schedule_control: true,
+      },
+    },
+    "switch.mower_2_map_1_schedule_1": {
+      state: "off",
+      attributes: {
+        schedule_control: true,
+      },
+    },
+  };
+
+  assert.deepEqual(
+    discoverScheduleControls(states, "lawn_mower.mower").map(
+      (control) => control.entityId,
+    ),
+    ["switch.mower_map_1_schedule_1"],
+  );
+  assert.deepEqual(
+    discoverScheduleControls(states, "lawn_mower.mower_2").map(
+      (control) => control.entityId,
+    ),
+    ["switch.mower_2_map_1_schedule_1"],
+  );
 });
