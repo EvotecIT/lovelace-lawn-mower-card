@@ -9,6 +9,7 @@ export type HelperEntity = {
   entityId: string;
   label: string;
   icon: string;
+  action?: "more-info" | "press";
 };
 
 export type CoverageEntityIds = {
@@ -75,8 +76,31 @@ export function autoDetectedControlEntities(
     edge: companion("select", "edge"),
     zone: companion("select", "zone"),
     spot: companion("select", "spot"),
+    maintenance_point: companion("select", "maintenance_point"),
     preference_mode: companion("select", "selected_map_preference_mode"),
-    mowing_height: companion("number", "selected_zone_mowing_height"),
+    map_rotation: companion("select", "selected_map_rotation"),
+    global_mowing_height: companion("number", "selected_map_mowing_height"),
+    zone_mowing_height: companion("number", "selected_zone_mowing_height"),
+    efficiency: companion("select", "selected_efficient_mode"),
+    obstacle_height: companion("select", "selected_obstacle_avoidance_height_cm"),
+    obstacle_distance: companion(
+      "select",
+      "selected_obstacle_avoidance_distance_cm",
+    ),
+    edge_style: companion("select", "selected_edge_mowing_walk_mode"),
+    automatic_edge: companion("switch", "selected_edge_mowing_auto"),
+    safe_edge: companion("switch", "selected_edge_mowing_safe"),
+    edge_avoidance: companion(
+      "switch",
+      "selected_edge_mowing_obstacle_avoidance",
+    ),
+    lidar_avoidance: companion(
+      "switch",
+      "selected_obstacle_avoidance_enabled",
+    ),
+    avoid_people: companion("switch", "selected_people"),
+    avoid_animals: companion("switch", "selected_animals"),
+    avoid_objects: companion("switch", "selected_objects"),
   };
   const targetControls = [
     companions.map,
@@ -84,12 +108,22 @@ export function autoDetectedControlEntities(
     companions.edge,
     companions.zone,
     companions.spot,
+    companions.map_rotation,
+    companions.maintenance_point &&
+    !["unknown", "unavailable", ""].includes(
+      states[companions.maintenance_point]?.state.trim().toLowerCase() || "",
+    )
+      ? companions.maintenance_point
+      : undefined,
   ].filter(
     (value): value is string => Boolean(value),
   );
   const actionEntityId = companions.mowing_action;
   if (!actionEntityId) {
-    return targetControls;
+    return [
+      ...targetControls,
+      ...activePreferenceControls(states, companions),
+    ];
   }
   const action = states[actionEntityId]?.state.trim().toLowerCase() || "";
   const targetSuffix = action.includes("zone")
@@ -108,15 +142,57 @@ export function autoDetectedControlEntities(
   const controls = targetControls.filter(
     (entityId) => !targetEntities.has(entityId) || entityId === activeTarget,
   );
-  if (targetSuffix === "zone") {
-    if (companions.preference_mode) {
-      controls.push(companions.preference_mode);
-    }
-    if (companions.mowing_height) {
-      controls.push(companions.mowing_height);
-    }
-  }
-  return controls;
+  return [...controls, ...activePreferenceControls(states, companions)];
+}
+
+function activePreferenceControls(
+  states: HassStates,
+  companions: Record<string, string | undefined>,
+): string[] {
+  const modeEntityId = companions.preference_mode;
+  const mode = modeEntityId
+    ? states[modeEntityId]?.state.trim().toLowerCase()
+    : undefined;
+  const height =
+    mode === "global"
+      ? companions.global_mowing_height
+      : mode === "custom"
+        ? companions.zone_mowing_height
+        : undefined;
+  return [
+    modeEntityId,
+    height,
+    companions.efficiency,
+    companions.obstacle_height,
+    companions.obstacle_distance,
+    companions.edge_style,
+    companions.automatic_edge,
+    companions.safe_edge,
+    companions.edge_avoidance,
+    companions.lidar_avoidance,
+    companions.avoid_people,
+    companions.avoid_animals,
+    companions.avoid_objects,
+  ].filter((value): value is string => Boolean(value));
+}
+
+export function isPreferenceControlEntity(entityId: string): boolean {
+  return [
+    "_selected_map_preference_mode",
+    "_selected_map_mowing_height",
+    "_selected_zone_mowing_height",
+    "_selected_efficient_mode",
+    "_selected_obstacle_avoidance_height_cm",
+    "_selected_obstacle_avoidance_distance_cm",
+    "_selected_edge_mowing_walk_mode",
+    "_selected_edge_mowing_auto",
+    "_selected_edge_mowing_safe",
+    "_selected_edge_mowing_obstacle_avoidance",
+    "_selected_obstacle_avoidance_enabled",
+    "_selected_people",
+    "_selected_animals",
+    "_selected_objects",
+  ].some((suffix) => entityId.endsWith(suffix));
 }
 
 export function resolvedControlEntities(
@@ -262,6 +338,12 @@ export function defaultHelperEntities(
       entityId: resolveCompanion("camera", "all_maps"),
       label: "All Maps",
       icon: "mdi:map-multiple-outline",
+    },
+    {
+      entityId: resolveCompanion("button", "go_to_maintenance_point"),
+      label: "Maintenance Point",
+      icon: "mdi:map-marker-wrench",
+      action: "press",
     },
   ];
   return candidates.filter(

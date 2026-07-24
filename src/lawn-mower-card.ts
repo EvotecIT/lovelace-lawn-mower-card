@@ -7,6 +7,7 @@ import {
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
+  isPreferenceControlEntity,
   numberControlSettings,
   prioritizedHeaderSummary,
   resolvedControlEntities,
@@ -26,6 +27,14 @@ import {
   pointCloudPathFromEntity,
 } from "./point-cloud-logic";
 import type { PointCloudHomeAssistant } from "./point-cloud-view";
+import {
+  discoverScheduleControls,
+  type ScheduleControl,
+} from "./schedule-controls";
+import {
+  renderSchedulePanel,
+  schedulePanelStyles,
+} from "./schedule-panel";
 import "./point-cloud-view";
 
 type HassEntity = {
@@ -285,13 +294,17 @@ export class LawnMowerCard extends LitElement {
     }
 
     .map {
+      position: relative;
       border: 1px solid var(--divider-color);
-      border-radius: 8px;
+      border-radius: 14px;
       overflow: hidden;
-      background: color-mix(in srgb, var(--card-background-color) 90%, black 10%);
+      background:
+        radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--primary-color) 18%, transparent), transparent 45%),
+        color-mix(in srgb, var(--card-background-color) 84%, black 16%);
       min-height: 180px;
       display: grid;
       place-items: center;
+      box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
     }
 
     .map img {
@@ -299,6 +312,38 @@ export class LawnMowerCard extends LitElement {
       width: 100%;
       max-height: min(62vh, 560px);
       object-fit: contain;
+    }
+
+    .map-status {
+      position: absolute;
+      inset: 12px 12px auto 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .map-badge {
+      padding: 5px 9px;
+      border: 1px solid color-mix(in srgb, white 24%, transparent);
+      border-radius: 999px;
+      color: white;
+      background: color-mix(in srgb, #101b17 76%, transparent);
+      backdrop-filter: blur(8px);
+      font-size: 0.75rem;
+      font-weight: 600;
+      box-shadow: 0 3px 12px rgb(0 0 0 / 18%);
+    }
+
+    .map-badge.live {
+      background: color-mix(in srgb, #0c6f44 82%, transparent);
+      border-color: color-mix(in srgb, #7cf1b4 55%, transparent);
+    }
+
+    .map-badge.warning {
+      background: color-mix(in srgb, #8a3a22 85%, transparent);
+      border-color: color-mix(in srgb, #ffb49c 55%, transparent);
     }
 
     .map-placeholder {
@@ -325,6 +370,56 @@ export class LawnMowerCard extends LitElement {
     .selectors {
       display: grid;
       gap: 10px;
+    }
+
+    .preference-panel {
+      border: 1px solid color-mix(in srgb, var(--primary-color) 28%, var(--divider-color));
+      border-radius: 12px;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--card-background-color) 96%, var(--primary-color) 4%);
+    }
+
+    .preference-panel summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px;
+      cursor: pointer;
+      color: var(--primary-text-color);
+      font-weight: 700;
+      list-style: none;
+    }
+
+    .preference-panel summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .preference-panel summary::after {
+      content: "›";
+      color: var(--primary-color);
+      font-size: 1.35rem;
+      line-height: 1;
+      transform: rotate(90deg);
+      transition: transform 140ms ease;
+    }
+
+    .preference-panel[open] summary::after {
+      transform: rotate(-90deg);
+    }
+
+    .preference-summary {
+      display: grid;
+      gap: 2px;
+    }
+
+    .preference-summary small {
+      color: var(--secondary-text-color);
+      font-weight: 500;
+    }
+
+    .preference-controls {
+      padding: 0 12px 12px;
     }
 
     .selector-card {
@@ -365,6 +460,15 @@ export class LawnMowerCard extends LitElement {
       font-weight: 700;
       color: var(--primary-text-color);
       white-space: nowrap;
+    }
+
+    .selector-switch-body {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--primary-text-color);
+      font-weight: 600;
     }
 
     .selector-card input[type="range"] {
@@ -624,7 +728,7 @@ export class LawnMowerCard extends LitElement {
         grid-template-columns: 1fr;
       }
     }
-  `, heroLayoutStyles];
+  `, schedulePanelStyles, heroLayoutStyles];
 
   public static getStubConfig(): LawnMowerCardConfig {
     return {
@@ -673,7 +777,22 @@ export class LawnMowerCard extends LitElement {
     const statTiles = this._buildTiles();
     const actionGroups = this._buildActionGroups(mower.state);
     const headerSummary = this._buildHeaderSummary();
-    const controlEntities = this._resolvedControlEntities();
+    const scheduleControls = discoverScheduleControls(
+      this.hass.states,
+      this._config.entity,
+    );
+    const scheduleEntityIds = new Set(
+      scheduleControls.map((control) => control.entityId),
+    );
+    const controlEntities = this._resolvedControlEntities().filter(
+      (entityId) => !scheduleEntityIds.has(entityId),
+    );
+    const preferenceControlEntities = controlEntities.filter(
+      isPreferenceControlEntity,
+    );
+    const primaryControlEntities = controlEntities.filter(
+      (entityId) => !isPreferenceControlEntity(entityId),
+    );
     const plannedRun = this._plannedRunDetails(mower);
     const runtimeSession = this._runtimeSessionDetails();
     const showAdvancedDetails = this._config.show_advanced_details ?? false;
@@ -686,6 +805,7 @@ export class LawnMowerCard extends LitElement {
         showMap ? mapUrl : undefined,
         showPointCloud ? pointCloudPath : undefined,
         controlEntities,
+        scheduleControls,
       );
     }
 
@@ -712,10 +832,11 @@ export class LawnMowerCard extends LitElement {
 
             ${showMap
               ? html`
-                  <div class="map">
+                  <div class="map" @click=${() => this._showMoreInfo(mapEntity?.entity_id)}>
                     ${mapUrl
                       ? html`<img src=${mapUrl} alt=${title} />`
                       : html`<div class="map-placeholder">No mower map configured yet.</div>`}
+                    ${mapEntity ? this._renderMapStatus(mapEntity, mower.state) : nothing}
                   </div>
                 `
               : nothing}
@@ -741,13 +862,21 @@ export class LawnMowerCard extends LitElement {
               ? this._renderRuntimeSessionPanel(runtimeSession)
               : nothing}
 
-            ${controlEntities.length
+            ${scheduleControls.length
+              ? renderSchedulePanel(
+                  scheduleControls,
+                  (entityId, enabled) => this._toggleSwitch(entityId, enabled),
+                )
+              : nothing}
+
+            ${primaryControlEntities.length
               ? html`
                   <div class="selectors">
-                    ${controlEntities.map((entityId) => this._renderEntityControl(entityId))}
+                    ${primaryControlEntities.map((entityId) => this._renderEntityControl(entityId))}
                   </div>
                 `
               : nothing}
+            ${this._renderPreferenceControls(preferenceControlEntities)}
 
             ${actionGroups.length
               ? html`
@@ -823,6 +952,7 @@ export class LawnMowerCard extends LitElement {
     mapUrl?: string,
     pointCloudPath?: string,
     controlEntities: string[] = [],
+    scheduleControls: ScheduleControl[] = [],
   ) {
     if (!this._config) {
       return nothing;
@@ -840,13 +970,33 @@ export class LawnMowerCard extends LitElement {
       candidateCameraEntity && !this._isUnavailableEntity(candidateCameraEntity)
         ? candidateCameraEntity
         : undefined;
+    const maintenancePointButton = defaultHelperEntities(
+      this.hass.states,
+      this._config.entity,
+    ).find((helper) => helper.action === "press");
+    const configuredMapEntity = this._config.map_entity
+      ? this.hass.states[this._config.map_entity]
+      : undefined;
     const battery =
       this._entityState(this._config.battery_entity) ||
       this._stringAttribute(mower, "battery_level", "%");
     const progress = this._heroMissionMetric();
     const coverage = this._heroCoverageMetric();
-    const controls = controlEntities.length
-      ? html`${controlEntities.map((entityId) => this._renderEntityControl(entityId))}`
+    const controls = controlEntities.length || scheduleControls.length
+      ? html`
+          ${scheduleControls.length
+            ? renderSchedulePanel(
+                scheduleControls,
+                (entityId, enabled) => this._toggleSwitch(entityId, enabled),
+              )
+            : nothing}
+          ${controlEntities
+            .filter((entityId) => !isPreferenceControlEntity(entityId))
+            .map((entityId) => this._renderEntityControl(entityId))}
+          ${this._renderPreferenceControls(
+            controlEntities.filter(isPreferenceControlEntity),
+          )}
+        `
       : undefined;
     const activeView =
       (this._heroView === "camera" && !cameraEntity) ||
@@ -869,6 +1019,9 @@ export class LawnMowerCard extends LitElement {
       heroImagePosition: normalizeHeroImagePosition(this._config.hero_image_position),
       activeView,
       mapUrl,
+      mapStatus: configuredMapEntity
+        ? this._renderMapStatus(configuredMapEntity, mower.state)
+        : undefined,
       pointCloudPath,
       cameraEntity,
       controls,
@@ -876,6 +1029,9 @@ export class LawnMowerCard extends LitElement {
       canStart: this._canStart(mower.state),
       canPause: this._canPause(mower.state),
       canDock: this._canDock(mower.state),
+      maintenancePointAvailable:
+        maintenancePointButton !== undefined &&
+        this.hass.states[maintenancePointButton.entityId]?.state !== "unavailable",
       showDefaultActions: this._config.show_default_actions ?? true,
       showHelperActions: this._config.show_helper_actions ?? true,
       onView: (view) => {
@@ -884,6 +1040,9 @@ export class LawnMowerCard extends LitElement {
       onStart: () => this._startMowing(),
       onPause: () => this._pauseMowing(),
       onDock: () => this._dockMower(),
+      onMaintenancePoint: maintenancePointButton
+        ? () => this._pressButton(maintenancePointButton.entityId)
+        : undefined,
       onMoreInfo: () => this._showMoreInfo(),
     });
   }
@@ -993,10 +1152,61 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _renderEntityControl(entityId: string) {
+    if (entityId.startsWith("switch.")) {
+      return this._renderSwitchControl(entityId);
+    }
     if (entityId.startsWith("number.")) {
       return this._renderNumberControl(entityId);
     }
     return this._renderSelectControl(entityId);
+  }
+
+  private _renderSwitchControl(entityId: string) {
+    const entity = this.hass.states[entityId];
+    if (!entity) {
+      return nothing;
+    }
+    const label =
+      this._friendlyName(entity) ||
+      this._preferredEntityLabel(entityId) ||
+      this._entityName(entityId);
+    const enabled = entity.state === "on";
+    const available = !this._isUnavailableEntity(entity);
+    return html`
+      <div class="selector-card">
+        <span class="selector-label">${label}</span>
+        <div class="selector-switch-body">
+          <span>${enabled ? "On" : "Off"}</span>
+          <button
+            class="schedule-toggle"
+            role="switch"
+            aria-label=${`${label}: ${enabled ? "on" : "off"}`}
+            aria-checked=${String(enabled)}
+            ?disabled=${!available}
+            @click=${() => this._toggleSwitch(entityId, enabled)}
+          ></button>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderMapStatus(entity: HassEntity, mowerState: string) {
+    const details = entity.attributes;
+    const mapName =
+      this._stringValue(details.map_name) ||
+      this._stringValue(details.name);
+    const live = Boolean(details.map_has_live_path ?? details.has_live_path) ||
+      ["mowing", "paused", "returning"].includes(mowerState.toLowerCase());
+    const invalidPosition = details.runtime_position_valid === false;
+    return html`
+      <div class="map-status">
+        ${mapName ? html`<span class="map-badge">${mapName}</span>` : nothing}
+        ${live ? html`<span class="map-badge live">Live</span>` : nothing}
+        ${invalidPosition
+          ? html`<span class="map-badge warning">Position withheld</span>`
+          : nothing}
+      </div>
+    `;
   }
 
   private _renderSelectControl(entityId: string) {
@@ -1071,6 +1281,36 @@ export class LawnMowerCard extends LitElement {
           @change=${(event: Event) => this._setNumberValue(entityId, event)}
         />
       </label>
+    `;
+  }
+
+  private _renderPreferenceControls(entityIds: string[]) {
+    if (!entityIds.length) {
+      return nothing;
+    }
+    const modeEntityId = entityIds.find((entityId) =>
+      entityId.endsWith("_selected_map_preference_mode"),
+    );
+    const heightEntityId = entityIds.find(
+      (entityId) =>
+        entityId.endsWith("_selected_map_mowing_height") ||
+        entityId.endsWith("_selected_zone_mowing_height"),
+    );
+    const mode = modeEntityId ? this._entityState(modeEntityId) : undefined;
+    const height = heightEntityId ? this._entityState(heightEntityId) : undefined;
+    const summary = [mode, height].filter(Boolean).join(" · ");
+    return html`
+      <details class="preference-panel">
+        <summary>
+          <span class="preference-summary">
+            <span>Mowing preferences</span>
+            ${summary ? html`<small>${summary}</small>` : nothing}
+          </span>
+        </summary>
+        <div class="selectors preference-controls">
+          ${entityIds.map((entityId) => this._renderEntityControl(entityId))}
+        </div>
+      </details>
     `;
   }
 
@@ -1222,8 +1462,13 @@ export class LawnMowerCard extends LitElement {
     return defaultHelperEntities(this.hass.states, this._config.entity).map((helper) => ({
       label: helper.label,
       icon: helper.icon,
-      disabled: false,
-      handler: () => this._showMoreInfo(helper.entityId),
+      disabled:
+        helper.action === "press" &&
+        this.hass.states[helper.entityId]?.state === "unavailable",
+      handler: () =>
+        helper.action === "press"
+          ? this._pressButton(helper.entityId)
+          : this._showMoreInfo(helper.entityId),
     }));
   }
 
@@ -1275,6 +1520,10 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     return unit ? `${String(value)} ${unit}` : this._humanizeValue(String(value));
+  }
+
+  private _stringValue(value: unknown): string | undefined {
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
   }
 
   private _humanizeValue(value: string): string {
@@ -1348,6 +1597,48 @@ export class LawnMowerCard extends LitElement {
     }
     if (entityId.endsWith("_selected_zone_mowing_height")) {
       return "Mowing Height";
+    }
+    if (entityId.endsWith("_selected_map_mowing_height")) {
+      return "Global Mowing Height";
+    }
+    if (entityId.endsWith("_selected_map_preference_mode")) {
+      return "Preference Mode";
+    }
+    if (entityId.endsWith("_selected_efficient_mode")) {
+      return "Mowing Efficiency";
+    }
+    if (entityId.endsWith("_selected_obstacle_avoidance_height_cm")) {
+      return "Obstacle Height";
+    }
+    if (entityId.endsWith("_selected_obstacle_avoidance_distance_cm")) {
+      return "Obstacle Distance";
+    }
+    if (entityId.endsWith("_selected_edge_mowing_walk_mode")) {
+      return "Edge Cutting Style";
+    }
+    if (entityId.endsWith("_selected_edge_mowing_auto")) {
+      return "Automatic Edge Cutting";
+    }
+    if (entityId.endsWith("_selected_edge_mowing_safe")) {
+      return "Safe Edge Cutting";
+    }
+    if (entityId.endsWith("_selected_edge_mowing_obstacle_avoidance")) {
+      return "Edge Obstacle Avoidance";
+    }
+    if (entityId.endsWith("_selected_obstacle_avoidance_enabled")) {
+      return "Lidar Obstacle Recognition";
+    }
+    if (entityId.endsWith("_selected_people")) {
+      return "Avoid People";
+    }
+    if (entityId.endsWith("_selected_animals")) {
+      return "Avoid Animals";
+    }
+    if (entityId.endsWith("_selected_objects")) {
+      return "Avoid Objects";
+    }
+    if (entityId.endsWith("_maintenance_point")) {
+      return "Maintenance Point";
     }
     if (entityId.endsWith("_selected_zone_efficiency_mode")) {
       return "Efficiency";
@@ -2168,6 +2459,18 @@ export class LawnMowerCard extends LitElement {
     });
   }
 
+  private async _toggleSwitch(entityId: string, enabled: boolean) {
+    await this.hass.callService("switch", enabled ? "turn_off" : "turn_on", {
+      entity_id: entityId,
+    });
+  }
+
+  private async _pressButton(entityId: string) {
+    await this.hass.callService("button", "press", {
+      entity_id: entityId,
+    });
+  }
+
   private _companionEntityId(domain: string, suffix: string): string | undefined {
     if (!this._config) {
       return undefined;
@@ -2671,7 +2974,7 @@ export class LawnMowerCardEditor extends LitElement {
           <div class="section-title">
             <strong>Controls</strong>
             <span class="hint">
-              Add Home Assistant select or number entities for mower controls.
+              Add Home Assistant select, number, or switch entities for mower controls.
             </span>
           </div>
           <button type="button" @click=${this._addControlEntity}>Add control</button>
@@ -2688,7 +2991,7 @@ export class LawnMowerCardEditor extends LitElement {
                           <input
                             .value=${entityId || ""}
                             data-index=${String(index)}
-                            placeholder="number.my_mower_selected_zone_mowing_height"
+                            placeholder="select.my_mower_selected_map_preference_mode"
                             list="lawn-mower-card-editor-control-entities"
                             @input=${this._controlEntityChanged}
                           />
@@ -2711,13 +3014,14 @@ export class LawnMowerCardEditor extends LitElement {
             `
           : html`
               <div class="hint">
-                No explicit controls yet. The card will auto-detect common mower select companions
-                and writable zone preferences such as mowing height when they exist.
+                No explicit controls yet. The card auto-detects map and task selectors,
+                maintenance points, and the active global or zone mowing preferences.
               </div>
             `}
         ${this._entityDatalist("lawn-mower-card-editor-control-entities", [
           "select",
           "number",
+          "switch",
         ])}
       </div>
     `;
