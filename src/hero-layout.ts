@@ -31,12 +31,14 @@ export type HeroLayoutModel = {
   canStart: boolean;
   canPause: boolean;
   canDock: boolean;
+  maintenancePointAvailable?: boolean;
   showDefaultActions: boolean;
   showHelperActions: boolean;
   onView(view: HeroView): void;
   onStart(): void | Promise<void>;
   onPause(): void | Promise<void>;
   onDock(): void | Promise<void>;
+  onMaintenancePoint?(): void | Promise<void>;
   onMoreInfo(): void;
 };
 
@@ -279,6 +281,16 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
                     active: model.activeView === "point-cloud",
                   },
                 )}
+                ${model.onMaintenancePoint
+                  ? renderAction(
+                      "Maintenance",
+                      "mdi:map-marker-wrench",
+                      model.onMaintenancePoint,
+                      {
+                        disabled: !model.maintenancePointAvailable,
+                      },
+                    )
+                  : nothing}
               `
             : nothing}
           ${renderAction("More", "mdi:dots-horizontal", model.onMoreInfo)}

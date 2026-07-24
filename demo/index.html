@@ -809,21 +809,107 @@
         },
         "select.backyard_mower_selected_map_preference_mode": {
           entity_id: "select.backyard_mower_selected_map_preference_mode",
-          state: "Custom",
+          state: "Global",
           attributes: {
             friendly_name: "Map preference mode",
             options: ["Global", "Custom"],
           },
         },
-        "number.backyard_mower_selected_zone_mowing_height": {
-          entity_id: "number.backyard_mower_selected_zone_mowing_height",
-          state: "4.5",
+        "number.backyard_mower_selected_map_mowing_height": {
+          entity_id: "number.backyard_mower_selected_map_mowing_height",
+          state: "4",
           attributes: {
-            friendly_name: "Mowing height",
-            min: 3.5,
-            max: 6,
+            friendly_name: "Global mowing height",
+            min: 3,
+            max: 7,
             step: 0.5,
             unit_of_measurement: "cm",
+          },
+        },
+        "number.backyard_mower_selected_zone_mowing_height": {
+          entity_id: "number.backyard_mower_selected_zone_mowing_height",
+          state: "unavailable",
+          attributes: {
+            friendly_name: "Mowing height",
+            min: 3,
+            max: 7,
+            step: 0.5,
+            unit_of_measurement: "cm",
+          },
+        },
+        "select.backyard_mower_selected_efficient_mode": {
+          entity_id: "select.backyard_mower_selected_efficient_mode",
+          state: "Efficient",
+          attributes: {
+            friendly_name: "Mowing efficiency",
+            options: ["Standard", "Efficient"],
+          },
+        },
+        "select.backyard_mower_selected_obstacle_avoidance_height_cm": {
+          entity_id: "select.backyard_mower_selected_obstacle_avoidance_height_cm",
+          state: "5 cm",
+          attributes: {
+            friendly_name: "Obstacle height",
+            options: ["5 cm", "10 cm", "15 cm", "20 cm"],
+          },
+        },
+        "select.backyard_mower_selected_obstacle_avoidance_distance_cm": {
+          entity_id: "select.backyard_mower_selected_obstacle_avoidance_distance_cm",
+          state: "15 cm",
+          attributes: {
+            friendly_name: "Obstacle distance",
+            options: ["10 cm", "15 cm", "20 cm"],
+          },
+        },
+        "select.backyard_mower_selected_edge_mowing_walk_mode": {
+          entity_id: "select.backyard_mower_selected_edge_mowing_walk_mode",
+          state: "Along line",
+          attributes: {
+            friendly_name: "Edge cutting style",
+            options: ["Along line", "Side cutting"],
+          },
+        },
+        "switch.backyard_mower_selected_edge_mowing_auto": {
+          entity_id: "switch.backyard_mower_selected_edge_mowing_auto",
+          state: "on",
+          attributes: { friendly_name: "Automatic edge cutting" },
+        },
+        "switch.backyard_mower_selected_edge_mowing_safe": {
+          entity_id: "switch.backyard_mower_selected_edge_mowing_safe",
+          state: "on",
+          attributes: { friendly_name: "Safe edge cutting" },
+        },
+        "switch.backyard_mower_selected_edge_mowing_obstacle_avoidance": {
+          entity_id: "switch.backyard_mower_selected_edge_mowing_obstacle_avoidance",
+          state: "on",
+          attributes: { friendly_name: "Edge obstacle avoidance" },
+        },
+        "switch.backyard_mower_selected_obstacle_avoidance_enabled": {
+          entity_id: "switch.backyard_mower_selected_obstacle_avoidance_enabled",
+          state: "on",
+          attributes: { friendly_name: "Lidar obstacle recognition" },
+        },
+        "switch.backyard_mower_selected_people": {
+          entity_id: "switch.backyard_mower_selected_people",
+          state: "on",
+          attributes: { friendly_name: "Avoid people" },
+        },
+        "switch.backyard_mower_selected_animals": {
+          entity_id: "switch.backyard_mower_selected_animals",
+          state: "on",
+          attributes: { friendly_name: "Avoid animals" },
+        },
+        "switch.backyard_mower_selected_objects": {
+          entity_id: "switch.backyard_mower_selected_objects",
+          state: "on",
+          attributes: { friendly_name: "Avoid objects" },
+        },
+        "select.backyard_mower_maintenance_point": {
+          entity_id: "select.backyard_mower_maintenance_point",
+          state: "Maintenance Point #301",
+          attributes: {
+            friendly_name: "Maintenance point",
+            options: ["Maintenance Point #301"],
           },
         },
         "calendar.backyard_mower_schedule": {
@@ -882,6 +968,11 @@
           state: "idle",
           attributes: { friendly_name: "Capture Operation Snapshot" },
         },
+        "button.backyard_mower_go_to_maintenance_point": {
+          entity_id: "button.backyard_mower_go_to_maintenance_point",
+          state: "idle",
+          attributes: { friendly_name: "Go to maintenance point" },
+        },
       };
 
       const hass = {
@@ -904,6 +995,19 @@
                 ...stateStore[entityId],
                 state: String(data.option),
               };
+              if (
+                entityId ===
+                "select.backyard_mower_selected_map_preference_mode"
+              ) {
+                const global =
+                  String(data.option).toLowerCase() === "global";
+                stateStore[
+                  "number.backyard_mower_selected_map_mowing_height"
+                ].state = global ? "4" : "unavailable";
+                stateStore[
+                  "number.backyard_mower_selected_zone_mowing_height"
+                ].state = global ? "unavailable" : "4.5";
+              }
               for (const card of Object.values(cards)) {
                 card.requestUpdate();
               }

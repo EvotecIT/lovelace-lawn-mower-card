@@ -335,14 +335,15 @@ Current auto-detected helpers include:
 - schedule calendar
 - live-path map camera
 - all-maps camera
+- the mower's configured maintenance-point action
 
-Diagnostic probes and maintenance operations remain available on the Home
-Assistant device page, but the card does not present them as everyday actions.
+Diagnostic probes remain available on the Home Assistant device page rather
+than appearing as everyday card actions.
 
 ## Control Selectors
 
-When compatible `select` or `number` entities exist, every layout, including
-Hero, can render them as direct inline controls. This is especially useful for
+When compatible `select`, `number`, or `switch` entities exist, every layout,
+including Hero, can render them as direct inline controls. This is especially useful for
 Dreame and MOVA mower setups that expose entities such as:
 
 - `select.my_mower_map`
@@ -350,20 +351,28 @@ Dreame and MOVA mower setups that expose entities such as:
 - `select.my_mower_edge`
 - `select.my_mower_zone`
 - `select.my_mower_spot`
+- `select.my_mower_maintenance_point`
 - `select.my_mower_selected_map_preference_mode`
+- `number.my_mower_selected_map_mowing_height`
 - `number.my_mower_selected_zone_mowing_height`
+- `select.my_mower_selected_efficient_mode`
+- `select.my_mower_selected_obstacle_avoidance_height_cm`
+- `select.my_mower_selected_obstacle_avoidance_distance_cm`
+- `switch.my_mower_selected_obstacle_avoidance_enabled`
 
 If you do not set `control_entities`, the card will try to auto-detect these
 companions from the mower object id. It always shows the map and mowing-action
 selectors when available, then shows only the target selector relevant to the
 current action. For example, `All area` hides the edge, zone, and spot fields;
-`Zone` shows the zone field plus writable map-preference mode and mowing-height
-controls when the integration provides them. An explicit `control_entities`
-list is left unchanged.
+`Zone` shows the zone field. Cutting, edge, and obstacle preferences are grouped
+into a compact expandable panel that follows the integration's current
+`Global` or `Custom` scope. An explicit `control_entities` list is left
+unchanged.
 
 The Dreame integration keeps the device-write behavior in its Home Assistant
 entities. The card calls the standard `select.select_option` and
-`number.set_value` services; it does not encode mower protocol requests itself.
+`number.set_value`, `switch.turn_on`/`turn_off`, and `button.press` services; it
+does not encode mower protocol requests itself.
 
 ## Planned Run Preview
 

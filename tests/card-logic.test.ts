@@ -8,6 +8,7 @@ import {
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
+  isPreferenceControlEntity,
   numberControlSettings,
   prioritizedHeaderSummary,
   resolvedControlEntities,
@@ -92,6 +93,71 @@ test("zone mowing exposes writable preference controls when available", () => {
     "select.garden_zone",
     "select.garden_selected_map_preference_mode",
     "number.garden_selected_zone_mowing_height",
+  ]);
+});
+
+test("global mode exposes the complete active preference surface", () => {
+  const states = {
+    "select.garden_map": entity("Map 1"),
+    "select.garden_mowing_action": entity("All area"),
+    "select.garden_selected_map_preference_mode": entity("Global"),
+    "number.garden_selected_map_mowing_height": entity("4.5"),
+    "select.garden_selected_efficient_mode": entity("Efficient"),
+    "select.garden_selected_obstacle_avoidance_height_cm": entity("5 cm"),
+    "select.garden_selected_obstacle_avoidance_distance_cm": entity("15 cm"),
+    "select.garden_selected_edge_mowing_walk_mode": entity("Along line"),
+    "switch.garden_selected_edge_mowing_auto": entity("on"),
+    "switch.garden_selected_edge_mowing_safe": entity("on"),
+    "switch.garden_selected_edge_mowing_obstacle_avoidance": entity("on"),
+    "switch.garden_selected_obstacle_avoidance_enabled": entity("on"),
+    "switch.garden_selected_people": entity("on"),
+    "switch.garden_selected_animals": entity("on"),
+    "switch.garden_selected_objects": entity("on"),
+  };
+
+  assert.deepEqual(autoDetectedControlEntities(states, "lawn_mower.garden"), [
+    "select.garden_map",
+    "select.garden_mowing_action",
+    "select.garden_selected_map_preference_mode",
+    "number.garden_selected_map_mowing_height",
+    "select.garden_selected_efficient_mode",
+    "select.garden_selected_obstacle_avoidance_height_cm",
+    "select.garden_selected_obstacle_avoidance_distance_cm",
+    "select.garden_selected_edge_mowing_walk_mode",
+    "switch.garden_selected_edge_mowing_auto",
+    "switch.garden_selected_edge_mowing_safe",
+    "switch.garden_selected_edge_mowing_obstacle_avoidance",
+    "switch.garden_selected_obstacle_avoidance_enabled",
+    "switch.garden_selected_people",
+    "switch.garden_selected_animals",
+    "switch.garden_selected_objects",
+  ]);
+  assert.equal(
+    isPreferenceControlEntity("switch.garden_selected_people"),
+    true,
+  );
+  assert.equal(isPreferenceControlEntity("select.garden_map"), false);
+});
+
+test("configured maintenance points are shown while unavailable points stay hidden", () => {
+  const available = {
+    "select.garden_map": entity("Map 1"),
+    "select.garden_mowing_action": entity("All area"),
+    "select.garden_maintenance_point": entity("Maintenance Point #301"),
+  };
+  const unavailable = {
+    ...available,
+    "select.garden_maintenance_point": entity("unavailable"),
+  };
+
+  assert.deepEqual(autoDetectedControlEntities(available, "lawn_mower.garden"), [
+    "select.garden_map",
+    "select.garden_mowing_action",
+    "select.garden_maintenance_point",
+  ]);
+  assert.deepEqual(autoDetectedControlEntities(unavailable, "lawn_mower.garden"), [
+    "select.garden_map",
+    "select.garden_mowing_action",
   ]);
 });
 
@@ -243,6 +309,7 @@ test("default helpers expose user features and omit diagnostics", () => {
     "camera.garden_all_maps": entity("idle"),
     "camera.garden_map_data": entity("idle"),
     "button.garden_capture_operation_snapshot": entity("unknown"),
+    "button.garden_go_to_maintenance_point": entity("unknown"),
   };
 
   assert.deepEqual(
@@ -254,6 +321,11 @@ test("default helpers expose user features and omit diagnostics", () => {
       ["calendar.garden_schedule", "Schedule"],
       ["camera.garden_live_path_map", "Live Map"],
       ["camera.garden_all_maps", "All Maps"],
+      ["button.garden_go_to_maintenance_point", "Maintenance Point"],
     ],
+  );
+  assert.equal(
+    defaultHelperEntities(states, "lawn_mower.garden").at(-1)?.action,
+    "press",
   );
 });
