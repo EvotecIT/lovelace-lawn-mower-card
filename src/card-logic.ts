@@ -16,6 +16,14 @@ export type CoverageEntityIds = {
   total?: string;
 };
 
+export type NumberControlSettings = {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  unit?: string;
+};
+
 type HassStates = Record<string, MinimalHassEntity>;
 
 export function cameraImageUrl(entityId: string, entity: MinimalHassEntity): string {
@@ -57,23 +65,31 @@ export function autoDetectedControlEntities(
     return [];
   }
 
-  const companion = (suffix: string): string | undefined => {
-    const entityId = `select.${objectId}_${suffix}`;
+  const companion = (domain: string, suffix: string): string | undefined => {
+    const entityId = `${domain}.${objectId}_${suffix}`;
     return states[entityId] ? entityId : undefined;
   };
   const companions = {
-    map: companion("map"),
-    mowing_action: companion("mowing_action"),
-    edge: companion("edge"),
-    zone: companion("zone"),
-    spot: companion("spot"),
+    map: companion("select", "map"),
+    mowing_action: companion("select", "mowing_action"),
+    edge: companion("select", "edge"),
+    zone: companion("select", "zone"),
+    spot: companion("select", "spot"),
+    preference_mode: companion("select", "selected_map_preference_mode"),
+    mowing_height: companion("number", "selected_zone_mowing_height"),
   };
-  const controls = Object.values(companions).filter(
+  const targetControls = [
+    companions.map,
+    companions.mowing_action,
+    companions.edge,
+    companions.zone,
+    companions.spot,
+  ].filter(
     (value): value is string => Boolean(value),
   );
-  const actionEntityId = companion("mowing_action");
+  const actionEntityId = companions.mowing_action;
   if (!actionEntityId) {
-    return controls;
+    return targetControls;
   }
   const action = states[actionEntityId]?.state.trim().toLowerCase() || "";
   const targetSuffix = action.includes("zone")
@@ -89,9 +105,18 @@ export function autoDetectedControlEntities(
     ),
   );
   const activeTarget = targetSuffix ? companions[targetSuffix] : undefined;
-  return controls.filter(
+  const controls = targetControls.filter(
     (entityId) => !targetEntities.has(entityId) || entityId === activeTarget,
   );
+  if (targetSuffix === "zone") {
+    if (companions.preference_mode) {
+      controls.push(companions.preference_mode);
+    }
+    if (companions.mowing_height) {
+      controls.push(companions.mowing_height);
+    }
+  }
+  return controls;
 }
 
 export function resolvedControlEntities(
@@ -135,6 +160,33 @@ export function resolvedCoverageEntityIds(
       configuredTotal,
       companion("runtime_total_area"),
     ]),
+  };
+}
+
+export function numberControlSettings(
+  entity: MinimalHassEntity,
+): NumberControlSettings | undefined {
+  const value = Number(entity.state);
+  const min = Number(entity.attributes?.min);
+  const max = Number(entity.attributes?.max);
+  const step = Number(entity.attributes?.step);
+  if (
+    !Number.isFinite(value) ||
+    !Number.isFinite(min) ||
+    !Number.isFinite(max) ||
+    !Number.isFinite(step) ||
+    step <= 0 ||
+    min >= max
+  ) {
+    return undefined;
+  }
+  const unit = entity.attributes?.unit_of_measurement;
+  return {
+    value,
+    min,
+    max,
+    step,
+    unit: typeof unit === "string" && unit ? unit : undefined,
   };
 }
 
