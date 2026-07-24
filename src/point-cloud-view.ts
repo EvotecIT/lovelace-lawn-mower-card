@@ -15,6 +15,9 @@ import { PCDLoader } from "three/examples/jsm/loaders/PCDLoader.js";
 
 import {
   normalizePointCloudApiPath,
+  type PointCloudProblem,
+  pointCloudProblemHint,
+  pointCloudProblemFromResponse,
   pointCloudRequestPath,
   signedPathFromResponse,
 } from "./point-cloud-logic";
@@ -26,6 +29,9 @@ export type PointCloudHomeAssistant = {
 
 type ViewerStatus = "idle" | "loading" | "ready" | "error";
 
+const EXPECTED_GENERATION_SECONDS = 45;
+const BROWSER_REQUEST_TIMEOUT_MS = 65_000;
+
 @customElement("lawn-mower-point-cloud")
 export class LawnMowerPointCloud extends LitElement {
   @property({ attribute: false }) public hass?: PointCloudHomeAssistant;
@@ -36,11 +42,13 @@ export class LawnMowerPointCloud extends LitElement {
   @query(".viewport") private _viewport?: HTMLDivElement;
 
   @state() private _status: ViewerStatus = "idle";
-  @state() private _error?: string;
+  @state() private _problem?: PointCloudProblem;
+  @state() private _loadingElapsedSeconds = 0;
   @state() private _pointCount?: number;
   @state() private _pointSize = 1;
 
   private _abortController?: AbortController;
+  private _loadingTimer?: number;
   private _content?: ArrayBuffer;
   private _scene?: Scene;
   private _camera?: PerspectiveCamera;
@@ -108,11 +116,92 @@ export class LawnMowerPointCloud extends LitElement {
       color: #ef9a91;
     }
 
-    .empty p,
-    .error p {
+    .empty p {
       max-width: 36rem;
       margin: 0;
       line-height: 1.45;
+    }
+
+    .loading-copy {
+      display: grid;
+      gap: 5px;
+      max-width: 34rem;
+    }
+
+    .loading-copy strong {
+      color: rgba(247, 250, 247, 0.92);
+      font-size: 0.95rem;
+    }
+
+    .loading-copy small {
+      color: rgba(247, 250, 247, 0.62);
+      line-height: 1.4;
+    }
+
+    .loading-progress {
+      width: min(280px, 72vw);
+      height: 4px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .loading-progress::after {
+      display: block;
+      width: var(--point-cloud-progress, 0%);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #78ad60, #b5da9e);
+      content: "";
+      transition: width 0.3s ease;
+    }
+
+    .problem {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      max-width: 38rem;
+    }
+
+    .problem-title,
+    .problem-detail,
+    .problem-hint {
+      margin: 0;
+    }
+
+    .problem-title {
+      color: rgba(255, 235, 232, 0.96);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .problem-detail {
+      color: rgba(247, 250, 247, 0.78);
+      line-height: 1.45;
+    }
+
+    .problem-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .problem-meta span {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 3px 7px;
+      color: rgba(247, 250, 247, 0.58);
+      font-family: var(--code-font-family, monospace);
+      font-size: 0.68rem;
+    }
+
+    .problem-hint {
+      max-width: 36rem;
+      color: rgba(247, 250, 247, 0.6);
+      font-size: 0.78rem;
+      line-height: 1.4;
     }
 
     .loading-indicator {
@@ -208,6 +297,10 @@ export class LawnMowerPointCloud extends LitElement {
       display: none;
     }
 
+    :host([compact]) .retry-button span {
+      display: inline;
+    }
+
     @keyframes spin {
       to {
         transform: rotate(360deg);
@@ -223,6 +316,10 @@ export class LawnMowerPointCloud extends LitElement {
 
   protected render() {
     const path = normalizePointCloudApiPath(this.path);
+    const progress = Math.min(
+      100,
+      (this._loadingElapsedSeconds / EXPECTED_GENERATION_SECONDS) * 100,
+    );
     return html`
       <div class="shell" aria-label="Mower 3D point cloud">
         <div class="viewport"></div>
@@ -254,7 +351,20 @@ export class LawnMowerPointCloud extends LitElement {
           ? html`
               <div class="loading" role="status" aria-live="polite">
                 <span class="loading-indicator" aria-hidden="true"></span>
-                <span>Generating and downloading the mower point cloud…</span>
+                <span class="loading-copy">
+                  <strong>Preparing a fresh 3D map…</strong>
+                  <small>
+                    ${this._loadingElapsedSeconds}s elapsed.
+                    ${this._loadingElapsedSeconds <= EXPECTED_GENERATION_SECONDS
+                      ? `The mower normally has up to ${EXPECTED_GENERATION_SECONDS} seconds to generate and publish it.`
+                      : "Home Assistant is still finishing the request."}
+                  </small>
+                </span>
+                <span
+                  class="loading-progress"
+                  style=${`--point-cloud-progress: ${progress}%`}
+                  aria-hidden="true"
+                ></span>
               </div>
             `
           : nothing}
@@ -262,12 +372,41 @@ export class LawnMowerPointCloud extends LitElement {
           ? html`
               <div class="error" role="alert">
                 <ha-icon icon="mdi:cube-off-outline"></ha-icon>
-                <p>${this._error || "The 3D point cloud could not be loaded."}</p>
-                ${path
+                <div class="problem">
+                  <p class="problem-title">
+                    ${this._problem?.title || "3D map unavailable"}
+                  </p>
+                  <p class="problem-detail">
+                    ${this._problem?.detail ||
+                    "The 3D point cloud could not be loaded."}
+                  </p>
+                  ${this._problem
+                    ? html`
+                        <div class="problem-meta" aria-label="Diagnostic reference">
+                          ${this._problem.code
+                            ? html`<span>${this._problem.code}</span>`
+                            : nothing}
+                          ${this._problem.stage
+                            ? html`<span>stage: ${this._problem.stage}</span>`
+                            : nothing}
+                          ${this._problem.elapsedMs !== undefined
+                            ? html`<span
+                                >${(this._problem.elapsedMs / 1000).toFixed(1)}s</span
+                              >`
+                            : nothing}
+                        </div>
+                        <p class="problem-hint">
+                          ${pointCloudProblemHint(this._problem)}
+                        </p>
+                      `
+                    : nothing}
+                </div>
+                ${path && this._problem?.retryable !== false
                   ? html`
                       <button
                         type="button"
-                        class="primary"
+                        class="primary retry-button"
+                        aria-label="Try again"
                         @click=${() => this._load(true)}
                       >
                         <ha-icon icon="mdi:refresh"></ha-icon>
@@ -320,8 +459,9 @@ export class LawnMowerPointCloud extends LitElement {
       this._disposeScene();
       this._content = undefined;
       this._status = "idle";
-      this._error = undefined;
+      this._problem = undefined;
       this._pointCount = undefined;
+      this._stopLoadingTimer();
     }
     if (
       this.active &&
@@ -334,6 +474,7 @@ export class LawnMowerPointCloud extends LitElement {
 
   public disconnectedCallback(): void {
     this._abortController?.abort();
+    this._stopLoadingTimer();
     this._disposeScene();
     super.disconnectedCallback();
   }
@@ -342,9 +483,13 @@ export class LawnMowerPointCloud extends LitElement {
     const path = normalizePointCloudApiPath(this.path);
     if (!path || !this.hass) {
       this._status = "error";
-      this._error = path
-        ? "Home Assistant is not ready to load this point cloud."
-        : "This map entity does not provide a supported 3D point-cloud endpoint.";
+      this._problem = {
+        title: path ? "Home Assistant is not ready" : "3D map is not configured",
+        detail: path
+          ? "Home Assistant is not ready to load this point cloud."
+          : "This map entity does not provide a supported 3D point-cloud endpoint.",
+        retryable: Boolean(path),
+      };
       return;
     }
 
@@ -352,60 +497,132 @@ export class LawnMowerPointCloud extends LitElement {
     const abortController = new AbortController();
     this._abortController = abortController;
     this._status = "loading";
-    this._error = undefined;
+    this._problem = undefined;
+    this._startLoadingTimer();
+    let browserTimedOut = false;
+    let rejectOnAbort: (reason: Error) => void;
+    const aborted = new Promise<never>((_, reject) => {
+      rejectOnAbort = reject;
+    });
+    const handleAbort = (): void => {
+      rejectOnAbort(new Error("Point-cloud request aborted."));
+    };
+    abortController.signal.addEventListener("abort", handleAbort, { once: true });
+    const requestTimeout = window.setTimeout(() => {
+      browserTimedOut = true;
+      abortController.abort();
+    }, BROWSER_REQUEST_TIMEOUT_MS);
 
     try {
-      const signed = await this.hass.callWS<unknown>({
-        type: "auth/sign_path",
-        path: pointCloudRequestPath(path, refresh),
-        expires: 60,
-      });
+      const signed = await Promise.race([
+        this.hass.callWS<unknown>({
+          type: "auth/sign_path",
+          path: pointCloudRequestPath(path, refresh),
+          expires: 60,
+        }),
+        aborted,
+      ]);
+      if (
+        this._abortController !== abortController ||
+        abortController.signal.aborted
+      ) {
+        return;
+      }
       const signedPath = signedPathFromResponse(signed);
       if (!signedPath) {
         throw new Error("Home Assistant returned an invalid signed path.");
       }
-      const response = await fetch(this.hass.hassUrl(signedPath), {
-        credentials: "same-origin",
-        signal: abortController.signal,
-      });
+      const response = await Promise.race([
+        fetch(this.hass.hassUrl(signedPath), {
+          credentials: "same-origin",
+          signal: abortController.signal,
+        }),
+        aborted,
+      ]);
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(
-            "Administrator access is required to load the mower point cloud.",
-          );
+        const problem = await Promise.race([
+          pointCloudProblemFromResponse(response),
+          aborted,
+        ]);
+        if (
+          this._abortController !== abortController ||
+          abortController.signal.aborted
+        ) {
+          return;
         }
-        throw new Error(
-          `The mower point cloud is unavailable (HTTP ${response.status}).`,
-        );
+        this._disposeScene();
+        this._content = undefined;
+        this._pointCount = undefined;
+        this._problem = problem;
+        this._status = "error";
+        return;
       }
-      const content = await response.arrayBuffer();
-      if (abortController.signal.aborted) {
+      const content = await Promise.race([response.arrayBuffer(), aborted]);
+      if (
+        this._abortController !== abortController ||
+        abortController.signal.aborted
+      ) {
         return;
       }
 
       const points = new PCDLoader().parse(content);
+      if (
+        this._abortController !== abortController ||
+        abortController.signal.aborted
+      ) {
+        points.geometry.dispose();
+        this._disposeMaterial(points.material);
+        return;
+      }
       this._content = content;
       this._pointCount = points.geometry.getAttribute("position")?.count || 0;
       this._status = "ready";
       await this.updateComplete;
-      if (abortController.signal.aborted) {
+      if (
+        this._abortController !== abortController ||
+        abortController.signal.aborted
+      ) {
         points.geometry.dispose();
         this._disposeMaterial(points.material);
         return;
       }
       this._mountPointCloud(points);
-    } catch (error) {
-      if (abortController.signal.aborted) {
+    } catch {
+      if (this._abortController !== abortController) {
+        return;
+      }
+      if (abortController.signal.aborted && !browserTimedOut) {
         return;
       }
       this._disposeScene();
       this._content = undefined;
       this._pointCount = undefined;
       this._status = "error";
-      this._error =
-        error instanceof Error
-          ? error.message
-          : "The 3D point cloud could not be loaded.";
+      this._problem = browserTimedOut
+        ? {
+            title: "Home Assistant did not answer in time",
+            detail:
+              "The 3D map request exceeded the 65-second browser safety limit.",
+            code: "point_cloud_browser_timeout",
+            stage: "delivery",
+            retryable: true,
+            elapsedMs: BROWSER_REQUEST_TIMEOUT_MS,
+            timeoutSeconds: BROWSER_REQUEST_TIMEOUT_MS / 1000,
+          }
+        : {
+            title: "3D map could not be loaded",
+            detail:
+              "Home Assistant could not sign, download, or parse the 3D map request.",
+            code: "point_cloud_card_failed",
+            stage: "card",
+            retryable: true,
+          };
+    } finally {
+      window.clearTimeout(requestTimeout);
+      abortController.signal.removeEventListener("abort", handleAbort);
+      if (this._abortController === abortController) {
+        this._stopLoadingTimer();
+      }
     }
   }
 
@@ -415,7 +632,13 @@ export class LawnMowerPointCloud extends LitElement {
       points.geometry.dispose();
       this._disposeMaterial(points.material);
       this._status = "error";
-      this._error = "The 3D renderer could not be initialized.";
+      this._problem = {
+        title: "3D renderer unavailable",
+        detail: "The 3D renderer could not be initialized.",
+        code: "point_cloud_renderer_unavailable",
+        stage: "renderer",
+        retryable: false,
+      };
       return;
     }
 
@@ -530,6 +753,24 @@ export class LawnMowerPointCloud extends LitElement {
     anchor.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   };
+
+  private _startLoadingTimer(): void {
+    this._stopLoadingTimer();
+    const startedAt = performance.now();
+    this._loadingElapsedSeconds = 0;
+    this._loadingTimer = window.setInterval(() => {
+      this._loadingElapsedSeconds = Math.floor(
+        (performance.now() - startedAt) / 1000,
+      );
+    }, 1000);
+  }
+
+  private _stopLoadingTimer(): void {
+    if (this._loadingTimer !== undefined) {
+      window.clearInterval(this._loadingTimer);
+      this._loadingTimer = undefined;
+    }
+  }
 
   private _disposeScene(): void {
     this._resizeObserver?.disconnect();
