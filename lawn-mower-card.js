@@ -5813,7 +5813,7 @@ void main() {
           <div class="section-title">
             <strong>Controls</strong>
             <span class="hint">
-              Add Home Assistant select or number entities for mower controls.
+              Add Home Assistant select, number, or switch entities for mower controls.
             </span>
           </div>
           <button type="button" @click=${this._addControlEntity}>Add control</button>
@@ -5853,7 +5853,7 @@ void main() {
                 and writable zone preferences such as mowing height when they exist.
               </div>
             `}
-        ${this._entityDatalist("lawn-mower-card-editor-control-entities",["select","number"])}
+        ${this._entityDatalist("lawn-mower-card-editor-control-entities",["select","number","switch"])}
       </div>
     `}_summaryEntitiesSection(t){return te`
       <div class="section">

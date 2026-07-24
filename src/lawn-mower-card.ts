@@ -2818,7 +2818,7 @@ export class LawnMowerCardEditor extends LitElement {
           <div class="section-title">
             <strong>Controls</strong>
             <span class="hint">
-              Add Home Assistant select or number entities for mower controls.
+              Add Home Assistant select, number, or switch entities for mower controls.
             </span>
           </div>
           <button type="button" @click=${this._addControlEntity}>Add control</button>
@@ -2865,6 +2865,7 @@ export class LawnMowerCardEditor extends LitElement {
         ${this._entityDatalist("lawn-mower-card-editor-control-entities", [
           "select",
           "number",
+          "switch",
         ])}
       </div>
     `;
