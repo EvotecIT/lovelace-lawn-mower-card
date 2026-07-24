@@ -7,6 +7,7 @@ import {
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
+  numberControlSettings,
   prioritizedHeaderSummary,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
@@ -351,6 +352,25 @@ export class LawnMowerCard extends LitElement {
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font: inherit;
+    }
+
+    .selector-number-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .selector-number-value {
+      font-weight: 700;
+      color: var(--primary-text-color);
+      white-space: nowrap;
+    }
+
+    .selector-card input[type="range"] {
+      width: 100%;
+      margin: 4px 0 0;
+      accent-color: var(--primary-color);
     }
 
     .target-panel {
@@ -724,7 +744,7 @@ export class LawnMowerCard extends LitElement {
             ${controlEntities.length
               ? html`
                   <div class="selectors">
-                    ${controlEntities.map((entityId) => this._renderSelectControl(entityId))}
+                    ${controlEntities.map((entityId) => this._renderEntityControl(entityId))}
                   </div>
                 `
               : nothing}
@@ -826,7 +846,7 @@ export class LawnMowerCard extends LitElement {
     const progress = this._heroMissionMetric();
     const coverage = this._heroCoverageMetric();
     const controls = controlEntities.length
-      ? html`${controlEntities.map((entityId) => this._renderSelectControl(entityId))}`
+      ? html`${controlEntities.map((entityId) => this._renderEntityControl(entityId))}`
       : undefined;
     const activeView =
       (this._heroView === "camera" && !cameraEntity) ||
@@ -972,6 +992,13 @@ export class LawnMowerCard extends LitElement {
     );
   }
 
+  private _renderEntityControl(entityId: string) {
+    if (entityId.startsWith("number.")) {
+      return this._renderNumberControl(entityId);
+    }
+    return this._renderSelectControl(entityId);
+  }
+
   private _renderSelectControl(entityId: string) {
     const entity = this.hass.states[entityId];
     if (!entity) {
@@ -995,14 +1022,54 @@ export class LawnMowerCard extends LitElement {
       <label class="selector-card">
         <span class="selector-label">${label}</span>
         <select
-          .value=${String(entity.state)}
           ?disabled=${unavailable}
           @change=${(event: Event) => this._selectOption(entityId, event)}
         >
           ${options.map(
-            (option) => html`<option value=${option}>${option}</option>`,
+            (option) => html`
+              <option
+                value=${option}
+                ?selected=${option === String(entity.state)}
+              >${option}</option>
+            `,
           )}
         </select>
+      </label>
+    `;
+  }
+
+  private _renderNumberControl(entityId: string) {
+    const entity = this.hass.states[entityId];
+    if (!entity) {
+      return nothing;
+    }
+    const settings = numberControlSettings(entity);
+    const label =
+      this._friendlyName(entity) ||
+      this._preferredEntityLabel(entityId) ||
+      this._entityName(entityId);
+    const unavailable = ["unavailable", "unknown"].includes(
+      String(entity.state).trim().toLowerCase(),
+    );
+    const valueLabel = settings
+      ? `${settings.value}${settings.unit ? ` ${settings.unit}` : ""}`
+      : "Unavailable";
+
+    return html`
+      <label class="selector-card">
+        <span class="selector-number-header">
+          <span class="selector-label">${label}</span>
+          <span class="selector-number-value">${valueLabel}</span>
+        </span>
+        <input
+          type="range"
+          min=${settings?.min ?? 0}
+          max=${settings?.max ?? 1}
+          step=${settings?.step ?? 1}
+          .value=${settings ? String(settings.value) : "0"}
+          ?disabled=${unavailable || !settings}
+          @change=${(event: Event) => this._setNumberValue(entityId, event)}
+        />
       </label>
     `;
   }
@@ -2089,6 +2156,18 @@ export class LawnMowerCard extends LitElement {
     });
   }
 
+  private async _setNumberValue(entityId: string, event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    const value = Number(target.value);
+    if (!Number.isFinite(value)) {
+      return;
+    }
+    await this.hass.callService("number", "set_value", {
+      entity_id: entityId,
+      value,
+    });
+  }
+
   private _companionEntityId(domain: string, suffix: string): string | undefined {
     if (!this._config) {
       return undefined;
@@ -2590,12 +2669,12 @@ export class LawnMowerCardEditor extends LitElement {
       <div class="section">
         <div class="section-header">
           <div class="section-title">
-            <strong>Control selectors</strong>
+            <strong>Controls</strong>
             <span class="hint">
-              Add Home Assistant select entities for map, mowing action, zone, spot, or edge controls.
+              Add Home Assistant select or number entities for mower controls.
             </span>
           </div>
-          <button type="button" @click=${this._addControlEntity}>Add selector</button>
+          <button type="button" @click=${this._addControlEntity}>Add control</button>
         </div>
         ${controlEntities.length
           ? html`
@@ -2605,11 +2684,11 @@ export class LawnMowerCardEditor extends LitElement {
                     <div class="row">
                       <div class="row-grid single">
                         <label>
-                          <span>Select entity</span>
+                          <span>Control entity</span>
                           <input
                             .value=${entityId || ""}
                             data-index=${String(index)}
-                            placeholder="select.my_mower_mowing_action"
+                            placeholder="number.my_mower_selected_zone_mowing_height"
                             list="lawn-mower-card-editor-control-entities"
                             @input=${this._controlEntityChanged}
                           />
@@ -2622,7 +2701,7 @@ export class LawnMowerCardEditor extends LitElement {
                           data-index=${String(index)}
                           @click=${this._removeControlEntity}
                         >
-                          Remove selector
+                          Remove control
                         </button>
                       </div>
                     </div>
@@ -2632,11 +2711,14 @@ export class LawnMowerCardEditor extends LitElement {
             `
           : html`
               <div class="hint">
-                No explicit control selectors yet. The card will auto-detect common mower select companions
-                like map, mowing action, zone, and spot when they exist.
+                No explicit controls yet. The card will auto-detect common mower select companions
+                and writable zone preferences such as mowing height when they exist.
               </div>
             `}
-        ${this._entityDatalist("lawn-mower-card-editor-control-entities", ["select"])}
+        ${this._entityDatalist("lawn-mower-card-editor-control-entities", [
+          "select",
+          "number",
+        ])}
       </div>
     `;
   }

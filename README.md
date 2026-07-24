@@ -236,7 +236,7 @@ tiles:
 - `show_helper_actions`: optional boolean, defaults to `true`
 - `show_advanced_details`: optional boolean, defaults to `false`; shows the
   Planned Run and Live Session panels
-- `control_entities`: optional list of `select` entities rendered as inline mower controls
+- `control_entities`: optional list of `select` or `number` entities rendered as inline mower controls
 - `summary_entities`: optional list of entities rendered as header summary chips
 - `actions`: optional list of extra action chips
   - `type`: one of `start`, `pause`, `dock`, `more-info`, or `service`
@@ -332,22 +332,29 @@ Assistant device page, but the card does not present them as everyday actions.
 
 ## Control Selectors
 
-When compatible `select` entities exist, every layout, including Hero, can
-render them as direct inline controls. This is especially useful for Dreame and
-MOVA mower setups that expose entities such as:
+When compatible `select` or `number` entities exist, every layout, including
+Hero, can render them as direct inline controls. This is especially useful for
+Dreame and MOVA mower setups that expose entities such as:
 
 - `select.my_mower_map`
 - `select.my_mower_mowing_action`
 - `select.my_mower_edge`
 - `select.my_mower_zone`
 - `select.my_mower_spot`
+- `select.my_mower_selected_map_preference_mode`
+- `number.my_mower_selected_zone_mowing_height`
 
 If you do not set `control_entities`, the card will try to auto-detect these
 companions from the mower object id. It always shows the map and mowing-action
 selectors when available, then shows only the target selector relevant to the
 current action. For example, `All area` hides the edge, zone, and spot fields;
-`Zone` shows only the zone field. An explicit `control_entities` list is left
-unchanged.
+`Zone` shows the zone field plus writable map-preference mode and mowing-height
+controls when the integration provides them. An explicit `control_entities`
+list is left unchanged.
+
+The Dreame integration keeps the device-write behavior in its Home Assistant
+entities. The card calls the standard `select.select_option` and
+`number.set_value` services; it does not encode mower protocol requests itself.
 
 ## Planned Run Preview
 

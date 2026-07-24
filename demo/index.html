@@ -790,6 +790,25 @@
           state: "Zone 1",
           attributes: { friendly_name: "Zone", options: ["Zone 1", "Zone 2"] },
         },
+        "select.backyard_mower_selected_map_preference_mode": {
+          entity_id: "select.backyard_mower_selected_map_preference_mode",
+          state: "Custom",
+          attributes: {
+            friendly_name: "Map preference mode",
+            options: ["Global", "Custom"],
+          },
+        },
+        "number.backyard_mower_selected_zone_mowing_height": {
+          entity_id: "number.backyard_mower_selected_zone_mowing_height",
+          state: "4.5",
+          attributes: {
+            friendly_name: "Mowing height",
+            min: 3.5,
+            max: 6,
+            step: 0.5,
+            unit_of_measurement: "cm",
+          },
+        },
         "calendar.backyard_mower_schedule": {
           entity_id: "calendar.backyard_mower_schedule",
           state: "on",
@@ -841,6 +860,18 @@
               stateStore[entityId] = {
                 ...stateStore[entityId],
                 state: String(data.option),
+              };
+              for (const card of Object.values(cards)) {
+                card.requestUpdate();
+              }
+            }
+          }
+          if (domain === "number" && service === "set_value") {
+            const entityId = data?.entity_id;
+            if (typeof entityId === "string" && stateStore[entityId]) {
+              stateStore[entityId] = {
+                ...stateStore[entityId],
+                state: String(data.value),
               };
               for (const card of Object.values(cards)) {
                 card.requestUpdate();

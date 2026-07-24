@@ -8,6 +8,7 @@ import {
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
+  numberControlSettings,
   prioritizedHeaderSummary,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
@@ -70,6 +71,27 @@ test("zone mowing shows only the zone target", () => {
     "select.garden_map",
     "select.garden_mowing_action",
     "select.garden_zone",
+  ]);
+});
+
+test("zone mowing exposes writable preference controls when available", () => {
+  const states = {
+    "select.garden_map": entity("Map 1"),
+    "select.garden_mowing_action": entity("Zone"),
+    "select.garden_zone": entity("Zone 1"),
+    "select.garden_selected_map_preference_mode": entity("Custom"),
+    "number.garden_selected_zone_mowing_height": {
+      state: "4.5",
+      attributes: { min: 3.5, max: 6, step: 0.5, unit_of_measurement: "cm" },
+    },
+  };
+
+  assert.deepEqual(autoDetectedControlEntities(states, "lawn_mower.garden"), [
+    "select.garden_map",
+    "select.garden_mowing_action",
+    "select.garden_zone",
+    "select.garden_selected_map_preference_mode",
+    "number.garden_selected_zone_mowing_height",
   ]);
 });
 
@@ -148,6 +170,22 @@ test("coverage falls back to current mowed area and honors explicit entities", (
       total: "sensor.front_lawn_target",
     },
   );
+});
+
+test("number control settings preserve Home Assistant bounds and units", () => {
+  assert.deepEqual(
+    numberControlSettings({
+      state: "4.5",
+      attributes: {
+        min: 3.5,
+        max: 6,
+        step: 0.5,
+        unit_of_measurement: "cm",
+      },
+    }),
+    { value: 4.5, min: 3.5, max: 6, step: 0.5, unit: "cm" },
+  );
+  assert.equal(numberControlSettings(entity("unavailable")), undefined);
 });
 
 test("explicitly configured summary chips are preserved", () => {
