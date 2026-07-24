@@ -21,7 +21,10 @@ integration exposes companion map, camera, schedule, and telemetry entities:
 - optional map camera, with live-path overlays preferred when the integration exposes them
 - start, pause, and dock controls
 - context-aware selectors for the map, mowing action, and current target
-- direct access to live video, schedules, and mower maps when those entities exist
+- a dedicated schedule panel with direct per-plan switches when the integration
+  exposes standard schedule-control entities
+- live map badges for current activity, map identity, and withheld invalid positions
+- direct access to live video, calendars, and mower maps when those entities exist
 - an image-led Hero layout with in-card Overview, Map, 3D, and Camera views
 - optional advanced planning and live-session telemetry
 - configurable status tiles
@@ -100,6 +103,11 @@ You do not need to write YAML to use the card:
 3. Choose the mower entity and a layout. The editor safely fills compatible
    map, live-video, state, battery, progress, and control entities when it can.
 4. Review the live preview and save the card.
+
+When schedule switches are available, the card discovers the switches belonging
+to the selected mower and shows them in a separate schedule panel. It calls the
+standard Home Assistant `switch.turn_on` and `switch.turn_off` services; schedule
+protocol details remain owned by the mower integration.
 
 The editor also supports explicit companion entities, control selectors,
 summary chips, extra tiles, custom actions, and advanced planning and telemetry
@@ -236,7 +244,8 @@ tiles:
 - `show_helper_actions`: optional boolean, defaults to `true`
 - `show_advanced_details`: optional boolean, defaults to `false`; shows the
   Planned Run and Live Session panels
-- `control_entities`: optional list of `select` or `number` entities rendered as inline mower controls
+- `control_entities`: optional list of `select`, `number`, or `switch` entities
+  rendered as inline mower controls
 - `summary_entities`: optional list of entities rendered as header summary chips
 - `actions`: optional list of extra action chips
   - `type`: one of `start`, `pause`, `dock`, `more-info`, or `service`

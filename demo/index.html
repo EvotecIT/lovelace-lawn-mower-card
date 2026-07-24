@@ -16,6 +16,7 @@
         --card-background-color: #171b22;
         --divider-color: #2a3240;
         --primary-color: #65b8ff;
+        --disabled-text-color: #788392;
         --ha-card-border-radius: 8px;
       }
 
@@ -749,6 +750,9 @@
             entity_picture: mapImage,
             point_cloud_api_path:
               "/api/dreame_lawn_mower/point-cloud/demo-entry/0",
+            map_name: "Back garden",
+            map_has_live_path: true,
+            runtime_position_valid: true,
           },
           last_updated: "2026-07-13T15:05:00+00:00",
         },
@@ -785,6 +789,19 @@
             options: ["All area", "Zone", "Spot", "Edge"],
           },
         },
+        "select.backyard_mower_selected_map_rotation": {
+          entity_id: "select.backyard_mower_selected_map_rotation",
+          state: "90 degrees clockwise",
+          attributes: {
+            friendly_name: "Map rotation",
+            options: [
+              "0 degrees",
+              "90 degrees clockwise",
+              "180 degrees",
+              "270 degrees clockwise",
+            ],
+          },
+        },
         "select.backyard_mower_zone": {
           entity_id: "select.backyard_mower_zone",
           state: "Zone 1",
@@ -818,6 +835,32 @@
           entity_id: "calendar.backyard_mower_all_schedules",
           state: "on",
           attributes: { friendly_name: "All Schedules" },
+        },
+        "switch.backyard_mower_map_1_morning": {
+          entity_id: "switch.backyard_mower_map_1_morning",
+          state: "on",
+          attributes: {
+            schedule_control: true,
+            friendly_name: "Back garden Morning",
+            name: "Morning",
+            map_label: "Back garden",
+            weekdays: ["mon", "wed", "fri"],
+            start_times: ["08:15"],
+            task_count: 3,
+          },
+        },
+        "switch.backyard_mower_map_1_weekend": {
+          entity_id: "switch.backyard_mower_map_1_weekend",
+          state: "off",
+          attributes: {
+            schedule_control: true,
+            friendly_name: "Back garden Weekend",
+            name: "Weekend",
+            map_label: "Back garden",
+            weekdays: ["sat"],
+            start_times: ["10:00"],
+            task_count: 1,
+          },
         },
         "button.backyard_mower_capture_weather_probe": {
           entity_id: "button.backyard_mower_capture_weather_probe",
@@ -872,6 +915,18 @@
               stateStore[entityId] = {
                 ...stateStore[entityId],
                 state: String(data.value),
+              };
+              for (const card of Object.values(cards)) {
+                card.requestUpdate();
+              }
+            }
+          }
+          if (domain === "switch" && ["turn_on", "turn_off"].includes(service)) {
+            const entityId = data?.entity_id;
+            if (typeof entityId === "string" && stateStore[entityId]) {
+              stateStore[entityId] = {
+                ...stateStore[entityId],
+                state: service === "turn_on" ? "on" : "off",
               };
               for (const card of Object.values(cards)) {
                 card.requestUpdate();

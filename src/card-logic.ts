@@ -76,6 +76,7 @@ export function autoDetectedControlEntities(
     zone: companion("select", "zone"),
     spot: companion("select", "spot"),
     preference_mode: companion("select", "selected_map_preference_mode"),
+    map_rotation: companion("select", "selected_map_rotation"),
     mowing_height: companion("number", "selected_zone_mowing_height"),
   };
   const targetControls = [
@@ -84,6 +85,7 @@ export function autoDetectedControlEntities(
     companions.edge,
     companions.zone,
     companions.spot,
+    companions.map_rotation,
   ].filter(
     (value): value is string => Boolean(value),
   );

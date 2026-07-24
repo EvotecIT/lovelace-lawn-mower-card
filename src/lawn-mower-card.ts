@@ -26,6 +26,14 @@ import {
   pointCloudPathFromEntity,
 } from "./point-cloud-logic";
 import type { PointCloudHomeAssistant } from "./point-cloud-view";
+import {
+  discoverScheduleControls,
+  type ScheduleControl,
+} from "./schedule-controls";
+import {
+  renderSchedulePanel,
+  schedulePanelStyles,
+} from "./schedule-panel";
 import "./point-cloud-view";
 
 type HassEntity = {
@@ -285,13 +293,17 @@ export class LawnMowerCard extends LitElement {
     }
 
     .map {
+      position: relative;
       border: 1px solid var(--divider-color);
-      border-radius: 8px;
+      border-radius: 14px;
       overflow: hidden;
-      background: color-mix(in srgb, var(--card-background-color) 90%, black 10%);
+      background:
+        radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--primary-color) 18%, transparent), transparent 45%),
+        color-mix(in srgb, var(--card-background-color) 84%, black 16%);
       min-height: 180px;
       display: grid;
       place-items: center;
+      box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
     }
 
     .map img {
@@ -299,6 +311,38 @@ export class LawnMowerCard extends LitElement {
       width: 100%;
       max-height: min(62vh, 560px);
       object-fit: contain;
+    }
+
+    .map-status {
+      position: absolute;
+      inset: 12px 12px auto 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .map-badge {
+      padding: 5px 9px;
+      border: 1px solid color-mix(in srgb, white 24%, transparent);
+      border-radius: 999px;
+      color: white;
+      background: color-mix(in srgb, #101b17 76%, transparent);
+      backdrop-filter: blur(8px);
+      font-size: 0.75rem;
+      font-weight: 600;
+      box-shadow: 0 3px 12px rgb(0 0 0 / 18%);
+    }
+
+    .map-badge.live {
+      background: color-mix(in srgb, #0c6f44 82%, transparent);
+      border-color: color-mix(in srgb, #7cf1b4 55%, transparent);
+    }
+
+    .map-badge.warning {
+      background: color-mix(in srgb, #8a3a22 85%, transparent);
+      border-color: color-mix(in srgb, #ffb49c 55%, transparent);
     }
 
     .map-placeholder {
@@ -365,6 +409,15 @@ export class LawnMowerCard extends LitElement {
       font-weight: 700;
       color: var(--primary-text-color);
       white-space: nowrap;
+    }
+
+    .selector-switch-body {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--primary-text-color);
+      font-weight: 600;
     }
 
     .selector-card input[type="range"] {
@@ -624,7 +677,7 @@ export class LawnMowerCard extends LitElement {
         grid-template-columns: 1fr;
       }
     }
-  `, heroLayoutStyles];
+  `, schedulePanelStyles, heroLayoutStyles];
 
   public static getStubConfig(): LawnMowerCardConfig {
     return {
@@ -673,7 +726,16 @@ export class LawnMowerCard extends LitElement {
     const statTiles = this._buildTiles();
     const actionGroups = this._buildActionGroups(mower.state);
     const headerSummary = this._buildHeaderSummary();
-    const controlEntities = this._resolvedControlEntities();
+    const scheduleControls = discoverScheduleControls(
+      this.hass.states,
+      this._config.entity,
+    );
+    const scheduleEntityIds = new Set(
+      scheduleControls.map((control) => control.entityId),
+    );
+    const controlEntities = this._resolvedControlEntities().filter(
+      (entityId) => !scheduleEntityIds.has(entityId),
+    );
     const plannedRun = this._plannedRunDetails(mower);
     const runtimeSession = this._runtimeSessionDetails();
     const showAdvancedDetails = this._config.show_advanced_details ?? false;
@@ -686,6 +748,7 @@ export class LawnMowerCard extends LitElement {
         showMap ? mapUrl : undefined,
         showPointCloud ? pointCloudPath : undefined,
         controlEntities,
+        scheduleControls,
       );
     }
 
@@ -712,10 +775,11 @@ export class LawnMowerCard extends LitElement {
 
             ${showMap
               ? html`
-                  <div class="map">
+                  <div class="map" @click=${() => this._showMoreInfo(mapEntity?.entity_id)}>
                     ${mapUrl
                       ? html`<img src=${mapUrl} alt=${title} />`
                       : html`<div class="map-placeholder">No mower map configured yet.</div>`}
+                    ${mapEntity ? this._renderMapStatus(mapEntity, mower.state) : nothing}
                   </div>
                 `
               : nothing}
@@ -739,6 +803,13 @@ export class LawnMowerCard extends LitElement {
 
             ${showAdvancedDetails && runtimeSession
               ? this._renderRuntimeSessionPanel(runtimeSession)
+              : nothing}
+
+            ${scheduleControls.length
+              ? renderSchedulePanel(
+                  scheduleControls,
+                  (entityId, enabled) => this._toggleSwitch(entityId, enabled),
+                )
               : nothing}
 
             ${controlEntities.length
@@ -823,6 +894,7 @@ export class LawnMowerCard extends LitElement {
     mapUrl?: string,
     pointCloudPath?: string,
     controlEntities: string[] = [],
+    scheduleControls: ScheduleControl[] = [],
   ) {
     if (!this._config) {
       return nothing;
@@ -840,13 +912,24 @@ export class LawnMowerCard extends LitElement {
       candidateCameraEntity && !this._isUnavailableEntity(candidateCameraEntity)
         ? candidateCameraEntity
         : undefined;
+    const configuredMapEntity = this._config.map_entity
+      ? this.hass.states[this._config.map_entity]
+      : undefined;
     const battery =
       this._entityState(this._config.battery_entity) ||
       this._stringAttribute(mower, "battery_level", "%");
     const progress = this._heroMissionMetric();
     const coverage = this._heroCoverageMetric();
-    const controls = controlEntities.length
-      ? html`${controlEntities.map((entityId) => this._renderEntityControl(entityId))}`
+    const controls = controlEntities.length || scheduleControls.length
+      ? html`
+          ${scheduleControls.length
+            ? renderSchedulePanel(
+                scheduleControls,
+                (entityId, enabled) => this._toggleSwitch(entityId, enabled),
+              )
+            : nothing}
+          ${controlEntities.map((entityId) => this._renderEntityControl(entityId))}
+        `
       : undefined;
     const activeView =
       (this._heroView === "camera" && !cameraEntity) ||
@@ -869,6 +952,9 @@ export class LawnMowerCard extends LitElement {
       heroImagePosition: normalizeHeroImagePosition(this._config.hero_image_position),
       activeView,
       mapUrl,
+      mapStatus: configuredMapEntity
+        ? this._renderMapStatus(configuredMapEntity, mower.state)
+        : undefined,
       pointCloudPath,
       cameraEntity,
       controls,
@@ -993,10 +1079,61 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _renderEntityControl(entityId: string) {
+    if (entityId.startsWith("switch.")) {
+      return this._renderSwitchControl(entityId);
+    }
     if (entityId.startsWith("number.")) {
       return this._renderNumberControl(entityId);
     }
     return this._renderSelectControl(entityId);
+  }
+
+  private _renderSwitchControl(entityId: string) {
+    const entity = this.hass.states[entityId];
+    if (!entity) {
+      return nothing;
+    }
+    const label =
+      this._friendlyName(entity) ||
+      this._preferredEntityLabel(entityId) ||
+      this._entityName(entityId);
+    const enabled = entity.state === "on";
+    const available = !this._isUnavailableEntity(entity);
+    return html`
+      <div class="selector-card">
+        <span class="selector-label">${label}</span>
+        <div class="selector-switch-body">
+          <span>${enabled ? "On" : "Off"}</span>
+          <button
+            class="schedule-toggle"
+            role="switch"
+            aria-label=${`${label}: ${enabled ? "on" : "off"}`}
+            aria-checked=${String(enabled)}
+            ?disabled=${!available}
+            @click=${() => this._toggleSwitch(entityId, enabled)}
+          ></button>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderMapStatus(entity: HassEntity, mowerState: string) {
+    const details = entity.attributes;
+    const mapName =
+      this._stringValue(details.map_name) ||
+      this._stringValue(details.name);
+    const live = Boolean(details.map_has_live_path ?? details.has_live_path) ||
+      ["mowing", "paused", "returning"].includes(mowerState.toLowerCase());
+    const invalidPosition = details.runtime_position_valid === false;
+    return html`
+      <div class="map-status">
+        ${mapName ? html`<span class="map-badge">${mapName}</span>` : nothing}
+        ${live ? html`<span class="map-badge live">Live</span>` : nothing}
+        ${invalidPosition
+          ? html`<span class="map-badge warning">Position withheld</span>`
+          : nothing}
+      </div>
+    `;
   }
 
   private _renderSelectControl(entityId: string) {
@@ -1275,6 +1412,10 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     return unit ? `${String(value)} ${unit}` : this._humanizeValue(String(value));
+  }
+
+  private _stringValue(value: unknown): string | undefined {
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
   }
 
   private _humanizeValue(value: string): string {
@@ -2165,6 +2306,12 @@ export class LawnMowerCard extends LitElement {
     await this.hass.callService("number", "set_value", {
       entity_id: entityId,
       value,
+    });
+  }
+
+  private async _toggleSwitch(entityId: string, enabled: boolean) {
+    await this.hass.callService("switch", enabled ? "turn_off" : "turn_on", {
+      entity_id: entityId,
     });
   }
 

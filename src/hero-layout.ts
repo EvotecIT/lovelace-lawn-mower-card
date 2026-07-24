@@ -23,6 +23,7 @@ export type HeroLayoutModel = {
   heroImagePosition?: HeroImagePosition;
   activeView: HeroView;
   mapUrl?: string;
+  mapStatus?: TemplateResult;
   pointCloudPath?: string;
   cameraEntity?: object;
   controls?: TemplateResult;
@@ -171,6 +172,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
       <div class="hero-shell">
         <section class=${`hero-stage view-${model.activeView}`}>
           ${renderView(model)}
+          ${model.activeView === "map" ? model.mapStatus : nothing}
           ${model.activeView !== "map" && model.mapUrl
             ? html`<img
                 class="hero-map-preload"
@@ -578,6 +580,24 @@ export const heroLayoutStyles = css`
     border-color: rgba(255, 255, 255, 0.16);
     color: #f7faf7;
     background: #151b16;
+  }
+
+  .hero-selectors .schedule-panel {
+    grid-column: 1 / -1;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f7faf7;
+    background:
+      linear-gradient(145deg, rgba(92, 190, 122, 0.12), transparent 55%),
+      rgba(255, 255, 255, 0.04);
+  }
+
+  .hero-selectors .schedule-list {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
+
+  .hero-selectors .schedule-row {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.045);
   }
 
   .hero-tab,
