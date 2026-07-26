@@ -1604,37 +1604,86 @@ export class LawnMowerCard extends LitElement {
     if (entityId.endsWith("_selected_map_preference_mode")) {
       return "Preference Mode";
     }
-    if (entityId.endsWith("_selected_efficient_mode")) {
+    if (
+      entityId.endsWith("_selected_mowing_efficiency") ||
+      entityId.endsWith("_selected_efficient_mode")
+    ) {
       return "Mowing Efficiency";
     }
-    if (entityId.endsWith("_selected_obstacle_avoidance_height_cm")) {
+    if (entityId.endsWith("_selected_mowing_direction_mode")) {
+      return "Mowing Direction Mode";
+    }
+    if (
+      entityId.endsWith("_selected_mowing_direction") ||
+      entityId.endsWith("_selected_mowing_direction_degrees")
+    ) {
+      return "Mowing Direction";
+    }
+    if (
+      entityId.endsWith("_selected_turning_method") ||
+      entityId.endsWith("_selected_edge_cutting_style") ||
+      entityId.endsWith("_selected_edge_mowing_walk_mode")
+    ) {
+      return "Turning Method";
+    }
+    if (
+      entityId.endsWith("_selected_obstacle_height") ||
+      entityId.endsWith("_selected_obstacle_avoidance_height_cm")
+    ) {
       return "Obstacle Height";
     }
-    if (entityId.endsWith("_selected_obstacle_avoidance_distance_cm")) {
+    if (
+      entityId.endsWith("_selected_obstacle_distance") ||
+      entityId.endsWith("_selected_obstacle_avoidance_distance_cm")
+    ) {
       return "Obstacle Distance";
     }
-    if (entityId.endsWith("_selected_edge_mowing_walk_mode")) {
-      return "Edge Cutting Style";
-    }
-    if (entityId.endsWith("_selected_edge_mowing_auto")) {
+    if (
+      entityId.endsWith("_selected_automatic_edge_cutting") ||
+      entityId.endsWith("_selected_edge_mowing_auto")
+    ) {
       return "Automatic Edge Cutting";
     }
-    if (entityId.endsWith("_selected_edge_mowing_safe")) {
+    if (
+      entityId.endsWith("_selected_safe_edge_cutting") ||
+      entityId.endsWith("_selected_edge_mowing_safe")
+    ) {
       return "Safe Edge Cutting";
     }
-    if (entityId.endsWith("_selected_edge_mowing_obstacle_avoidance")) {
+    if (
+      entityId.endsWith("_selected_edgemaster") ||
+      entityId.endsWith("_selected_edge_cutting_attachment")
+    ) {
+      return "EdgeMaster";
+    }
+    if (
+      entityId.endsWith("_selected_edge_obstacle_avoidance") ||
+      entityId.endsWith("_selected_edge_mowing_obstacle_avoidance")
+    ) {
       return "Edge Obstacle Avoidance";
     }
-    if (entityId.endsWith("_selected_obstacle_avoidance_enabled")) {
+    if (
+      entityId.endsWith("_selected_lidar_obstacle_recognition") ||
+      entityId.endsWith("_selected_obstacle_avoidance_enabled")
+    ) {
       return "Lidar Obstacle Recognition";
     }
-    if (entityId.endsWith("_selected_people")) {
+    if (
+      entityId.endsWith("_selected_avoid_people") ||
+      entityId.endsWith("_selected_people")
+    ) {
       return "Avoid People";
     }
-    if (entityId.endsWith("_selected_animals")) {
+    if (
+      entityId.endsWith("_selected_avoid_animals") ||
+      entityId.endsWith("_selected_animals")
+    ) {
       return "Avoid Animals";
     }
-    if (entityId.endsWith("_selected_objects")) {
+    if (
+      entityId.endsWith("_selected_avoid_objects") ||
+      entityId.endsWith("_selected_objects")
+    ) {
       return "Avoid Objects";
     }
     if (entityId.endsWith("_maintenance_point")) {

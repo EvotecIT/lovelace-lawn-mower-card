@@ -368,19 +368,28 @@ Dreame and MOVA mower setups that expose entities such as:
 - `select.my_mower_selected_map_preference_mode`
 - `number.my_mower_selected_map_mowing_height`
 - `number.my_mower_selected_zone_mowing_height`
-- `select.my_mower_selected_efficient_mode`
-- `select.my_mower_selected_obstacle_avoidance_height_cm`
-- `select.my_mower_selected_obstacle_avoidance_distance_cm`
-- `switch.my_mower_selected_obstacle_avoidance_enabled`
+- `select.my_mower_selected_mowing_efficiency`
+- `select.my_mower_selected_mowing_direction_mode`
+- `number.my_mower_selected_mowing_direction`
+- `select.my_mower_selected_turning_method`
+- `switch.my_mower_selected_edgemaster`
+- `select.my_mower_selected_obstacle_height`
+- `select.my_mower_selected_obstacle_distance`
+- `switch.my_mower_selected_lidar_obstacle_recognition`
 
 If you do not set `control_entities`, the card will try to auto-detect these
-companions from the mower object id. It always shows the map and mowing-action
-selectors when available, then shows only the target selector relevant to the
-current action. For example, `All area` hides the edge, zone, and spot fields;
-`Zone` shows the zone field. Cutting, edge, and obstacle preferences are grouped
-into a compact expandable panel that follows the integration's current
-`Global` or `Custom` scope. An explicit `control_entities` list is left
-unchanged.
+companions from the mower object id. Home Assistant may add an area or device
+prefix to configuration entities, and existing entity registries may retain
+older Dreame names after an integration update. The card accepts both forms.
+
+It always shows the map and mowing-action selectors when available, then shows
+only the target selector relevant to the current action. For example, `All area`
+hides the edge, zone, and spot fields; `Zone` shows the zone field. Cutting,
+direction, turning, edge, and obstacle preferences are grouped into a compact
+expandable panel that follows the integration's current `Global` or `Custom`
+scope. In global mode the controls update the selected map's global preference;
+in custom mode they update the selected zone. An explicit `control_entities`
+list is left unchanged.
 
 The Dreame integration keeps the device-write behavior in its Home Assistant
 entities. The card calls the standard `select.select_option` and
