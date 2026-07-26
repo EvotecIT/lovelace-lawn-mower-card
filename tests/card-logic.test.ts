@@ -121,13 +121,13 @@ test("global mode exposes the complete active preference surface", () => {
     "select.garden_selected_map_preference_mode",
     "number.garden_selected_map_mowing_height",
     "select.garden_selected_efficient_mode",
-    "select.garden_selected_obstacle_avoidance_height_cm",
-    "select.garden_selected_obstacle_avoidance_distance_cm",
     "select.garden_selected_edge_mowing_walk_mode",
     "switch.garden_selected_edge_mowing_auto",
     "switch.garden_selected_edge_mowing_safe",
     "switch.garden_selected_edge_mowing_obstacle_avoidance",
     "switch.garden_selected_obstacle_avoidance_enabled",
+    "select.garden_selected_obstacle_avoidance_height_cm",
+    "select.garden_selected_obstacle_avoidance_distance_cm",
     "switch.garden_selected_people",
     "switch.garden_selected_animals",
     "switch.garden_selected_objects",
@@ -137,6 +137,73 @@ test("global mode exposes the complete active preference surface", () => {
     true,
   );
   assert.equal(isPreferenceControlEntity("select.garden_map"), false);
+});
+
+test("Dreame registry names and area prefixes auto-discover every mowing preference", () => {
+  const states = {
+    "select.dreame_a2_bodzio_map": entity("Map #1"),
+    "select.dreame_a2_bodzio_mowing_action": entity("All area"),
+    "select.ogrod_dreame_a2_bodzio_selected_map_preference_mode":
+      entity("Global"),
+    "number.ogrod_dreame_a2_bodzio_selected_map_mowing_height": entity("4"),
+    "select.ogrod_dreame_a2_bodzio_selected_mowing_efficiency":
+      entity("Efficient"),
+    "select.ogrod_dreame_a2_bodzio_selected_mowing_direction_mode":
+      entity("Mow at angle"),
+    "number.ogrod_dreame_a2_bodzio_selected_mowing_direction": entity("5"),
+    "select.ogrod_dreame_a2_bodzio_selected_turning_method":
+      entity("Efficient"),
+    "switch.ogrod_dreame_a2_bodzio_selected_automatic_edge_cutting":
+      entity("on"),
+    "switch.ogrod_dreame_a2_bodzio_selected_safe_edge_cutting": entity("on"),
+    "switch.ogrod_dreame_a2_bodzio_selected_edgemaster": entity("off"),
+    "switch.ogrod_dreame_a2_bodzio_selected_edge_obstacle_avoidance":
+      entity("on"),
+    "switch.ogrod_dreame_a2_bodzio_selected_lidar_obstacle_recognition":
+      entity("on"),
+    "select.ogrod_dreame_a2_bodzio_selected_obstacle_height": entity("5 cm"),
+    "select.ogrod_dreame_a2_bodzio_selected_obstacle_distance":
+      entity("15 cm"),
+    "switch.ogrod_dreame_a2_bodzio_selected_avoid_people": entity("on"),
+    "switch.ogrod_dreame_a2_bodzio_selected_avoid_animals": entity("on"),
+    "switch.ogrod_dreame_a2_bodzio_selected_avoid_objects": entity("on"),
+  };
+
+  assert.deepEqual(
+    autoDetectedControlEntities(states, "lawn_mower.dreame_a2_bodzio"),
+    Object.keys(states),
+  );
+  assert.equal(
+    isPreferenceControlEntity(
+      "number.ogrod_dreame_a2_bodzio_selected_mowing_direction",
+    ),
+    true,
+  );
+  assert.equal(
+    isPreferenceControlEntity(
+      "switch.ogrod_dreame_a2_bodzio_selected_edgemaster",
+    ),
+    true,
+  );
+});
+
+test("legacy Dreame entity names remain discoverable after preference renames", () => {
+  const states = {
+    "select.dreame_a2_bodzio_map": entity("Map #1"),
+    "select.dreame_a2_bodzio_mowing_action": entity("All area"),
+    "select.ogrod_dreame_a2_bodzio_selected_map_preference_mode":
+      entity("Global"),
+    "select.ogrod_dreame_a2_bodzio_selected_edge_cutting_style":
+      entity("Side cutting"),
+    "switch.ogrod_dreame_a2_bodzio_selected_automatic_edge_cutting":
+      entity("on"),
+    "switch.ogrod_dreame_a2_bodzio_selected_safe_edge_cutting": entity("on"),
+  };
+
+  assert.deepEqual(
+    autoDetectedControlEntities(states, "lawn_mower.dreame_a2_bodzio"),
+    Object.keys(states),
+  );
 });
 
 test("configured maintenance points are shown while unavailable points stay hidden", () => {

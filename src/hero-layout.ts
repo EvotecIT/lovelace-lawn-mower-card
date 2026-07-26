@@ -607,6 +607,14 @@ export const heroLayoutStyles = css`
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   }
 
+  .hero-selectors .preference-panel {
+    grid-column: 1 / -1;
+  }
+
+  .hero-selectors .preference-controls {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
   .hero-selectors .schedule-row {
     border-color: rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.045);

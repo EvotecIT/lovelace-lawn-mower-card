@@ -109,6 +109,7 @@
       .content {
         min-width: 0;
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto 1fr;
       }
 
@@ -148,6 +149,7 @@
         margin: 0 auto;
         padding: 24px;
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 24px;
       }
 
@@ -169,6 +171,7 @@
 
       .dashboard-layout {
         display: grid;
+        min-width: 0;
         gap: 24px;
         grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.85fr);
         align-items: start;
@@ -176,11 +179,13 @@
 
       .workspace {
         display: grid;
+        min-width: 0;
         gap: 18px;
       }
 
       .panel {
         display: grid;
+        min-width: 0;
         gap: 16px;
         padding: 18px;
         border: 1px solid #222b38;
@@ -460,6 +465,43 @@
 
         .dashboard-layout {
           grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .topbar {
+          align-items: flex-start;
+          flex-wrap: wrap;
+          padding: 14px 16px;
+        }
+
+        .page {
+          padding: 16px;
+        }
+
+        .preview-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .panel {
+          padding: 12px;
+        }
+
+        .panel-header {
+          flex-wrap: wrap;
+        }
+
+        .toolbar-group,
+        .segment {
+          width: 100%;
+        }
+
+        .segment {
+          flex-wrap: wrap;
+        }
+
+        .segment button {
+          flex: 1 1 calc(50% - 8px);
         }
       }
     </style>
@@ -837,70 +879,94 @@
             unit_of_measurement: "cm",
           },
         },
-        "select.backyard_mower_selected_efficient_mode": {
-          entity_id: "select.backyard_mower_selected_efficient_mode",
+        "select.backyard_mower_selected_mowing_efficiency": {
+          entity_id: "select.backyard_mower_selected_mowing_efficiency",
           state: "Efficient",
           attributes: {
             friendly_name: "Mowing efficiency",
             options: ["Standard", "Efficient"],
           },
         },
-        "select.backyard_mower_selected_obstacle_avoidance_height_cm": {
-          entity_id: "select.backyard_mower_selected_obstacle_avoidance_height_cm",
+        "select.backyard_mower_selected_mowing_direction_mode": {
+          entity_id: "select.backyard_mower_selected_mowing_direction_mode",
+          state: "Mow at angle",
+          attributes: {
+            friendly_name: "Mowing direction mode",
+            options: ["None", "Mow at angle", "Checkerboard"],
+          },
+        },
+        "number.backyard_mower_selected_mowing_direction": {
+          entity_id: "number.backyard_mower_selected_mowing_direction",
+          state: "5",
+          attributes: {
+            friendly_name: "Mowing direction",
+            min: 0,
+            max: 180,
+            step: 1,
+            unit_of_measurement: "°",
+          },
+        },
+        "select.backyard_mower_selected_obstacle_height": {
+          entity_id: "select.backyard_mower_selected_obstacle_height",
           state: "5 cm",
           attributes: {
             friendly_name: "Obstacle height",
             options: ["5 cm", "10 cm", "15 cm", "20 cm"],
           },
         },
-        "select.backyard_mower_selected_obstacle_avoidance_distance_cm": {
-          entity_id: "select.backyard_mower_selected_obstacle_avoidance_distance_cm",
+        "select.backyard_mower_selected_obstacle_distance": {
+          entity_id: "select.backyard_mower_selected_obstacle_distance",
           state: "15 cm",
           attributes: {
             friendly_name: "Obstacle distance",
             options: ["10 cm", "15 cm", "20 cm"],
           },
         },
-        "select.backyard_mower_selected_edge_mowing_walk_mode": {
-          entity_id: "select.backyard_mower_selected_edge_mowing_walk_mode",
-          state: "Along line",
+        "select.backyard_mower_selected_turning_method": {
+          entity_id: "select.backyard_mower_selected_turning_method",
+          state: "Efficient",
           attributes: {
-            friendly_name: "Edge cutting style",
-            options: ["Along line", "Side cutting"],
+            friendly_name: "Turning method",
+            options: ["Lawn care", "Efficient"],
           },
         },
-        "switch.backyard_mower_selected_edge_mowing_auto": {
-          entity_id: "switch.backyard_mower_selected_edge_mowing_auto",
+        "switch.backyard_mower_selected_automatic_edge_cutting": {
+          entity_id: "switch.backyard_mower_selected_automatic_edge_cutting",
           state: "on",
           attributes: { friendly_name: "Automatic edge cutting" },
         },
-        "switch.backyard_mower_selected_edge_mowing_safe": {
-          entity_id: "switch.backyard_mower_selected_edge_mowing_safe",
+        "switch.backyard_mower_selected_safe_edge_cutting": {
+          entity_id: "switch.backyard_mower_selected_safe_edge_cutting",
           state: "on",
           attributes: { friendly_name: "Safe edge cutting" },
         },
-        "switch.backyard_mower_selected_edge_mowing_obstacle_avoidance": {
-          entity_id: "switch.backyard_mower_selected_edge_mowing_obstacle_avoidance",
+        "switch.backyard_mower_selected_edgemaster": {
+          entity_id: "switch.backyard_mower_selected_edgemaster",
+          state: "off",
+          attributes: { friendly_name: "EdgeMaster" },
+        },
+        "switch.backyard_mower_selected_edge_obstacle_avoidance": {
+          entity_id: "switch.backyard_mower_selected_edge_obstacle_avoidance",
           state: "on",
           attributes: { friendly_name: "Edge obstacle avoidance" },
         },
-        "switch.backyard_mower_selected_obstacle_avoidance_enabled": {
-          entity_id: "switch.backyard_mower_selected_obstacle_avoidance_enabled",
+        "switch.backyard_mower_selected_lidar_obstacle_recognition": {
+          entity_id: "switch.backyard_mower_selected_lidar_obstacle_recognition",
           state: "on",
           attributes: { friendly_name: "Lidar obstacle recognition" },
         },
-        "switch.backyard_mower_selected_people": {
-          entity_id: "switch.backyard_mower_selected_people",
+        "switch.backyard_mower_selected_avoid_people": {
+          entity_id: "switch.backyard_mower_selected_avoid_people",
           state: "on",
           attributes: { friendly_name: "Avoid people" },
         },
-        "switch.backyard_mower_selected_animals": {
-          entity_id: "switch.backyard_mower_selected_animals",
+        "switch.backyard_mower_selected_avoid_animals": {
+          entity_id: "switch.backyard_mower_selected_avoid_animals",
           state: "on",
           attributes: { friendly_name: "Avoid animals" },
         },
-        "switch.backyard_mower_selected_objects": {
-          entity_id: "switch.backyard_mower_selected_objects",
+        "switch.backyard_mower_selected_avoid_objects": {
+          entity_id: "switch.backyard_mower_selected_avoid_objects",
           state: "on",
           attributes: { friendly_name: "Avoid objects" },
         },
