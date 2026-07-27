@@ -737,6 +737,10 @@
             activity: "cutting",
             task_status_name: "zone_cleaning",
             error_display: null,
+            selected_map_index: 0,
+            selected_mowing_action: "all",
+            selected_zone_id: 1,
+            available_zone_ids: [1, 2, 3],
           },
         },
         "sensor.backyard_mower_state_name": {
@@ -846,8 +850,15 @@
         },
         "select.backyard_mower_zone": {
           entity_id: "select.backyard_mower_zone",
-          state: "Zone 1",
-          attributes: { friendly_name: "Zone", options: ["Zone 1", "Zone 2"] },
+          state: "Front lawn (#1)",
+          attributes: {
+            friendly_name: "Zone",
+            options: [
+              "Front lawn (#1)",
+              "Back lawn (#2)",
+              "Orchard (#3)",
+            ],
+          },
         },
         "select.backyard_mower_selected_map_preference_mode": {
           entity_id: "select.backyard_mower_selected_map_preference_mode",
@@ -1073,6 +1084,22 @@
                 stateStore[
                   "number.backyard_mower_selected_zone_mowing_height"
                 ].state = global ? "unavailable" : "4.5";
+              }
+              if (entityId === "select.backyard_mower_mowing_action") {
+                stateStore[
+                  "lawn_mower.backyard_mower"
+                ].attributes.selected_mowing_action =
+                  String(data.option).toLowerCase() === "zone"
+                    ? "zone"
+                    : "all";
+              }
+              if (entityId === "select.backyard_mower_zone") {
+                const match = String(data.option).match(/#(\d+)\)?$/);
+                if (match) {
+                  stateStore[
+                    "lawn_mower.backyard_mower"
+                  ].attributes.selected_zone_id = Number(match[1]);
+                }
               }
               for (const card of Object.values(cards)) {
                 card.requestUpdate();
