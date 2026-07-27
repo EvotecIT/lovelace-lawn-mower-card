@@ -8,12 +8,78 @@ type ZoneEntity = {
   attributes?: Record<string, unknown>;
 };
 
+type EntityRegistryEntries = Record<
+  string,
+  { platform?: string } | undefined
+>;
+
+type HassServices = Record<
+  string,
+  Record<string, unknown> | undefined
+>;
+
 function isPositiveInteger(value: unknown): value is number {
   return (
     typeof value === "number" &&
     Number.isInteger(value) &&
     value > 0
   );
+}
+
+function mapIndexToken(value: unknown): string | undefined {
+  if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
+    return String(value);
+  }
+  return undefined;
+}
+
+function mapLabelToken(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const label = value.trim();
+    if (
+      label &&
+      !["unknown", "unavailable"].includes(label.toLowerCase())
+    ) {
+      return label;
+    }
+  }
+  return undefined;
+}
+
+export function supportsDreameMultiZoneMowing(
+  mowerEntityId: string,
+  entities: EntityRegistryEntries | undefined,
+  services: HassServices | undefined,
+): boolean {
+  return (
+    entities?.[mowerEntityId]?.platform === "dreame_lawn_mower" &&
+    Boolean(services?.lawn_mower?.start_zone_mowing)
+  );
+}
+
+export function selectedMapIsCurrent(
+  mower: ZoneEntity | undefined,
+  mapEntity?: ZoneEntity,
+): boolean {
+  const attributes = mower?.attributes;
+  if (attributes?.selected_map_matches_active_app_map === false) {
+    return false;
+  }
+  const selectedIndex = mapIndexToken(attributes?.selected_map_index);
+  const activeIndex = mapIndexToken(attributes?.app_current_map_index);
+  if (
+    selectedIndex !== undefined &&
+    activeIndex !== undefined &&
+    selectedIndex !== activeIndex
+  ) {
+    return false;
+  }
+  const labels = [
+    mapLabelToken(attributes?.selected_map_label),
+    mapLabelToken(attributes?.app_current_map_label),
+    mapLabelToken(mapEntity?.state),
+  ].filter((value): value is string => Boolean(value));
+  return new Set(labels).size <= 1;
 }
 
 export function zoneChoices(
@@ -106,6 +172,44 @@ export function zonePreferenceChoice(
     ({ id, label }) => label === currentLabel && selected.has(id),
   );
   return current || choices.find(({ id }) => selected.has(id));
+}
+
+export function zoneSelectionKey(
+  mowerEntityId: string,
+  zoneEntityId: string,
+  mower: ZoneEntity | undefined,
+  mapEntity: ZoneEntity | undefined,
+  choices: readonly ZoneChoice[],
+): string | undefined {
+  const attributes = mower?.attributes;
+  if (!selectedMapIsCurrent(mower, mapEntity)) {
+    return undefined;
+  }
+  const mapIdentity = [
+    ["selected_index", mapIndexToken(attributes?.selected_map_index)],
+    ["selected_label", mapLabelToken(attributes?.selected_map_label)],
+    ["active_index", mapIndexToken(attributes?.app_current_map_index)],
+    ["active_label", mapLabelToken(attributes?.app_current_map_label)],
+    [
+      "selector",
+      mapLabelToken(mapEntity?.state),
+    ],
+  ]
+    .filter((entry): entry is [string, string] => Boolean(entry[1]))
+    .map(([name, value]) => `${name}:${encodeURIComponent(value)}`);
+  if (!mapIdentity.length) {
+    return undefined;
+  }
+
+  const choiceIdentity = choices
+    .map(({ id, label }) => `${id}:${encodeURIComponent(label)}`)
+    .join(",");
+  return [
+    mowerEntityId,
+    zoneEntityId,
+    mapIdentity.join(","),
+    choiceIdentity,
+  ].join("|");
 }
 
 export function zoneMowingServiceData(

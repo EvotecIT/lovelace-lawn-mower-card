@@ -1054,6 +1054,16 @@
 
       const hass = {
         states: stateStore,
+        entities: {
+          "lawn_mower.backyard_mower": {
+            platform: "dreame_lawn_mower",
+          },
+        },
+        services: {
+          lawn_mower: {
+            start_zone_mowing: {},
+          },
+        },
         async callWS(message) {
           if (message?.type !== "auth/sign_path") {
             throw new Error(`Unsupported mock WebSocket call: ${message?.type}`);

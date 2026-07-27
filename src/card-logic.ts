@@ -27,6 +27,18 @@ export type NumberControlSettings = {
 
 type HassStates = Record<string, MinimalHassEntity>;
 
+export type EntityRegistryEntry = {
+  platform?: string;
+  device_id?: string;
+  name?: string;
+  translation_key?: string;
+};
+
+export type EntityRegistryEntries = Record<
+  string,
+  EntityRegistryEntry | undefined
+>;
+
 const PREFERENCE_CONTROL_SUFFIXES = [
   "_selected_map_preference_mode",
   "_selected_map_mowing_height",
@@ -91,37 +103,124 @@ function mowerObjectId(entityId: string): string | undefined {
   return entityId.split(".", 2)[1] || undefined;
 }
 
-export function autoDetectedControlEntities(
+function normalizedEntityRole(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function registryOwnersMatch(
+  mowerEntry: EntityRegistryEntry | undefined,
+  candidateEntry: EntityRegistryEntry | undefined,
+): boolean {
+  if (!mowerEntry?.device_id || !candidateEntry?.device_id) {
+    return false;
+  }
+  return (
+    mowerEntry.device_id === candidateEntry.device_id &&
+    Boolean(mowerEntry.platform) &&
+    mowerEntry.platform === candidateEntry.platform
+  );
+}
+
+export function resolvedMowerCompanionEntity(
   states: HassStates,
   mowerEntityId: string,
-): string[] {
+  entities: EntityRegistryEntries | undefined,
+  domain: string,
+  ...suffixes: readonly string[]
+): string | undefined {
   const objectId = mowerObjectId(mowerEntityId);
   if (!objectId) {
-    return [];
+    return undefined;
   }
 
   const entityIds = Object.keys(states).sort();
+  for (const suffix of suffixes) {
+    const entityId = `${domain}.${objectId}_${suffix}`;
+    if (states[entityId]) {
+      const mowerEntry = entities?.[mowerEntityId];
+      const candidateEntry = entities?.[entityId];
+      if (
+        !entities ||
+        !mowerEntry?.device_id ||
+        registryOwnersMatch(mowerEntry, candidateEntry)
+      ) {
+        return entityId;
+      }
+      continue;
+    }
+
+    const mowerEntry = entities?.[mowerEntityId];
+    if (!mowerEntry?.device_id || !mowerEntry.platform) {
+      continue;
+    }
+    const registrySuffix = `_${objectId}_${suffix}`;
+    const normalizedSuffix = normalizedEntityRole(suffix);
+    const matches = entityIds.filter(
+      (candidate) => {
+        if (!candidate.startsWith(`${domain}.`)) {
+          return false;
+        }
+        const candidateEntry = entities?.[candidate];
+        if (!registryOwnersMatch(mowerEntry, candidateEntry)) {
+          return false;
+        }
+        if (candidate.slice(domain.length + 1).endsWith(registrySuffix)) {
+          return true;
+        }
+        const roles = [
+          candidateEntry?.translation_key,
+          candidateEntry?.name,
+          states[candidate]?.attributes?.friendly_name,
+        ]
+          .map(normalizedEntityRole)
+          .filter((value): value is string => Boolean(value));
+        return Boolean(
+          normalizedSuffix &&
+          roles.some(
+            (role) =>
+              role === normalizedSuffix ||
+              role.endsWith(`_${normalizedSuffix}`),
+          ),
+        );
+      },
+    );
+    if (matches.length === 1) {
+      return matches[0];
+    }
+    if (matches.length > 1) {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+export function autoDetectedControlEntities(
+  states: HassStates,
+  mowerEntityId: string,
+  entities?: EntityRegistryEntries,
+): string[] {
+  if (!mowerObjectId(mowerEntityId)) {
+    return [];
+  }
+
   const companion = (
     domain: string,
     ...suffixes: readonly string[]
-  ): string | undefined => {
-    for (const suffix of suffixes) {
-      const entityId = `${domain}.${objectId}_${suffix}`;
-      if (states[entityId]) {
-        return entityId;
-      }
-      const registrySuffix = `_${objectId}_${suffix}`;
-      const registryEntityId = entityIds.find(
-        (candidate) =>
-          candidate.startsWith(`${domain}.`) &&
-          candidate.slice(domain.length + 1).endsWith(registrySuffix),
-      );
-      if (registryEntityId) {
-        return registryEntityId;
-      }
-    }
-    return undefined;
-  };
+  ): string | undefined =>
+    resolvedMowerCompanionEntity(
+      states,
+      mowerEntityId,
+      entities,
+      domain,
+      ...suffixes,
+    );
   const companions = {
     map: companion("select", "map"),
     mowing_action: companion("select", "mowing_action"),
@@ -288,11 +387,12 @@ export function resolvedControlEntities(
   states: HassStates,
   mowerEntityId: string,
   configured: string[] | undefined,
+  entities?: EntityRegistryEntries,
 ): string[] {
   const cleaned = configured?.filter(Boolean) || [];
   return cleaned.length
     ? cleaned
-    : autoDetectedControlEntities(states, mowerEntityId);
+    : autoDetectedControlEntities(states, mowerEntityId, entities);
 }
 
 export function resolvedCoverageEntityIds(

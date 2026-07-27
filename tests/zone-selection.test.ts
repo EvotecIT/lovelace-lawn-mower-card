@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 
 import {
   normalizedZoneSelection,
+  selectedMapIsCurrent,
+  supportsDreameMultiZoneMowing,
   zoneChoices,
   zoneMowingServiceData,
   zonePreferenceChoice,
+  zoneSelectionKey,
   zoneSelectionLabels,
 } from "../src/zone-selection.ts";
 
@@ -40,6 +43,175 @@ test("zone choices reject stale or ambiguous Home Assistant snapshots", () => {
   assert.deepEqual(zoneChoices(mower([1, 1]), zone(["One", "Two"])), []);
   assert.deepEqual(zoneChoices(mower([true, 3]), zone(["One", "Two"])), []);
   assert.deepEqual(zoneChoices(mower([1, 3]), zone(["Zone", "Zone"])), []);
+});
+
+test("multi-zone mode requires the Dreame entity platform and registered service", () => {
+  const entities = {
+    "lawn_mower.garden": { platform: "dreame_lawn_mower" },
+    "lawn_mower.other": { platform: "other_mower" },
+  };
+  const services = {
+    lawn_mower: { start_zone_mowing: {} },
+  };
+
+  assert.equal(
+    supportsDreameMultiZoneMowing(
+      "lawn_mower.garden",
+      entities,
+      services,
+    ),
+    true,
+  );
+  assert.equal(
+    supportsDreameMultiZoneMowing(
+      "lawn_mower.other",
+      entities,
+      services,
+    ),
+    false,
+  );
+  assert.equal(
+    supportsDreameMultiZoneMowing(
+      "lawn_mower.garden",
+      entities,
+      { lawn_mower: {} },
+    ),
+    false,
+  );
+});
+
+test("zone selection keys bind labels and a stable current-map identity", () => {
+  const choices = [
+    { id: 1, label: "Front lawn (#1)" },
+    { id: 2, label: "Back lawn (#2)" },
+  ];
+  const baseMower = {
+    state: "docked",
+    attributes: { selected_map_index: 0 },
+  };
+  const first = zoneSelectionKey(
+    "lawn_mower.garden",
+    "select.garden_zone",
+    baseMower,
+    undefined,
+    choices,
+  );
+  const renamed = zoneSelectionKey(
+    "lawn_mower.garden",
+    "select.garden_zone",
+    baseMower,
+    undefined,
+    [
+      { id: 1, label: "Side lawn (#1)" },
+      { id: 2, label: "Orchard (#2)" },
+    ],
+  );
+  const secondMap = zoneSelectionKey(
+    "lawn_mower.garden",
+    "select.garden_zone",
+    {
+      state: "docked",
+      attributes: { selected_map_index: 1 },
+    },
+    undefined,
+    choices,
+  );
+
+  assert.ok(first);
+  assert.notEqual(first, renamed);
+  assert.notEqual(first, secondMap);
+  assert.equal(
+    zoneSelectionKey(
+      "lawn_mower.garden",
+      "select.garden_zone",
+      { state: "docked", attributes: {} },
+      undefined,
+      choices,
+    ),
+    undefined,
+  );
+  for (const invalidIdentity of ["unknown", "unavailable", -1]) {
+    assert.equal(
+      zoneSelectionKey(
+        "lawn_mower.garden",
+        "select.garden_zone",
+        {
+          state: "docked",
+          attributes: { selected_map_index: invalidIdentity },
+        },
+        undefined,
+        choices,
+      ),
+      undefined,
+    );
+  }
+});
+
+test("zone selection rejects conflicting selected and active maps", () => {
+  const mismatched = {
+    state: "docked",
+    attributes: {
+      selected_map_index: 1,
+      app_current_map_index: 2,
+    },
+  };
+  const explicitlyMismatched = {
+    state: "docked",
+    attributes: {
+      selected_map_index: 1,
+      app_current_map_index: 1,
+      selected_map_matches_active_app_map: false,
+    },
+  };
+  const choices = [
+    { id: 1, label: "Front lawn (#1)" },
+    { id: 2, label: "Back lawn (#2)" },
+  ];
+
+  assert.equal(selectedMapIsCurrent(mismatched), false);
+  assert.equal(selectedMapIsCurrent(explicitlyMismatched), false);
+  assert.equal(
+    zoneSelectionKey(
+      "lawn_mower.garden",
+      "select.garden_zone",
+      mismatched,
+      undefined,
+      choices,
+    ),
+    undefined,
+  );
+  const labelMismatch = {
+    state: "docked",
+    attributes: {
+      selected_map_label: "Map 2",
+      app_current_map_label: "Map 1",
+    },
+  };
+  const selectorMismatch = {
+    state: "docked",
+    attributes: {
+      selected_map_label: "Map 2",
+    },
+  };
+
+  assert.equal(selectedMapIsCurrent(labelMismatch), false);
+  assert.equal(
+    selectedMapIsCurrent(selectorMismatch, {
+      state: "Map 1",
+      attributes: {},
+    }),
+    false,
+  );
+  assert.equal(
+    zoneSelectionKey(
+      "lawn_mower.garden",
+      "select.garden_zone",
+      labelMismatch,
+      undefined,
+      choices,
+    ),
+    undefined,
+  );
 });
 
 test("zone selection defaults to the integration scope and preserves empty intent", () => {

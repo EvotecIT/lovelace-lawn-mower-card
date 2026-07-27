@@ -12,6 +12,7 @@ import {
   prioritizedHeaderSummary,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
+  resolvedMowerCompanionEntity,
 } from "./card-logic";
 import {
   heroLayoutStyles,
@@ -37,9 +38,12 @@ import {
 } from "./schedule-panel";
 import {
   normalizedZoneSelection,
+  selectedMapIsCurrent,
+  supportsDreameMultiZoneMowing,
   zoneChoices,
   zoneMowingServiceData,
   zonePreferenceChoice,
+  zoneSelectionKey,
   zoneSelectionLabels,
   type ZoneChoice,
 } from "./zone-selection";
@@ -55,6 +59,16 @@ type HassEntity = {
 
 type HomeAssistant = {
   states: Record<string, HassEntity>;
+  entities?: Record<
+    string,
+    {
+      platform?: string;
+      device_id?: string;
+      name?: string;
+      translation_key?: string;
+    }
+  >;
+  services?: Record<string, Record<string, unknown>>;
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<void>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
   hassUrl(path: string): string;
@@ -1207,6 +1221,7 @@ export class LawnMowerCard extends LitElement {
       this.hass.states,
       this._config.entity,
       configured,
+      this.hass.entities,
     );
   }
 
@@ -1217,12 +1232,7 @@ export class LawnMowerCard extends LitElement {
     if (entityId.startsWith("number.")) {
       return this._renderNumberControl(entityId);
     }
-    if (
-      entityId.startsWith("select.") &&
-      entityId.endsWith("_zone") &&
-      this._isZoneMowingAction() &&
-      this._zoneChoices(entityId).length > 1
-    ) {
+    if (this._zoneStartContext()?.entityId === entityId) {
       return this._renderZoneControl(entityId);
     }
     return this._renderSelectControl(entityId);
@@ -2638,19 +2648,28 @@ export class LawnMowerCard extends LitElement {
   private _zoneSelectionKey(
     entityId: string,
     choices: readonly ZoneChoice[],
-  ): string {
+  ): string | undefined {
     const mower = this._config
       ? this.hass.states[this._config.entity]
       : undefined;
-    const mapIndex = mower?.attributes.selected_map_index;
-    return [
-      this._config?.entity || "",
-      entityId,
-      typeof mapIndex === "number" || typeof mapIndex === "string"
-        ? String(mapIndex)
-        : "unknown",
-      choices.map(({ id }) => id).join(","),
-    ].join("|");
+    const mapEntityId = this._config
+      ? resolvedMowerCompanionEntity(
+          this.hass.states,
+          this._config.entity,
+          this.hass.entities,
+          "select",
+          "map",
+        )
+      : undefined;
+    return this._config
+      ? zoneSelectionKey(
+          this._config.entity,
+          entityId,
+          mower,
+          mapEntityId ? this.hass.states[mapEntityId] : undefined,
+          choices,
+        )
+      : undefined;
   }
 
   private _selectedZoneIds(
@@ -2659,7 +2678,7 @@ export class LawnMowerCard extends LitElement {
   ): number[] {
     const key = this._zoneSelectionKey(entityId, choices);
     const selectedIds =
-      this._zoneSelection?.key === key
+      key !== undefined && this._zoneSelection?.key === key
         ? this._zoneSelection.zoneIds
         : undefined;
     const mower = this._config
@@ -2689,8 +2708,12 @@ export class LawnMowerCard extends LitElement {
       choices,
       Array.from(current),
     );
+    const key = this._zoneSelectionKey(entityId, choices);
+    if (!key) {
+      return;
+    }
     this._zoneSelection = {
-      key: this._zoneSelectionKey(entityId, choices),
+      key,
       zoneIds,
     };
 
@@ -2712,10 +2735,12 @@ export class LawnMowerCard extends LitElement {
     if (!this._config) {
       return false;
     }
-    const actionEntityId = this._resolvedControlEntities().find(
-      (entityId) =>
-        entityId.startsWith("select.") &&
-        entityId.endsWith("_mowing_action"),
+    const actionEntityId = resolvedMowerCompanionEntity(
+      this.hass.states,
+      this._config.entity,
+      this.hass.entities,
+      "select",
+      "mowing_action",
     );
     const actionState = actionEntityId
       ? this.hass.states[actionEntityId]?.state.trim().toLowerCase()
@@ -2729,6 +2754,24 @@ export class LawnMowerCard extends LitElement {
     );
   }
 
+  private _selectedZoneMapIsCurrent(): boolean {
+    if (!this._config) {
+      return false;
+    }
+    const mower = this.hass.states[this._config.entity];
+    const mapEntityId = resolvedMowerCompanionEntity(
+      this.hass.states,
+      this._config.entity,
+      this.hass.entities,
+      "select",
+      "map",
+    );
+    return selectedMapIsCurrent(
+      mower,
+      mapEntityId ? this.hass.states[mapEntityId] : undefined,
+    );
+  }
+
   private _zoneStartContext():
     | {
         entityId: string;
@@ -2739,16 +2782,33 @@ export class LawnMowerCard extends LitElement {
     if (!this._config || !this._isZoneMowingAction()) {
       return undefined;
     }
-    const entityId = this._resolvedControlEntities().find(
-      (candidate) =>
-        candidate.startsWith("select.") &&
-        candidate.endsWith("_zone"),
+    if (!this._selectedZoneMapIsCurrent()) {
+      return undefined;
+    }
+    if (
+      !supportsDreameMultiZoneMowing(
+        this._config.entity,
+        this.hass.entities,
+        this.hass.services,
+      )
+    ) {
+      return undefined;
+    }
+    const entityId = resolvedMowerCompanionEntity(
+      this.hass.states,
+      this._config.entity,
+      this.hass.entities,
+      "select",
+      "zone",
     );
-    if (!entityId) {
+    if (!entityId || !this._resolvedControlEntities().includes(entityId)) {
       return undefined;
     }
     const choices = this._zoneChoices(entityId);
-    if (choices.length < 2) {
+    if (
+      choices.length < 2 ||
+      !this._zoneSelectionKey(entityId, choices)
+    ) {
       return undefined;
     }
     return {
@@ -2759,6 +2819,12 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _canStartSelectedTarget(): boolean {
+    if (
+      this._isZoneMowingAction() &&
+      !this._selectedZoneMapIsCurrent()
+    ) {
+      return false;
+    }
     const context = this._zoneStartContext();
     return context ? context.zoneIds.length > 0 : true;
   }
@@ -2871,6 +2937,12 @@ export class LawnMowerCard extends LitElement {
   }
 
   private async _startMowing() {
+    if (
+      this._isZoneMowingAction() &&
+      !this._selectedZoneMapIsCurrent()
+    ) {
+      return;
+    }
     const zoneContext = this._zoneStartContext();
     if (zoneContext && this._config) {
       const serviceData = zoneMowingServiceData(
