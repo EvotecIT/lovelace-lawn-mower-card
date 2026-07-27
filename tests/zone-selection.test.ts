@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 
 import {
   normalizedZoneSelection,
+  reconciledZoneSelectionKeys,
   selectedMapIsCurrent,
   supportsDreameMultiZoneMowing,
   zoneChoices,
   zoneMowingServiceData,
   zonePreferenceChoice,
   zoneSelectionFallbackId,
-  zoneSelectionKey,
+  zoneSelectionKeys,
   zoneSelectionLabels,
 } from "../src/zone-selection.ts";
 
@@ -100,14 +101,14 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
     state: "docked",
     attributes: { selected_map_index: 0 },
   };
-  const first = zoneSelectionKey(
+  const first = zoneSelectionKeys(
     "lawn_mower.garden",
     "select.garden_zone",
     baseMower,
     undefined,
     choices,
   );
-  const renamed = zoneSelectionKey(
+  const renamed = zoneSelectionKeys(
     "lawn_mower.garden",
     "select.garden_zone",
     baseMower,
@@ -117,7 +118,7 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
       { id: 2, label: "Orchard (#2)" },
     ],
   );
-  const secondMap = zoneSelectionKey(
+  const secondMap = zoneSelectionKeys(
     "lawn_mower.garden",
     "select.garden_zone",
     {
@@ -127,7 +128,7 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
     undefined,
     choices,
   );
-  const enrichedEquivalentMap = zoneSelectionKey(
+  const enrichedEquivalentMap = zoneSelectionKeys(
     "lawn_mower.garden",
     "select.garden_zone",
     {
@@ -140,7 +141,7 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
     undefined,
     choices,
   );
-  const enrichedEquivalentMapLabel = zoneSelectionKey(
+  const enrichedEquivalentMapLabel = zoneSelectionKeys(
     "lawn_mower.garden",
     "select.garden_zone",
     baseMower,
@@ -150,7 +151,7 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
     },
     choices,
   );
-  const selectedLabel = zoneSelectionKey(
+  const selectedLabel = zoneSelectionKeys(
     "lawn_mower.garden",
     "select.garden_zone",
     {
@@ -160,7 +161,7 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
     undefined,
     choices,
   );
-  const enrichedEquivalentLabel = zoneSelectionKey(
+  const enrichedEquivalentLabel = zoneSelectionKeys(
     "lawn_mower.garden",
     "select.garden_zone",
     {
@@ -175,13 +176,13 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
   );
 
   assert.ok(first);
-  assert.equal(first, enrichedEquivalentMap);
-  assert.equal(first, enrichedEquivalentMapLabel);
-  assert.equal(selectedLabel, enrichedEquivalentLabel);
-  assert.notEqual(first, renamed);
-  assert.notEqual(first, secondMap);
+  assert.equal(first.index, enrichedEquivalentMap?.index);
+  assert.equal(first.index, enrichedEquivalentMapLabel?.index);
+  assert.equal(selectedLabel?.label, enrichedEquivalentLabel?.label);
+  assert.notDeepEqual(first, renamed);
+  assert.notDeepEqual(first, secondMap);
   assert.equal(
-    zoneSelectionKey(
+    zoneSelectionKeys(
       "lawn_mower.garden",
       "select.garden_zone",
       { state: "docked", attributes: {} },
@@ -192,7 +193,7 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
   );
   for (const invalidIdentity of ["unknown", "unavailable", -1]) {
     assert.equal(
-      zoneSelectionKey(
+      zoneSelectionKeys(
         "lawn_mower.garden",
         "select.garden_zone",
         {
@@ -205,6 +206,76 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
       undefined,
     );
   }
+});
+
+test("zone selection reconciles either map identity enrichment direction", () => {
+  const choices = [
+    { id: 1, label: "Front lawn (#1)" },
+    { id: 2, label: "Back lawn (#2)" },
+  ];
+  const labelOnly = zoneSelectionKeys(
+    "lawn_mower.garden",
+    "select.garden_zone",
+    {
+      state: "docked",
+      attributes: { selected_map_label: "Map 1" },
+    },
+    undefined,
+    choices,
+  );
+  const indexOnly = zoneSelectionKeys(
+    "lawn_mower.garden",
+    "select.garden_zone",
+    {
+      state: "docked",
+      attributes: { selected_map_index: 0 },
+    },
+    undefined,
+    choices,
+  );
+  const enriched = zoneSelectionKeys(
+    "lawn_mower.garden",
+    "select.garden_zone",
+    {
+      state: "docked",
+      attributes: {
+        selected_map_index: 0,
+        selected_map_label: "Map 1",
+      },
+    },
+    undefined,
+    choices,
+  );
+  const differentIndex = zoneSelectionKeys(
+    "lawn_mower.garden",
+    "select.garden_zone",
+    {
+      state: "docked",
+      attributes: {
+        selected_map_index: 1,
+        selected_map_label: "Map 1",
+      },
+    },
+    undefined,
+    choices,
+  );
+
+  assert.ok(labelOnly);
+  assert.ok(indexOnly);
+  assert.ok(enriched);
+  assert.ok(differentIndex);
+  assert.deepEqual(
+    reconciledZoneSelectionKeys(labelOnly, enriched),
+    enriched,
+  );
+  assert.deepEqual(
+    reconciledZoneSelectionKeys(indexOnly, enriched),
+    enriched,
+  );
+  assert.equal(
+    reconciledZoneSelectionKeys(enriched, differentIndex),
+    undefined,
+  );
 });
 
 test("zone selection rejects conflicting selected and active maps", () => {
@@ -231,7 +302,7 @@ test("zone selection rejects conflicting selected and active maps", () => {
   assert.equal(selectedMapIsCurrent(mismatched), false);
   assert.equal(selectedMapIsCurrent(explicitlyMismatched), false);
   assert.equal(
-    zoneSelectionKey(
+    zoneSelectionKeys(
       "lawn_mower.garden",
       "select.garden_zone",
       mismatched,
@@ -263,7 +334,7 @@ test("zone selection rejects conflicting selected and active maps", () => {
     false,
   );
   assert.equal(
-    zoneSelectionKey(
+    zoneSelectionKeys(
       "lawn_mower.garden",
       "select.garden_zone",
       labelMismatch,

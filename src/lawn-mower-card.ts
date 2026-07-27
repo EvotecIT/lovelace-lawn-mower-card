@@ -39,15 +39,17 @@ import {
 } from "./schedule-panel";
 import {
   normalizedZoneSelection,
+  reconciledZoneSelectionKeys,
   selectedMapIsCurrent,
   supportsDreameMultiZoneMowing,
   zoneChoices,
   zoneMowingServiceData,
   zonePreferenceChoice,
   zoneSelectionFallbackId,
-  zoneSelectionKey,
+  zoneSelectionKeys,
   zoneSelectionLabels,
   type ZoneChoice,
+  type ZoneSelectionKeys,
 } from "./zone-selection";
 import "./point-cloud-view";
 
@@ -169,7 +171,7 @@ type SelectedZonePreferenceDetails = {
 };
 
 type ZoneSelectionState = {
-  key: string;
+  keys: ZoneSelectionKeys;
   zoneIds: number[];
 };
 
@@ -2647,10 +2649,10 @@ export class LawnMowerCard extends LitElement {
     return zoneChoices(mower, this.hass.states[entityId]);
   }
 
-  private _zoneSelectionKey(
+  private _zoneSelectionKeys(
     entityId: string,
     choices: readonly ZoneChoice[],
-  ): string | undefined {
+  ): ZoneSelectionKeys | undefined {
     const mower = this._config
       ? this.hass.states[this._config.entity]
       : undefined;
@@ -2664,7 +2666,7 @@ export class LawnMowerCard extends LitElement {
         )
       : undefined;
     return this._config
-      ? zoneSelectionKey(
+      ? zoneSelectionKeys(
           this._config.entity,
           entityId,
           mower,
@@ -2678,11 +2680,17 @@ export class LawnMowerCard extends LitElement {
     entityId: string,
     choices = this._zoneChoices(entityId),
   ): number[] {
-    const key = this._zoneSelectionKey(entityId, choices);
-    const selectedIds =
-      key !== undefined && this._zoneSelection?.key === key
-        ? this._zoneSelection.zoneIds
+    const keys = this._zoneSelectionKeys(entityId, choices);
+    const reconciledKeys =
+      keys && this._zoneSelection
+        ? reconciledZoneSelectionKeys(this._zoneSelection.keys, keys)
         : undefined;
+    if (reconciledKeys && this._zoneSelection) {
+      this._zoneSelection.keys = reconciledKeys;
+    }
+    const selectedIds = reconciledKeys
+      ? this._zoneSelection?.zoneIds
+      : undefined;
     const mower = this._config
       ? this.hass.states[this._config.entity]
       : undefined;
@@ -2717,12 +2725,12 @@ export class LawnMowerCard extends LitElement {
       choices,
       Array.from(current),
     );
-    const key = this._zoneSelectionKey(entityId, choices);
-    if (!key) {
+    const keys = this._zoneSelectionKeys(entityId, choices);
+    if (!keys) {
       return;
     }
     this._zoneSelection = {
-      key,
+      keys,
       zoneIds,
     };
 
@@ -2834,7 +2842,7 @@ export class LawnMowerCard extends LitElement {
     if (
       !candidate ||
       !this._selectedZoneMapIsCurrent() ||
-      !this._zoneSelectionKey(candidate.entityId, candidate.choices)
+      !this._zoneSelectionKeys(candidate.entityId, candidate.choices)
     ) {
       return undefined;
     }

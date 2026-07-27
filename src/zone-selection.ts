@@ -3,6 +3,11 @@ export type ZoneChoice = {
   label: string;
 };
 
+export type ZoneSelectionKeys = {
+  index?: string;
+  label?: string;
+};
+
 type ZoneEntity = {
   state: string;
   attributes?: Record<string, unknown>;
@@ -196,13 +201,13 @@ export function zonePreferenceChoice(
   return current || choices.find(({ id }) => selected.has(id));
 }
 
-export function zoneSelectionKey(
+export function zoneSelectionKeys(
   mowerEntityId: string,
   zoneEntityId: string,
   mower: ZoneEntity | undefined,
   mapEntity: ZoneEntity | undefined,
   choices: readonly ZoneChoice[],
-): string | undefined {
+): ZoneSelectionKeys | undefined {
   const attributes = mower?.attributes;
   if (!selectedMapIsCurrent(mower, mapEntity)) {
     return undefined;
@@ -215,25 +220,44 @@ export function zoneSelectionKey(
     selectorLabel ??
     mapLabelToken(attributes?.selected_map_label) ??
     mapLabelToken(attributes?.app_current_map_label);
-  let mapIdentity: string | undefined;
-  if (mapIndex !== undefined) {
-    mapIdentity = `index:${mapIndex}`;
-  } else if (mapLabel) {
-    mapIdentity = `label:${encodeURIComponent(mapLabel)}`;
-  }
-  if (!mapIdentity) {
+  if (mapIndex === undefined && !mapLabel) {
     return undefined;
   }
 
   const choiceIdentity = choices
     .map(({ id, label }) => `${id}:${encodeURIComponent(label)}`)
     .join(",");
-  return [
-    mowerEntityId,
-    zoneEntityId,
-    mapIdentity,
-    choiceIdentity,
-  ].join("|");
+  const key = (mapIdentity: string) =>
+    [mowerEntityId, zoneEntityId, mapIdentity, choiceIdentity].join("|");
+  return {
+    index:
+      mapIndex !== undefined ? key(`index:${mapIndex}`) : undefined,
+    label: mapLabel
+      ? key(`label:${encodeURIComponent(mapLabel)}`)
+      : undefined,
+  };
+}
+
+export function reconciledZoneSelectionKeys(
+  cached: ZoneSelectionKeys,
+  current: ZoneSelectionKeys,
+): ZoneSelectionKeys | undefined {
+  if (cached.index && current.index) {
+    if (cached.index !== current.index) {
+      return undefined;
+    }
+  } else if (cached.label && current.label) {
+    if (cached.label !== current.label) {
+      return undefined;
+    }
+  } else {
+    return undefined;
+  }
+
+  return {
+    index: current.index ?? cached.index,
+    label: current.label ?? cached.label,
+  };
 }
 
 export function zoneMowingServiceData(
