@@ -13,6 +13,7 @@ import {
   resolvedControlEntities,
   resolvedCoverageEntityIds,
   resolvedMowerCompanionEntity,
+  resolvedOwnedMowerCompanionEntity,
 } from "./card-logic";
 import {
   heroLayoutStyles,
@@ -43,6 +44,7 @@ import {
   zoneChoices,
   zoneMowingServiceData,
   zonePreferenceChoice,
+  zoneSelectionFallbackId,
   zoneSelectionKey,
   zoneSelectionLabels,
   type ZoneChoice,
@@ -2653,7 +2655,7 @@ export class LawnMowerCard extends LitElement {
       ? this.hass.states[this._config.entity]
       : undefined;
     const mapEntityId = this._config
-      ? resolvedMowerCompanionEntity(
+      ? resolvedOwnedMowerCompanionEntity(
           this.hass.states,
           this._config.entity,
           this.hass.entities,
@@ -2684,10 +2686,17 @@ export class LawnMowerCard extends LitElement {
     const mower = this._config
       ? this.hass.states[this._config.entity]
       : undefined;
+    const selectedZoneId = mower
+      ? this._entityAttributeInteger(mower, "selected_zone_id")
+      : undefined;
     return normalizedZoneSelection(
       choices,
       selectedIds,
-      mower ? this._entityAttributeInteger(mower, "selected_zone_id") : undefined,
+      zoneSelectionFallbackId(
+        choices,
+        selectedZoneId,
+        this.hass.states[entityId]?.state,
+      ),
     );
   }
 
@@ -2759,7 +2768,7 @@ export class LawnMowerCard extends LitElement {
       return false;
     }
     const mower = this.hass.states[this._config.entity];
-    const mapEntityId = resolvedMowerCompanionEntity(
+    const mapEntityId = resolvedOwnedMowerCompanionEntity(
       this.hass.states,
       this._config.entity,
       this.hass.entities,
@@ -2772,17 +2781,13 @@ export class LawnMowerCard extends LitElement {
     );
   }
 
-  private _zoneStartContext():
+  private _multiZoneCandidateContext():
     | {
         entityId: string;
         choices: ZoneChoice[];
-        zoneIds: number[];
       }
     | undefined {
     if (!this._config || !this._isZoneMowingAction()) {
-      return undefined;
-    }
-    if (!this._selectedZoneMapIsCurrent()) {
       return undefined;
     }
     if (
@@ -2794,7 +2799,7 @@ export class LawnMowerCard extends LitElement {
     ) {
       return undefined;
     }
-    const entityId = resolvedMowerCompanionEntity(
+    const entityId = resolvedOwnedMowerCompanionEntity(
       this.hass.states,
       this._config.entity,
       this.hass.entities,
@@ -2805,22 +2810,42 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     const choices = this._zoneChoices(entityId);
-    if (
-      choices.length < 2 ||
-      !this._zoneSelectionKey(entityId, choices)
-    ) {
+    if (choices.length < 2) {
       return undefined;
     }
     return {
       entityId,
       choices,
-      zoneIds: this._selectedZoneIds(entityId, choices),
+    };
+  }
+
+  private _zoneStartContext():
+    | {
+        entityId: string;
+        choices: ZoneChoice[];
+        zoneIds: number[];
+      }
+    | undefined {
+    const candidate = this._multiZoneCandidateContext();
+    if (
+      !candidate ||
+      !this._selectedZoneMapIsCurrent() ||
+      !this._zoneSelectionKey(candidate.entityId, candidate.choices)
+    ) {
+      return undefined;
+    }
+    return {
+      ...candidate,
+      zoneIds: this._selectedZoneIds(
+        candidate.entityId,
+        candidate.choices,
+      ),
     };
   }
 
   private _canStartSelectedTarget(): boolean {
     if (
-      this._isZoneMowingAction() &&
+      this._multiZoneCandidateContext() &&
       !this._selectedZoneMapIsCurrent()
     ) {
       return false;
@@ -2938,7 +2963,7 @@ export class LawnMowerCard extends LitElement {
 
   private async _startMowing() {
     if (
-      this._isZoneMowingAction() &&
+      this._multiZoneCandidateContext() &&
       !this._selectedZoneMapIsCurrent()
     ) {
       return;

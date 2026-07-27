@@ -8,6 +8,7 @@ import {
   zoneChoices,
   zoneMowingServiceData,
   zonePreferenceChoice,
+  zoneSelectionFallbackId,
   zoneSelectionKey,
   zoneSelectionLabels,
 } from "../src/zone-selection.ts";
@@ -43,6 +44,16 @@ test("zone choices reject stale or ambiguous Home Assistant snapshots", () => {
   assert.deepEqual(zoneChoices(mower([1, 1]), zone(["One", "Two"])), []);
   assert.deepEqual(zoneChoices(mower([true, 3]), zone(["One", "Two"])), []);
   assert.deepEqual(zoneChoices(mower([1, 3]), zone(["Zone", "Zone"])), []);
+  assert.deepEqual(
+    zoneChoices(
+      mower([1, 3]),
+      {
+        state: "unavailable",
+        attributes: { options: ["One", "Two"] },
+      },
+    ),
+    [],
+  );
 });
 
 test("multi-zone mode requires the Dreame entity platform and registered service", () => {
@@ -221,8 +232,21 @@ test("zone selection defaults to the integration scope and preserves empty inten
   ];
 
   assert.deepEqual(normalizedZoneSelection(choices, undefined, 3), [3]);
-  assert.deepEqual(normalizedZoneSelection(choices, undefined, 9), [1]);
+  assert.deepEqual(normalizedZoneSelection(choices, undefined, 9), []);
+  assert.deepEqual(normalizedZoneSelection(choices, undefined), []);
   assert.deepEqual(normalizedZoneSelection(choices, [], 3), []);
+  assert.equal(
+    zoneSelectionFallbackId(choices, undefined, "Orchard (#3)"),
+    3,
+  );
+  assert.equal(
+    zoneSelectionFallbackId(choices, 1, "Orchard (#3)"),
+    1,
+  );
+  assert.equal(
+    zoneSelectionFallbackId(choices, 9, "Unknown zone"),
+    undefined,
+  );
 });
 
 test("zone selection drops stale IDs and follows current-map option order", () => {

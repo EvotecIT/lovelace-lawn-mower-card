@@ -128,10 +128,11 @@ function registryOwnersMatch(
   );
 }
 
-export function resolvedMowerCompanionEntity(
+function resolveMowerCompanionEntity(
   states: HassStates,
   mowerEntityId: string,
   entities: EntityRegistryEntries | undefined,
+  requireRegistryOwnership: boolean,
   domain: string,
   ...suffixes: readonly string[]
 ): string | undefined {
@@ -147,8 +148,7 @@ export function resolvedMowerCompanionEntity(
       const mowerEntry = entities?.[mowerEntityId];
       const candidateEntry = entities?.[entityId];
       if (
-        !entities ||
-        !mowerEntry?.device_id ||
+        !requireRegistryOwnership ||
         registryOwnersMatch(mowerEntry, candidateEntry)
       ) {
         return entityId;
@@ -156,13 +156,10 @@ export function resolvedMowerCompanionEntity(
       continue;
     }
 
-    const mowerEntry = entities?.[mowerEntityId];
-    if (!mowerEntry?.device_id || !mowerEntry.platform) {
-      continue;
-    }
     const registrySuffix = `_${objectId}_${suffix}`;
     const normalizedSuffix = normalizedEntityRole(suffix);
-    const matches = entityIds.filter(
+    const mowerEntry = entities?.[mowerEntityId];
+    const ownedMatches = entityIds.filter(
       (candidate) => {
         if (!candidate.startsWith(`${domain}.`)) {
           return false;
@@ -191,14 +188,63 @@ export function resolvedMowerCompanionEntity(
         );
       },
     );
-    if (matches.length === 1) {
-      return matches[0];
+    if (ownedMatches.length === 1) {
+      return ownedMatches[0];
     }
-    if (matches.length > 1) {
+    if (ownedMatches.length > 1) {
+      return undefined;
+    }
+    if (requireRegistryOwnership) {
+      continue;
+    }
+
+    const namedMatches = entityIds.filter(
+      (candidate) =>
+        candidate.startsWith(`${domain}.`) &&
+        candidate.slice(domain.length + 1).endsWith(registrySuffix),
+    );
+    if (namedMatches.length === 1) {
+      return namedMatches[0];
+    }
+    if (namedMatches.length > 1) {
       return undefined;
     }
   }
   return undefined;
+}
+
+export function resolvedMowerCompanionEntity(
+  states: HassStates,
+  mowerEntityId: string,
+  entities: EntityRegistryEntries | undefined,
+  domain: string,
+  ...suffixes: readonly string[]
+): string | undefined {
+  return resolveMowerCompanionEntity(
+    states,
+    mowerEntityId,
+    entities,
+    false,
+    domain,
+    ...suffixes,
+  );
+}
+
+export function resolvedOwnedMowerCompanionEntity(
+  states: HassStates,
+  mowerEntityId: string,
+  entities: EntityRegistryEntries | undefined,
+  domain: string,
+  ...suffixes: readonly string[]
+): string | undefined {
+  return resolveMowerCompanionEntity(
+    states,
+    mowerEntityId,
+    entities,
+    true,
+    domain,
+    ...suffixes,
+  );
 }
 
 export function autoDetectedControlEntities(

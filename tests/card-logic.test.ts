@@ -14,6 +14,7 @@ import {
   resolvedControlEntities,
   resolvedCoverageEntityIds,
   resolvedMowerCompanionEntity,
+  resolvedOwnedMowerCompanionEntity,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
@@ -251,6 +252,33 @@ test("mower companion resolution rejects unrelated target selectors", () => {
   );
 });
 
+test("ordinary prefixed discovery survives missing registry metadata", () => {
+  const states = {
+    "select.ogrod_dreame_a2_bodzio_zone": entity("Zone 2"),
+  };
+
+  assert.equal(
+    resolvedMowerCompanionEntity(
+      states,
+      "lawn_mower.dreame_a2_bodzio",
+      undefined,
+      "select",
+      "zone",
+    ),
+    "select.ogrod_dreame_a2_bodzio_zone",
+  );
+  assert.equal(
+    resolvedOwnedMowerCompanionEntity(
+      states,
+      "lawn_mower.dreame_a2_bodzio",
+      undefined,
+      "select",
+      "zone",
+    ),
+    undefined,
+  );
+});
+
 test("mower companion resolution uses registry ownership and fails on ambiguity", () => {
   const states = {
     "select.renamed_zone": {
@@ -281,7 +309,7 @@ test("mower companion resolution uses registry ownership and fails on ambiguity"
   };
 
   assert.equal(
-    resolvedMowerCompanionEntity(
+    resolvedOwnedMowerCompanionEntity(
       states,
       "lawn_mower.garden",
       owned,
@@ -291,7 +319,7 @@ test("mower companion resolution uses registry ownership and fails on ambiguity"
     "select.renamed_zone",
   );
   assert.equal(
-    resolvedMowerCompanionEntity(
+    resolvedOwnedMowerCompanionEntity(
       states,
       "lawn_mower.garden",
       {

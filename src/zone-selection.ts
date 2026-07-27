@@ -86,6 +86,14 @@ export function zoneChoices(
   mower: ZoneEntity | undefined,
   zoneEntity: ZoneEntity | undefined,
 ): ZoneChoice[] {
+  if (
+    !zoneEntity ||
+    ["", "unknown", "unavailable"].includes(
+      zoneEntity.state.trim().toLowerCase(),
+    )
+  ) {
+    return [];
+  }
   const rawIds = mower?.attributes?.available_zone_ids;
   const rawLabels = zoneEntity?.attributes?.options;
   if (
@@ -139,7 +147,21 @@ export function normalizedZoneSelection(
   if (fallbackId !== undefined && availableIds.has(fallbackId)) {
     return [fallbackId];
   }
-  return choices.length ? [choices[0].id] : [];
+  return [];
+}
+
+export function zoneSelectionFallbackId(
+  choices: readonly ZoneChoice[],
+  selectedZoneId: number | undefined,
+  currentLabel: string | undefined,
+): number | undefined {
+  if (
+    selectedZoneId !== undefined &&
+    choices.some(({ id }) => id === selectedZoneId)
+  ) {
+    return selectedZoneId;
+  }
+  return choices.find(({ label }) => label === currentLabel)?.id;
 }
 
 export function zoneSelectionLabels(
