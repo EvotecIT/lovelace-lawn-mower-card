@@ -337,6 +337,40 @@ test("mower companion resolution uses registry ownership and fails on ambiguity"
   );
 });
 
+test("owned mower companion discovery skips an unowned exact-name collision", () => {
+  const states = {
+    "select.garden_zone": entity("Wrong zone"),
+    "select.area_garden_zone": entity("Front lawn (#1)"),
+  };
+  const entities = {
+    "lawn_mower.garden": {
+      platform: "dreame_lawn_mower",
+      device_id: "mower-device",
+    },
+    "select.garden_zone": {
+      platform: "other",
+      device_id: "other-device",
+      name: "Zone",
+    },
+    "select.area_garden_zone": {
+      platform: "dreame_lawn_mower",
+      device_id: "mower-device",
+      name: "Zone",
+    },
+  };
+
+  assert.equal(
+    resolvedOwnedMowerCompanionEntity(
+      states,
+      "lawn_mower.garden",
+      entities,
+      "select",
+      "zone",
+    ),
+    "select.area_garden_zone",
+  );
+});
+
 test("legacy Dreame entity names remain discoverable after preference renames", () => {
   const states = {
     "select.dreame_a2_bodzio_map": entity("Map #1"),

@@ -207,18 +207,18 @@ export function zoneSelectionKey(
   if (!selectedMapIsCurrent(mower, mapEntity)) {
     return undefined;
   }
+  const selectorLabel = mapLabelToken(mapEntity?.state);
+  const mapIndex =
+    mapIndexToken(attributes?.selected_map_index) ??
+    mapIndexToken(attributes?.app_current_map_index);
+  const mapLabel =
+    selectorLabel ??
+    mapLabelToken(attributes?.selected_map_label) ??
+    mapLabelToken(attributes?.app_current_map_label);
   const mapIdentity = [
-    ["selected_index", mapIndexToken(attributes?.selected_map_index)],
-    ["selected_label", mapLabelToken(attributes?.selected_map_label)],
-    ["active_index", mapIndexToken(attributes?.app_current_map_index)],
-    ["active_label", mapLabelToken(attributes?.app_current_map_label)],
-    [
-      "selector",
-      mapLabelToken(mapEntity?.state),
-    ],
-  ]
-    .filter((entry): entry is [string, string] => Boolean(entry[1]))
-    .map(([name, value]) => `${name}:${encodeURIComponent(value)}`);
+    mapIndex !== undefined ? `index:${mapIndex}` : undefined,
+    mapLabel ? `label:${encodeURIComponent(mapLabel)}` : undefined,
+  ].filter((value): value is string => Boolean(value));
   if (!mapIdentity.length) {
     return undefined;
   }

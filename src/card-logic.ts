@@ -153,7 +153,6 @@ function resolveMowerCompanionEntity(
       ) {
         return entityId;
       }
-      continue;
     }
 
     const registrySuffix = `_${objectId}_${suffix}`;

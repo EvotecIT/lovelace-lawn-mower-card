@@ -2740,11 +2740,15 @@ export class LawnMowerCard extends LitElement {
     }
   }
 
-  private _isZoneMowingAction(): boolean {
+  private _isZoneMowingAction(requireRegistryOwnership = false): boolean {
     if (!this._config) {
       return false;
     }
-    const actionEntityId = resolvedMowerCompanionEntity(
+    const actionEntityId = (
+      requireRegistryOwnership
+        ? resolvedOwnedMowerCompanionEntity
+        : resolvedMowerCompanionEntity
+    )(
       this.hass.states,
       this._config.entity,
       this.hass.entities,
@@ -2787,7 +2791,7 @@ export class LawnMowerCard extends LitElement {
         choices: ZoneChoice[];
       }
     | undefined {
-    if (!this._config || !this._isZoneMowingAction()) {
+    if (!this._config || !this._isZoneMowingAction(true)) {
       return undefined;
     }
     if (
