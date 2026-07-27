@@ -13,10 +13,26 @@ import {
   prioritizedHeaderSummary,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
+  resolvedMowerCompanionEntity,
+  resolvedOwnedMowerCompanionEntity,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
 const entity = (state: string): MinimalHassEntity => ({ state });
+
+const dreameRegistry = (
+  mowerEntityId: string,
+  entityIds: readonly string[],
+) => Object.fromEntries([
+  [
+    mowerEntityId,
+    { platform: "dreame_lawn_mower", device_id: "mower-device" },
+  ],
+  ...entityIds.map((entityId) => [
+    entityId,
+    { platform: "dreame_lawn_mower", device_id: "mower-device" },
+  ]),
+]);
 
 test("all-area mowing hides irrelevant target selectors", () => {
   const states = {
@@ -170,7 +186,14 @@ test("Dreame registry names and area prefixes auto-discover every mowing prefere
   };
 
   assert.deepEqual(
-    autoDetectedControlEntities(states, "lawn_mower.dreame_a2_bodzio"),
+    autoDetectedControlEntities(
+      states,
+      "lawn_mower.dreame_a2_bodzio",
+      dreameRegistry(
+        "lawn_mower.dreame_a2_bodzio",
+        Object.keys(states),
+      ),
+    ),
     Object.keys(states),
   );
   assert.equal(
@@ -184,6 +207,167 @@ test("Dreame registry names and area prefixes auto-discover every mowing prefere
       "switch.ogrod_dreame_a2_bodzio_selected_edgemaster",
     ),
     true,
+  );
+});
+
+test("mower companion resolution rejects unrelated target selectors", () => {
+  const states = {
+    "select.front_yard_zone": entity("Zone 1"),
+    "select.ogrod_dreame_a2_bodzio_zone": entity("Zone 2"),
+  };
+  const entities = {
+    "lawn_mower.dreame_a2_bodzio": {
+      platform: "dreame_lawn_mower",
+      device_id: "mower-device",
+    },
+    "select.front_yard_zone": {
+      platform: "other",
+      device_id: "other-device",
+    },
+    "select.ogrod_dreame_a2_bodzio_zone": {
+      platform: "dreame_lawn_mower",
+      device_id: "mower-device",
+    },
+  };
+
+  assert.equal(
+    resolvedMowerCompanionEntity(
+      states,
+      "lawn_mower.dreame_a2_bodzio",
+      entities,
+      "select",
+      "zone",
+    ),
+    "select.ogrod_dreame_a2_bodzio_zone",
+  );
+  assert.equal(
+    resolvedMowerCompanionEntity(
+      states,
+      "lawn_mower.unknown",
+      entities,
+      "select",
+      "zone",
+    ),
+    undefined,
+  );
+});
+
+test("ordinary prefixed discovery survives missing registry metadata", () => {
+  const states = {
+    "select.ogrod_dreame_a2_bodzio_zone": entity("Zone 2"),
+  };
+
+  assert.equal(
+    resolvedMowerCompanionEntity(
+      states,
+      "lawn_mower.dreame_a2_bodzio",
+      undefined,
+      "select",
+      "zone",
+    ),
+    "select.ogrod_dreame_a2_bodzio_zone",
+  );
+  assert.equal(
+    resolvedOwnedMowerCompanionEntity(
+      states,
+      "lawn_mower.dreame_a2_bodzio",
+      undefined,
+      "select",
+      "zone",
+    ),
+    undefined,
+  );
+});
+
+test("mower companion resolution uses registry ownership and fails on ambiguity", () => {
+  const states = {
+    "select.renamed_zone": {
+      state: "Front lawn (#1)",
+      attributes: { friendly_name: "Garden Zone" },
+    },
+    "select.second_zone": {
+      state: "Side lawn (#2)",
+      attributes: { friendly_name: "Side Zone" },
+    },
+  };
+  const mower = {
+    platform: "dreame_lawn_mower",
+    device_id: "mower-device",
+  };
+  const owned = {
+    "lawn_mower.garden": mower,
+    "select.renamed_zone": {
+      platform: "dreame_lawn_mower",
+      device_id: "mower-device",
+      name: "Zone",
+    },
+    "select.second_zone": {
+      platform: "other",
+      device_id: "other-device",
+      name: "Zone",
+    },
+  };
+
+  assert.equal(
+    resolvedOwnedMowerCompanionEntity(
+      states,
+      "lawn_mower.garden",
+      owned,
+      "select",
+      "zone",
+    ),
+    "select.renamed_zone",
+  );
+  assert.equal(
+    resolvedOwnedMowerCompanionEntity(
+      states,
+      "lawn_mower.garden",
+      {
+        ...owned,
+        "select.second_zone": {
+          platform: "dreame_lawn_mower",
+          device_id: "mower-device",
+          translation_key: "zone",
+        },
+      },
+      "select",
+      "zone",
+    ),
+    undefined,
+  );
+});
+
+test("owned mower companion discovery skips an unowned exact-name collision", () => {
+  const states = {
+    "select.garden_zone": entity("Wrong zone"),
+    "select.area_garden_zone": entity("Front lawn (#1)"),
+  };
+  const entities = {
+    "lawn_mower.garden": {
+      platform: "dreame_lawn_mower",
+      device_id: "mower-device",
+    },
+    "select.garden_zone": {
+      platform: "other",
+      device_id: "other-device",
+      name: "Zone",
+    },
+    "select.area_garden_zone": {
+      platform: "dreame_lawn_mower",
+      device_id: "mower-device",
+      name: "Zone",
+    },
+  };
+
+  assert.equal(
+    resolvedOwnedMowerCompanionEntity(
+      states,
+      "lawn_mower.garden",
+      entities,
+      "select",
+      "zone",
+    ),
+    "select.area_garden_zone",
   );
 });
 
@@ -201,7 +385,14 @@ test("legacy Dreame entity names remain discoverable after preference renames", 
   };
 
   assert.deepEqual(
-    autoDetectedControlEntities(states, "lawn_mower.dreame_a2_bodzio"),
+    autoDetectedControlEntities(
+      states,
+      "lawn_mower.dreame_a2_bodzio",
+      dreameRegistry(
+        "lawn_mower.dreame_a2_bodzio",
+        Object.keys(states),
+      ),
+    ),
     Object.keys(states),
   );
 });

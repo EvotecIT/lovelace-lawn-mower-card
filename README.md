@@ -396,6 +396,16 @@ entities. The card calls the standard `select.select_option` and
 `number.set_value`, `switch.turn_on`/`turn_off`, and `button.press` services; it
 does not encode mower protocol requests itself.
 
+When the selected action is `Zone`, the card can replace the zone dropdown with
+a checkbox list. Home Assistant must identify the mower as a
+`dreame_lawn_mower` entity, publish `lawn_mower.start_zone_mowing`, provide a
+stable current-map identity, and expose `available_zone_ids` aligned with that
+mower's zone selector. Choose one or more zones, then press `Start`; the
+integration validates those IDs against the active map before sending the
+mower-native request. The most recently checked zone remains the preference
+scope for the controls below the selector. Other integrations and older Dreame
+versions keep the original single-zone selector and standard start action.
+
 ## Planned Run Preview
 
 When `show_advanced_details` is enabled and the mower exposes current selection

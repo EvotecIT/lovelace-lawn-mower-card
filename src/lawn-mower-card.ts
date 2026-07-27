@@ -12,6 +12,8 @@ import {
   prioritizedHeaderSummary,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
+  resolvedMowerCompanionEntity,
+  resolvedOwnedMowerCompanionEntity,
 } from "./card-logic";
 import {
   heroLayoutStyles,
@@ -35,6 +37,20 @@ import {
   renderSchedulePanel,
   schedulePanelStyles,
 } from "./schedule-panel";
+import {
+  normalizedZoneSelection,
+  reconciledZoneSelectionKeys,
+  selectedMapIsCurrent,
+  supportsDreameMultiZoneMowing,
+  zoneChoices,
+  zoneMowingServiceData,
+  zonePreferenceChoice,
+  zoneSelectionFallbackId,
+  zoneSelectionKeys,
+  zoneSelectionLabels,
+  type ZoneChoice,
+  type ZoneSelectionKeys,
+} from "./zone-selection";
 import "./point-cloud-view";
 
 type HassEntity = {
@@ -47,6 +63,16 @@ type HassEntity = {
 
 type HomeAssistant = {
   states: Record<string, HassEntity>;
+  entities?: Record<
+    string,
+    {
+      platform?: string;
+      device_id?: string;
+      name?: string;
+      translation_key?: string;
+    }
+  >;
+  services?: Record<string, Record<string, unknown>>;
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<void>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
   hassUrl(path: string): string;
@@ -144,6 +170,11 @@ type SelectedZonePreferenceDetails = {
   obstacleClasses?: string;
 };
 
+type ZoneSelectionState = {
+  keys: ZoneSelectionKeys;
+  zoneIds: number[];
+};
+
 declare global {
   interface Window {
     customCards?: Array<Record<string, unknown>>;
@@ -176,6 +207,7 @@ export class LawnMowerCard extends LitElement {
 
   @state() private _config?: LawnMowerCardConfig;
   @state() private _heroView: HeroView = "overview";
+  @state() private _zoneSelection?: ZoneSelectionState;
 
   public static styles = [css`
     :host {
@@ -477,6 +509,48 @@ export class LawnMowerCard extends LitElement {
       accent-color: var(--primary-color);
     }
 
+    .zone-option-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+      gap: 8px;
+    }
+
+    .zone-option {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      cursor: pointer;
+    }
+
+    .zone-option.selected {
+      border-color: color-mix(in srgb, var(--primary-color) 62%, var(--divider-color));
+      background: color-mix(in srgb, var(--card-background-color) 88%, var(--primary-color) 12%);
+    }
+
+    .zone-option input {
+      flex: 0 0 auto;
+      margin: 0;
+      accent-color: var(--primary-color);
+    }
+
+    .zone-option span {
+      min-width: 0;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .zone-selection-note {
+      color: var(--secondary-text-color);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
     .target-panel {
       display: grid;
       gap: 12px;
@@ -740,6 +814,9 @@ export class LawnMowerCard extends LitElement {
   public setConfig(config: LawnMowerCardConfig): void {
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
+    }
+    if (this._config?.entity !== config.entity) {
+      this._zoneSelection = undefined;
     }
     this._config = config;
   }
@@ -1026,7 +1103,7 @@ export class LawnMowerCard extends LitElement {
       cameraEntity,
       controls,
       hass: this.hass,
-      canStart: this._canStart(mower.state),
+      canStart: this._canStart(mower.state) && this._canStartSelectedTarget(),
       canPause: this._canPause(mower.state),
       canDock: this._canDock(mower.state),
       maintenancePointAvailable:
@@ -1148,6 +1225,7 @@ export class LawnMowerCard extends LitElement {
       this.hass.states,
       this._config.entity,
       configured,
+      this.hass.entities,
     );
   }
 
@@ -1158,7 +1236,58 @@ export class LawnMowerCard extends LitElement {
     if (entityId.startsWith("number.")) {
       return this._renderNumberControl(entityId);
     }
+    if (this._zoneStartContext()?.entityId === entityId) {
+      return this._renderZoneControl(entityId);
+    }
     return this._renderSelectControl(entityId);
+  }
+
+  private _renderZoneControl(entityId: string) {
+    const entity = this.hass.states[entityId];
+    const choices = this._zoneChoices(entityId);
+    if (!entity || choices.length < 2) {
+      return this._renderSelectControl(entityId);
+    }
+
+    const selectedIds = this._selectedZoneIds(entityId, choices);
+    const selected = new Set(selectedIds);
+    const unavailable = ["unavailable", "unknown"].includes(
+      String(entity.state).trim().toLowerCase(),
+    );
+    const label =
+      this._friendlyName(entity) ||
+      this._preferredEntityLabel(entityId) ||
+      this._entityName(entityId);
+    const labelId = `zone-selector-${entityId.replace(/[^a-z0-9_-]+/gi, "-")}`;
+    const count = selectedIds.length;
+
+    return html`
+      <div class="selector-card">
+        <span class="selector-label" id=${labelId}>${label}s</span>
+        <div class="zone-option-list" role="group" aria-labelledby=${labelId}>
+          ${choices.map((choice) => {
+            const checked = selected.has(choice.id);
+            return html`
+              <label class=${`zone-option ${checked ? "selected" : ""}`.trim()}>
+                <input
+                  type="checkbox"
+                  .checked=${checked}
+                  ?disabled=${unavailable}
+                  @change=${(event: Event) =>
+                    this._toggleZone(entityId, choice, event)}
+                />
+                <span>${choice.label}</span>
+              </label>
+            `;
+          })}
+        </div>
+        <span class="zone-selection-note" aria-live="polite">
+          ${count
+            ? `${count} ${count === 1 ? "zone" : "zones"} selected. Start will mow the selected ${count === 1 ? "zone" : "zones"}.`
+            : "Select at least one zone before starting."}
+        </span>
+      </div>
+    `;
   }
 
   private _renderSwitchControl(entityId: string) {
@@ -1341,7 +1470,8 @@ export class LawnMowerCard extends LitElement {
         {
           label: "Start",
           icon: "mdi:play",
-          disabled: !this._canStart(mowerState),
+          disabled:
+            !this._canStart(mowerState) || !this._canStartSelectedTarget(),
           handler: () => this._startMowing(),
         },
         {
@@ -1406,7 +1536,8 @@ export class LawnMowerCard extends LitElement {
       return {
         label: action.label || "Start",
         icon: action.icon || "mdi:play",
-        disabled: !this._canStart(mowerState),
+        disabled:
+          !this._canStart(mowerState) || !this._canStartSelectedTarget(),
         handler: () => this._startMowing(),
       };
     }
@@ -2131,6 +2262,17 @@ export class LawnMowerCard extends LitElement {
       }
     }
 
+    const zoneContext = this._zoneStartContext();
+    if (zoneContext) {
+      const selectedLabels = zoneSelectionLabels(
+        zoneContext.choices,
+        zoneContext.zoneIds,
+      );
+      target = selectedLabels.length
+        ? selectedLabels.join(", ")
+        : "No zones selected";
+    }
+
     const selectedMapPreferences = this._selectedMapPreferenceDetails(mower);
 
     if (!action && !selectedMap && !activeMap && !target && !needsMapSwitch && !selectedMapPreferences) {
@@ -2490,10 +2632,238 @@ export class LawnMowerCard extends LitElement {
       return;
     }
 
+    await this._selectOptionValue(entityId, option);
+  }
+
+  private async _selectOptionValue(entityId: string, option: string) {
     await this.hass.callService("select", "select_option", {
       entity_id: entityId,
       option,
     });
+  }
+
+  private _zoneChoices(entityId: string): ZoneChoice[] {
+    const mower = this._config
+      ? this.hass.states[this._config.entity]
+      : undefined;
+    return zoneChoices(mower, this.hass.states[entityId]);
+  }
+
+  private _zoneSelectionKeys(
+    entityId: string,
+    choices: readonly ZoneChoice[],
+  ): ZoneSelectionKeys | undefined {
+    const mower = this._config
+      ? this.hass.states[this._config.entity]
+      : undefined;
+    const mapEntityId = this._config
+      ? resolvedOwnedMowerCompanionEntity(
+          this.hass.states,
+          this._config.entity,
+          this.hass.entities,
+          "select",
+          "map",
+        )
+      : undefined;
+    return this._config
+      ? zoneSelectionKeys(
+          this._config.entity,
+          entityId,
+          mower,
+          mapEntityId ? this.hass.states[mapEntityId] : undefined,
+          choices,
+        )
+      : undefined;
+  }
+
+  private _selectedZoneIds(
+    entityId: string,
+    choices = this._zoneChoices(entityId),
+  ): number[] {
+    const keys = this._zoneSelectionKeys(entityId, choices);
+    const reconciledKeys =
+      keys && this._zoneSelection
+        ? reconciledZoneSelectionKeys(this._zoneSelection.keys, keys)
+        : undefined;
+    if (reconciledKeys && this._zoneSelection) {
+      this._zoneSelection.keys = reconciledKeys;
+    }
+    const selectedIds = reconciledKeys
+      ? this._zoneSelection?.zoneIds
+      : undefined;
+    const mower = this._config
+      ? this.hass.states[this._config.entity]
+      : undefined;
+    const selectedZoneId = mower
+      ? this._entityAttributeInteger(mower, "selected_zone_id")
+      : undefined;
+    return normalizedZoneSelection(
+      choices,
+      selectedIds,
+      zoneSelectionFallbackId(
+        choices,
+        selectedZoneId,
+        this.hass.states[entityId]?.state,
+      ),
+    );
+  }
+
+  private async _toggleZone(
+    entityId: string,
+    choice: ZoneChoice,
+    event: Event,
+  ) {
+    const target = event.currentTarget as HTMLInputElement;
+    const choices = this._zoneChoices(entityId);
+    const current = new Set(this._selectedZoneIds(entityId, choices));
+    if (target.checked) {
+      current.add(choice.id);
+    } else {
+      current.delete(choice.id);
+    }
+    const zoneIds = normalizedZoneSelection(
+      choices,
+      Array.from(current),
+    );
+    const keys = this._zoneSelectionKeys(entityId, choices);
+    if (!keys) {
+      return;
+    }
+    this._zoneSelection = {
+      keys,
+      zoneIds,
+    };
+
+    const preferenceChoice = zonePreferenceChoice(
+      choices,
+      zoneIds,
+      this.hass.states[entityId]?.state,
+      target.checked ? choice.id : undefined,
+    );
+    if (
+      preferenceChoice &&
+      this.hass.states[entityId]?.state !== preferenceChoice.label
+    ) {
+      await this._selectOptionValue(entityId, preferenceChoice.label);
+    }
+  }
+
+  private _isZoneMowingAction(requireRegistryOwnership = false): boolean {
+    if (!this._config) {
+      return false;
+    }
+    const actionEntityId = (
+      requireRegistryOwnership
+        ? resolvedOwnedMowerCompanionEntity
+        : resolvedMowerCompanionEntity
+    )(
+      this.hass.states,
+      this._config.entity,
+      this.hass.entities,
+      "select",
+      "mowing_action",
+    );
+    const actionState = actionEntityId
+      ? this.hass.states[actionEntityId]?.state.trim().toLowerCase()
+      : undefined;
+    if (actionState) {
+      return actionState.includes("zone");
+    }
+    const mower = this.hass.states[this._config.entity];
+    return (
+      this._entityAttributeString(mower, "selected_mowing_action") === "zone"
+    );
+  }
+
+  private _selectedZoneMapIsCurrent(): boolean {
+    if (!this._config) {
+      return false;
+    }
+    const mower = this.hass.states[this._config.entity];
+    const mapEntityId = resolvedOwnedMowerCompanionEntity(
+      this.hass.states,
+      this._config.entity,
+      this.hass.entities,
+      "select",
+      "map",
+    );
+    return selectedMapIsCurrent(
+      mower,
+      mapEntityId ? this.hass.states[mapEntityId] : undefined,
+    );
+  }
+
+  private _multiZoneCandidateContext():
+    | {
+        entityId: string;
+        choices: ZoneChoice[];
+      }
+    | undefined {
+    if (!this._config || !this._isZoneMowingAction(true)) {
+      return undefined;
+    }
+    if (
+      !supportsDreameMultiZoneMowing(
+        this._config.entity,
+        this.hass.entities,
+        this.hass.services,
+      )
+    ) {
+      return undefined;
+    }
+    const entityId = resolvedOwnedMowerCompanionEntity(
+      this.hass.states,
+      this._config.entity,
+      this.hass.entities,
+      "select",
+      "zone",
+    );
+    if (!entityId || !this._resolvedControlEntities().includes(entityId)) {
+      return undefined;
+    }
+    const choices = this._zoneChoices(entityId);
+    if (choices.length < 2) {
+      return undefined;
+    }
+    return {
+      entityId,
+      choices,
+    };
+  }
+
+  private _zoneStartContext():
+    | {
+        entityId: string;
+        choices: ZoneChoice[];
+        zoneIds: number[];
+      }
+    | undefined {
+    const candidate = this._multiZoneCandidateContext();
+    if (
+      !candidate ||
+      !this._selectedZoneMapIsCurrent() ||
+      !this._zoneSelectionKeys(candidate.entityId, candidate.choices)
+    ) {
+      return undefined;
+    }
+    return {
+      ...candidate,
+      zoneIds: this._selectedZoneIds(
+        candidate.entityId,
+        candidate.choices,
+      ),
+    };
+  }
+
+  private _canStartSelectedTarget(): boolean {
+    if (
+      this._multiZoneCandidateContext() &&
+      !this._selectedZoneMapIsCurrent()
+    ) {
+      return false;
+    }
+    const context = this._zoneStartContext();
+    return context ? context.zoneIds.length > 0 : true;
   }
 
   private async _setNumberValue(entityId: string, event: Event) {
@@ -2604,6 +2974,28 @@ export class LawnMowerCard extends LitElement {
   }
 
   private async _startMowing() {
+    if (
+      this._multiZoneCandidateContext() &&
+      !this._selectedZoneMapIsCurrent()
+    ) {
+      return;
+    }
+    const zoneContext = this._zoneStartContext();
+    if (zoneContext && this._config) {
+      const serviceData = zoneMowingServiceData(
+        this._config.entity,
+        zoneContext.zoneIds,
+      );
+      if (!serviceData) {
+        return;
+      }
+      await this.hass.callService(
+        "lawn_mower",
+        "start_zone_mowing",
+        serviceData,
+      );
+      return;
+    }
     await this.hass.callService("lawn_mower", "start_mowing", {
       entity_id: this._config?.entity,
     });
