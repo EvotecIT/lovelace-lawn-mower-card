@@ -215,11 +215,13 @@ export function zoneSelectionKey(
     selectorLabel ??
     mapLabelToken(attributes?.selected_map_label) ??
     mapLabelToken(attributes?.app_current_map_label);
-  const mapIdentity = [
-    mapIndex !== undefined ? `index:${mapIndex}` : undefined,
-    mapLabel ? `label:${encodeURIComponent(mapLabel)}` : undefined,
-  ].filter((value): value is string => Boolean(value));
-  if (!mapIdentity.length) {
+  let mapIdentity: string | undefined;
+  if (mapIndex !== undefined) {
+    mapIdentity = `index:${mapIndex}`;
+  } else if (mapLabel) {
+    mapIdentity = `label:${encodeURIComponent(mapLabel)}`;
+  }
+  if (!mapIdentity) {
     return undefined;
   }
 
@@ -229,7 +231,7 @@ export function zoneSelectionKey(
   return [
     mowerEntityId,
     zoneEntityId,
-    mapIdentity.join(","),
+    mapIdentity,
     choiceIdentity,
   ].join("|");
 }

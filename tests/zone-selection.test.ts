@@ -140,6 +140,16 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
     undefined,
     choices,
   );
+  const enrichedEquivalentMapLabel = zoneSelectionKey(
+    "lawn_mower.garden",
+    "select.garden_zone",
+    baseMower,
+    {
+      state: "Map 1",
+      attributes: {},
+    },
+    choices,
+  );
   const selectedLabel = zoneSelectionKey(
     "lawn_mower.garden",
     "select.garden_zone",
@@ -166,6 +176,7 @@ test("zone selection keys bind labels and a stable current-map identity", () => 
 
   assert.ok(first);
   assert.equal(first, enrichedEquivalentMap);
+  assert.equal(first, enrichedEquivalentMapLabel);
   assert.equal(selectedLabel, enrichedEquivalentLabel);
   assert.notEqual(first, renamed);
   assert.notEqual(first, secondMap);
