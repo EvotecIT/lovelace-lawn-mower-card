@@ -859,19 +859,18 @@ export class LawnMowerCard extends LitElement {
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
+    const previousLayout = this._config?.layout || "default";
+    const nextLayout = config.layout || "default";
     if (this._config?.entity !== config.entity) {
       this._actionGeneration += 1;
       this._mutationInFlight = undefined;
       this._actionFeedback = undefined;
       this._clearActionFeedbackTimer();
       this._zoneSelection = undefined;
-      this._heroView = "overview";
-      this._pointCloudMounted = false;
       this._traditionalPointCloudActive = false;
-      this._pointCloudLoadError = undefined;
-      this._cameraMounted = false;
-      this._clearCameraUnmountTimer();
-      this._resetCameraRecovery();
+      this._resetHeroMediaState();
+    } else if (previousLayout === "hero" && nextLayout !== "hero") {
+      this._resetHeroMediaState();
     }
     this._config = config;
   }
@@ -895,10 +894,11 @@ export class LawnMowerCard extends LitElement {
     if (!this.hass || !this._config) {
       return;
     }
-    this._syncCameraRecovery();
     if (this._config.layout === "hero") {
+      this._syncCameraRecovery();
       return;
     }
+    this._resetCameraRecovery();
     const mapEntity = this._config.map_entity
       ? this.hass.states[this._config.map_entity]
       : undefined;
@@ -1316,6 +1316,15 @@ export class LawnMowerCard extends LitElement {
   private _activateTraditionalPointCloud = (): void => {
     this._traditionalPointCloudActive = true;
   };
+
+  private _resetHeroMediaState(): void {
+    this._heroView = "overview";
+    this._pointCloudMounted = false;
+    this._pointCloudLoadError = undefined;
+    this._cameraMounted = false;
+    this._clearCameraUnmountTimer();
+    this._resetCameraRecovery();
+  }
 
   private _clearCameraUnmountTimer(): void {
     if (this._cameraUnmountTimer !== undefined) {

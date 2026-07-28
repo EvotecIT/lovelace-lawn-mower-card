@@ -75,6 +75,7 @@ export class LawnMowerPointCloud extends LitElement {
   private _basePointSize = 0.01;
   private _downloadGeneration = 0;
   private _loadRequested = false;
+  private _reloadOnConnect = false;
 
   public static styles = css`
     :host {
@@ -586,6 +587,7 @@ export class LawnMowerPointCloud extends LitElement {
       this._retryAttempt = 0;
       this._retryDelaySeconds = undefined;
       this._loadRequested = this.autoLoad;
+      this._reloadOnConnect = false;
       this._stopLoadingTimer();
     }
     if (changedProperties.has("active") && !this.active) {
@@ -610,6 +612,24 @@ export class LawnMowerPointCloud extends LitElement {
     }
   }
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    if (!this.hasUpdated || !this._reloadOnConnect) {
+      return;
+    }
+    this._reloadOnConnect = false;
+    queueMicrotask(() => {
+      if (
+        this.isConnected &&
+        this.active &&
+        (this.autoLoad || this._loadRequested) &&
+        this._status === "idle"
+      ) {
+        void this._load(this._problem !== undefined);
+      }
+    });
+  }
+
   public disconnectedCallback(): void {
     this._abortController?.abort();
     this._worker?.terminate();
@@ -617,6 +637,19 @@ export class LawnMowerPointCloud extends LitElement {
     this._cancelRetry();
     this._stopLoadingTimer();
     this._disposeScene();
+    this._pointCount = undefined;
+    this._renderedPointCount = undefined;
+    this._refreshing = false;
+    if (
+      this.active &&
+      (this.autoLoad || this._loadRequested) &&
+      this._problem?.retryable !== false
+    ) {
+      this._status = "idle";
+      this._reloadOnConnect = true;
+    } else if (this._status === "ready") {
+      this._status = this._problem ? "error" : "idle";
+    }
     super.disconnectedCallback();
   }
 
