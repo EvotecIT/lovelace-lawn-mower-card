@@ -3090,7 +3090,7 @@ export class LawnMowerCard extends LitElement {
         return;
       }
       await this.hass.callService(
-        "lawn_mower",
+        "dreame_lawn_mower",
         "start_zone_mowing",
         serviceData,
       );

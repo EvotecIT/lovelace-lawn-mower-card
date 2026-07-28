@@ -58,7 +58,7 @@ export function supportsDreameMultiZoneMowing(
 ): boolean {
   return (
     entities?.[mowerEntityId]?.platform === "dreame_lawn_mower" &&
-    Boolean(services?.lawn_mower?.start_zone_mowing)
+    Boolean(services?.dreame_lawn_mower?.start_zone_mowing)
   );
 }
 
