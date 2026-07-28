@@ -17,6 +17,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 import {
   normalizePointCloudApiPath,
+  pointCloudClientFailure,
+  type PointCloudClientFailureStage,
   type PointCloudProblem,
   pointCloudProblemHint,
   pointCloudProblemFromResponse,
@@ -44,6 +46,7 @@ export class LawnMowerPointCloud extends LitElement {
   @property({ attribute: false }) public hass?: PointCloudHomeAssistant;
   @property() public path?: string;
   @property({ type: Boolean }) public active = false;
+  @property({ type: Boolean }) public autoLoad = false;
   @property({ type: Boolean, reflect: true }) public compact = false;
 
   @query(".viewport") private _viewport?: HTMLDivElement;
@@ -71,6 +74,7 @@ export class LawnMowerPointCloud extends LitElement {
   private _resizeObserver?: ResizeObserver;
   private _basePointSize = 0.01;
   private _downloadGeneration = 0;
+  private _loadRequested = false;
 
   public static styles = css`
     :host {
@@ -399,7 +403,7 @@ export class LawnMowerPointCloud extends LitElement {
                       <button
                         type="button"
                         class="primary"
-                        @click=${() => this._load(false)}
+                        @click=${this._requestInitialLoad}
                       >
                         <ha-icon icon="mdi:cube-scan"></ha-icon>
                         <span>Load 3D map</span>
@@ -463,7 +467,7 @@ export class LawnMowerPointCloud extends LitElement {
                       `
                     : nothing}
                 </div>
-                ${path && this._problem?.retryable !== false
+                ${path
                   ? html`
                       <button
                         type="button"
@@ -581,15 +585,22 @@ export class LawnMowerPointCloud extends LitElement {
       this._refreshing = false;
       this._retryAttempt = 0;
       this._retryDelaySeconds = undefined;
+      this._loadRequested = this.autoLoad;
       this._stopLoadingTimer();
     }
     if (changedProperties.has("active") && !this.active) {
       this._abortController?.abort();
       this._cancelRetry();
       this._refreshing = false;
+      if (!this._points && this._status === "loading") {
+        this._status = "idle";
+        this._problem = undefined;
+        this._stopLoadingTimer();
+      }
     }
     if (
       this.active &&
+      (this.autoLoad || this._loadRequested) &&
       (this._status === "idle" ||
         (this._status === "error" && this._problem?.retryable !== false) ||
         (this._status === "ready" && this._problem?.retryable === true)) &&
@@ -648,6 +659,7 @@ export class LawnMowerPointCloud extends LitElement {
       browserTimedOut = true;
       abortController.abort();
     }, BROWSER_REQUEST_TIMEOUT_MS);
+    let failureStage: PointCloudClientFailureStage = "delivery";
 
     try {
       const signed = await Promise.race([
@@ -697,6 +709,7 @@ export class LawnMowerPointCloud extends LitElement {
         return;
       }
 
+      failureStage = "parser";
       const parsed = await this._parsePointCloud(content, abortController.signal);
       if (
         this._abortController !== abortController ||
@@ -721,6 +734,7 @@ export class LawnMowerPointCloud extends LitElement {
         this._disposeMaterial(points.material);
         return;
       }
+      failureStage = "renderer";
       this._mountPointCloud(points);
     } catch {
       if (this._abortController !== abortController) {
@@ -729,25 +743,7 @@ export class LawnMowerPointCloud extends LitElement {
       if (abortController.signal.aborted && !browserTimedOut) {
         return;
       }
-      const problem: PointCloudProblem = browserTimedOut
-        ? {
-            title: "Home Assistant did not answer in time",
-            detail:
-              "The 3D map request exceeded the 65-second browser safety limit.",
-            code: "point_cloud_browser_timeout",
-            stage: "delivery",
-            retryable: true,
-            elapsedMs: BROWSER_REQUEST_TIMEOUT_MS,
-            timeoutSeconds: BROWSER_REQUEST_TIMEOUT_MS / 1000,
-          }
-        : {
-            title: "3D map could not be loaded",
-            detail:
-              "Home Assistant could not sign, download, or parse the 3D map request.",
-            code: "point_cloud_card_failed",
-            stage: "card",
-            retryable: true,
-          };
+      const problem = pointCloudClientFailure(failureStage, browserTimedOut);
       this._handleLoadFailure(problem);
     } finally {
       window.clearTimeout(requestTimeout);
@@ -758,6 +754,17 @@ export class LawnMowerPointCloud extends LitElement {
       }
     }
   }
+
+  private _requestInitialLoad = (): void => {
+    this._loadRequested = true;
+    this.dispatchEvent(
+      new CustomEvent("point-cloud-load-requested", {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    void this._load(false);
+  };
 
   private _handleLoadFailure(problem: PointCloudProblem): void {
     this._problem = problem;

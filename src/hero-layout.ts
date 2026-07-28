@@ -94,6 +94,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
             .hass=${model.hass}
             .path=${model.pointCloudPath}
             .active=${model.activeView === "point-cloud"}
+            .autoLoad=${true}
             .compact=${true}
             aria-hidden=${model.activeView === "point-cloud" ? "false" : "true"}
           ></lawn-mower-point-cloud>

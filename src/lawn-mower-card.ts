@@ -213,6 +213,7 @@ export class LawnMowerCard extends LitElement {
   @state() private _config?: LawnMowerCardConfig;
   @state() private _heroView: HeroView = "overview";
   @state() private _pointCloudMounted = false;
+  @state() private _traditionalPointCloudActive = false;
   @state() private _pointCloudLoadError?: string;
   @state() private _cameraMounted = false;
   @state() private _cameraRenderGeneration = 0;
@@ -866,6 +867,7 @@ export class LawnMowerCard extends LitElement {
       this._zoneSelection = undefined;
       this._heroView = "overview";
       this._pointCloudMounted = false;
+      this._traditionalPointCloudActive = false;
       this._pointCloudLoadError = undefined;
       this._cameraMounted = false;
       this._clearCameraUnmountTimer();
@@ -877,10 +879,12 @@ export class LawnMowerCard extends LitElement {
   public disconnectedCallback(): void {
     this._actionGeneration += 1;
     this._mutationInFlight = undefined;
+    this._actionFeedback = undefined;
     this._clearActionFeedbackTimer();
     this._clearCameraUnmountTimer();
     this._resetCameraRecovery();
     this._cameraMounted = false;
+    this._traditionalPointCloudActive = false;
     if (this._heroView === "camera") {
       this._heroView = "overview";
     }
@@ -1023,8 +1027,10 @@ export class LawnMowerCard extends LitElement {
                           <lawn-mower-point-cloud
                             .hass=${this.hass as PointCloudHomeAssistant}
                             .path=${pointCloudPath}
-                            .active=${true}
+                            .active=${this._traditionalPointCloudActive}
                             .compact=${layout === "compact"}
+                            @point-cloud-load-requested=${this
+                              ._activateTraditionalPointCloud}
                           ></lawn-mower-point-cloud>
                         `}
                   </div>
@@ -1305,6 +1311,10 @@ export class LawnMowerCard extends LitElement {
   private _retryPointCloudModule = (): void => {
     this._pointCloudLoadError = undefined;
     this._ensurePointCloudModule();
+  };
+
+  private _activateTraditionalPointCloud = (): void => {
+    this._traditionalPointCloudActive = true;
   };
 
   private _clearCameraUnmountTimer(): void {

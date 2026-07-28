@@ -21,6 +21,11 @@ export type PointCloudProblem = {
   timeoutSeconds?: number;
 };
 
+export type PointCloudClientFailureStage =
+  | "delivery"
+  | "parser"
+  | "renderer";
+
 type PointCloudProblemResponse = Pick<Response, "status" | "headers" | "json">;
 
 const SAFE_PROBLEM_TOKEN = /^[a-z][a-z0-9_]{0,63}$/;
@@ -164,6 +169,52 @@ export function pointCloudRetryDelayMs(
   }
   const retrySeconds = [1, 2, 5, 10, 30];
   return retrySeconds[Math.min(Math.max(Math.floor(attempt), 0), 4)] * 1000;
+}
+
+export function pointCloudClientFailure(
+  stage: PointCloudClientFailureStage,
+  browserTimedOut: boolean,
+): PointCloudProblem {
+  if (browserTimedOut) {
+    return {
+      title: "Home Assistant did not answer in time",
+      detail:
+        "The 3D map request exceeded the 65-second browser safety limit.",
+      code: "point_cloud_browser_timeout",
+      stage: "delivery",
+      retryable: true,
+      elapsedMs: 65_000,
+      timeoutSeconds: 65,
+    };
+  }
+  if (stage === "parser") {
+    return {
+      title: "3D map format is not supported",
+      detail:
+        "The downloaded point cloud could not be parsed. Automatic retries are paused; use Try again after the source changes.",
+      code: "point_cloud_parse_failed",
+      stage,
+      retryable: false,
+    };
+  }
+  if (stage === "renderer") {
+    return {
+      title: "3D renderer could not start",
+      detail:
+        "The browser could not render this point cloud. Automatic retries are paused; use Try again after the browser recovers.",
+      code: "point_cloud_renderer_failed",
+      stage,
+      retryable: false,
+    };
+  }
+  return {
+    title: "3D map could not be loaded",
+    detail:
+      "Home Assistant could not sign or download the 3D map request.",
+    code: "point_cloud_card_failed",
+    stage,
+    retryable: true,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

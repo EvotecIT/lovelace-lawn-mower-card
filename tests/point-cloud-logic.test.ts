@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   normalizePointCloudApiPath,
+  pointCloudClientFailure,
   pointCloudPathFromEntity,
   pointCloudProblemHint,
   pointCloudProblemFromResponse,
@@ -193,4 +194,22 @@ test("point-cloud reconnect backoff honors server hints and stays bounded", () =
     pointCloudRetryDelayMs({ ...retryable, retryable: false }, 0),
     undefined,
   );
+});
+
+test("only delivery failures are retried automatically", () => {
+  const delivery = pointCloudClientFailure("delivery", false);
+  const parser = pointCloudClientFailure("parser", false);
+  const renderer = pointCloudClientFailure("renderer", false);
+  const timeout = pointCloudClientFailure("parser", true);
+
+  assert.equal(delivery.retryable, true);
+  assert.equal(pointCloudRetryDelayMs(delivery, 0), 1_000);
+  assert.equal(parser.retryable, false);
+  assert.equal(parser.stage, "parser");
+  assert.equal(pointCloudRetryDelayMs(parser, 0), undefined);
+  assert.equal(renderer.retryable, false);
+  assert.equal(renderer.stage, "renderer");
+  assert.equal(pointCloudRetryDelayMs(renderer, 0), undefined);
+  assert.equal(timeout.retryable, true);
+  assert.equal(timeout.stage, "delivery");
 });
