@@ -144,9 +144,26 @@ export function pointCloudProblemHint(problem: PointCloudProblem): string {
     return "Sign in with a Home Assistant administrator account, or ask an administrator to open this 3D map.";
   }
   if (problem.retryable) {
-    return "Try again after a few seconds. If this repeats, download the integration diagnostics before restarting Home Assistant.";
+    return "The card will retry automatically. If this repeats, download the integration diagnostics before restarting Home Assistant.";
   }
   return "Download the integration diagnostics and include this diagnostic reference in the issue report.";
+}
+
+export function pointCloudRetryDelayMs(
+  problem: PointCloudProblem,
+  attempt: number,
+): number | undefined {
+  if (!problem.retryable) {
+    return undefined;
+  }
+  if (
+    typeof problem.retryAfterSeconds === "number" &&
+    Number.isFinite(problem.retryAfterSeconds)
+  ) {
+    return Math.min(Math.max(problem.retryAfterSeconds, 1), 30) * 1000;
+  }
+  const retrySeconds = [1, 2, 5, 10, 30];
+  return retrySeconds[Math.min(Math.max(Math.floor(attempt), 0), 4)] * 1000;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

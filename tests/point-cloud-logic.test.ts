@@ -7,6 +7,7 @@ import {
   pointCloudProblemHint,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
+  pointCloudRetryDelayMs,
   signedPathFromResponse,
 } from "../src/point-cloud-logic.ts";
 
@@ -158,7 +159,7 @@ test("point-cloud guidance distinguishes access, retry, and report actions", () 
       detail: "Try later.",
       retryable: true,
     }),
-    /Try again/,
+    /retry automatically/,
   );
   assert.match(
     pointCloudProblemHint({
@@ -167,5 +168,29 @@ test("point-cloud guidance distinguishes access, retry, and report actions", () 
       retryable: false,
     }),
     /diagnostic reference/,
+  );
+});
+
+test("point-cloud reconnect backoff honors server hints and stays bounded", () => {
+  const retryable = {
+    title: "Temporarily unavailable",
+    detail: "The mower connection was interrupted.",
+    retryable: true,
+  };
+  assert.equal(pointCloudRetryDelayMs(retryable, 0), 1_000);
+  assert.equal(pointCloudRetryDelayMs(retryable, 1), 2_000);
+  assert.equal(pointCloudRetryDelayMs(retryable, 2), 5_000);
+  assert.equal(pointCloudRetryDelayMs(retryable, 99), 30_000);
+  assert.equal(
+    pointCloudRetryDelayMs({ ...retryable, retryAfterSeconds: 8 }, 0),
+    8_000,
+  );
+  assert.equal(
+    pointCloudRetryDelayMs({ ...retryable, retryAfterSeconds: 600 }, 0),
+    30_000,
+  );
+  assert.equal(
+    pointCloudRetryDelayMs({ ...retryable, retryable: false }, 0),
+    undefined,
   );
 });

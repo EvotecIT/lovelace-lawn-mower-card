@@ -39,6 +39,10 @@ export type HeroLayoutModel = {
   canPause: boolean;
   canDock: boolean;
   maintenancePointAvailable?: boolean;
+  actionFeedback?: {
+    message: string;
+    error: boolean;
+  };
   showDefaultActions: boolean;
   showHelperActions: boolean;
   onView(view: HeroView): void;
@@ -292,6 +296,25 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             `
           : nothing}
 
+        ${model.actionFeedback
+          ? html`
+              <div
+                class=${`hero-action-feedback${
+                  model.actionFeedback.error ? " error" : ""
+                }`}
+                role=${model.actionFeedback.error ? "alert" : "status"}
+                aria-live=${model.actionFeedback.error ? "assertive" : "polite"}
+              >
+                <ha-icon
+                  icon=${model.actionFeedback.error
+                    ? "mdi:alert-circle-outline"
+                    : "mdi:wifi-sync"}
+                ></ha-icon>
+                <span>${model.actionFeedback.message}</span>
+              </div>
+            `
+          : nothing}
+
         <div class="hero-actions" aria-label="Mower controls">
           ${model.showDefaultActions
             ? html`
@@ -362,6 +385,30 @@ export const heroLayoutStyles = css`
     background:
       radial-gradient(circle at 50% -20%, rgba(122, 164, 97, 0.18), transparent 42%),
       #0a0d0b;
+  }
+
+  .hero-action-feedback {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 14px 10px;
+    border: 1px solid color-mix(in srgb, #8bc978 42%, transparent);
+    border-radius: 10px;
+    padding: 9px 11px;
+    background: color-mix(in srgb, #17391c 88%, transparent);
+    color: #eaf8e7;
+    font-size: 0.8rem;
+  }
+
+  .hero-action-feedback.error {
+    border-color: color-mix(in srgb, #ef8178 48%, transparent);
+    background: color-mix(in srgb, #4a1816 88%, transparent);
+    color: #ffe8e5;
+  }
+
+  .hero-action-feedback ha-icon {
+    --mdc-icon-size: 18px;
+    flex: 0 0 auto;
   }
 
   .hero-stage {

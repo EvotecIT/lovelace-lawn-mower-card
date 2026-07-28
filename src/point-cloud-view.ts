@@ -21,6 +21,7 @@ import {
   pointCloudProblemHint,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
+  pointCloudRetryDelayMs,
   signedPathFromResponse,
 } from "./point-cloud-logic";
 import { POINT_CLOUD_WORKER_SOURCE } from "./point-cloud-assets";
@@ -54,9 +55,13 @@ export class LawnMowerPointCloud extends LitElement {
   @state() private _pointCount?: number;
   @state() private _renderedPointCount?: number;
   @state() private _pointSize = 1;
+  @state() private _refreshing = false;
+  @state() private _retryDelaySeconds?: number;
 
   private _abortController?: AbortController;
   private _loadingTimer?: number;
+  private _retryTimer?: number;
+  private _retryAttempt = 0;
   private _worker?: Worker;
   private _scene?: Scene;
   private _camera?: PerspectiveCamera;
@@ -194,6 +199,30 @@ export class LawnMowerPointCloud extends LitElement {
       color: rgba(255, 235, 232, 0.96);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
       font-size: 0.78rem;
+    }
+
+    .connection-notice {
+      position: absolute;
+      z-index: 3;
+      top: 12px;
+      right: 12px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid rgba(159, 202, 139, 0.4);
+      border-radius: 10px;
+      padding: 9px 12px;
+      background: rgba(21, 38, 20, 0.94);
+      color: rgba(239, 250, 235, 0.96);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      font-size: 0.78rem;
+    }
+
+    .connection-notice ha-icon {
+      --mdc-icon-size: 18px;
+      flex: 0 0 auto;
+      color: #9fca8b;
     }
 
     .download-error ha-icon {
@@ -485,6 +514,7 @@ export class LawnMowerPointCloud extends LitElement {
                   type="button"
                   aria-label="Refresh 3D map"
                   title="Refresh 3D map"
+                  ?disabled=${this._refreshing}
                   @click=${() => this._load(true)}
                 >
                   <ha-icon icon="mdi:refresh"></ha-icon>
@@ -499,6 +529,22 @@ export class LawnMowerPointCloud extends LitElement {
                   <ha-icon icon="mdi:download"></ha-icon>
                   <span>PCD</span>
                 </button>
+              </div>
+            `
+          : nothing}
+        ${this._points && (this._refreshing || this._problem)
+          ? html`
+              <div class="connection-notice" role="status" aria-live="polite">
+                <ha-icon icon="mdi:wifi-sync"></ha-icon>
+                <span>
+                  ${this._refreshing
+                    ? "Refreshing the 3D map…"
+                    : `${this._problem?.title || "3D map connection interrupted"}. ${
+                        this._retryDelaySeconds !== undefined
+                          ? `Retrying in ${this._retryDelaySeconds}s.`
+                          : "The last good 3D map remains available."
+                      }`}
+                </span>
               </div>
             `
           : nothing}
@@ -521,6 +567,7 @@ export class LawnMowerPointCloud extends LitElement {
 
   protected updated(changedProperties: PropertyValues<this>): void {
     if (changedProperties.has("path")) {
+      this._cancelRetry();
       this._downloadGeneration += 1;
       this._downloadProblem = undefined;
       this._abortController?.abort();
@@ -531,14 +578,24 @@ export class LawnMowerPointCloud extends LitElement {
       this._problem = undefined;
       this._pointCount = undefined;
       this._renderedPointCount = undefined;
+      this._refreshing = false;
+      this._retryAttempt = 0;
+      this._retryDelaySeconds = undefined;
       this._stopLoadingTimer();
+    }
+    if (changedProperties.has("active") && !this.active) {
+      this._abortController?.abort();
+      this._cancelRetry();
+      this._refreshing = false;
     }
     if (
       this.active &&
-      this._status === "idle" &&
+      (this._status === "idle" ||
+        (this._status === "error" && this._problem?.retryable !== false) ||
+        (this._status === "ready" && this._problem?.retryable === true)) &&
       (changedProperties.has("active") || changedProperties.has("path"))
     ) {
-      void this._load(false);
+      void this._load(this._problem !== undefined);
     }
   }
 
@@ -546,12 +603,14 @@ export class LawnMowerPointCloud extends LitElement {
     this._abortController?.abort();
     this._worker?.terminate();
     this._worker = undefined;
+    this._cancelRetry();
     this._stopLoadingTimer();
     this._disposeScene();
     super.disconnectedCallback();
   }
 
   private async _load(refresh: boolean): Promise<void> {
+    this._cancelRetry();
     this._downloadGeneration += 1;
     this._downloadProblem = undefined;
     const path = normalizePointCloudApiPath(this.path);
@@ -570,7 +629,10 @@ export class LawnMowerPointCloud extends LitElement {
     this._abortController?.abort();
     const abortController = new AbortController();
     this._abortController = abortController;
-    this._status = "loading";
+    this._refreshing = Boolean(this._points);
+    if (!this._points) {
+      this._status = "loading";
+    }
     this._problem = undefined;
     this._startLoadingTimer();
     let browserTimedOut = false;
@@ -624,11 +686,7 @@ export class LawnMowerPointCloud extends LitElement {
         ) {
           return;
         }
-        this._disposeScene();
-        this._pointCount = undefined;
-        this._renderedPointCount = undefined;
-        this._problem = problem;
-        this._status = "error";
+        this._handleLoadFailure(problem);
         return;
       }
       const content = await Promise.race([response.arrayBuffer(), aborted]);
@@ -650,6 +708,10 @@ export class LawnMowerPointCloud extends LitElement {
       this._pointCount = parsed.sourcePoints;
       this._renderedPointCount = parsed.renderedPoints;
       this._status = "ready";
+      this._problem = undefined;
+      this._refreshing = false;
+      this._retryAttempt = 0;
+      this._retryDelaySeconds = undefined;
       await this.updateComplete;
       if (
         this._abortController !== abortController ||
@@ -667,11 +729,7 @@ export class LawnMowerPointCloud extends LitElement {
       if (abortController.signal.aborted && !browserTimedOut) {
         return;
       }
-      this._disposeScene();
-      this._pointCount = undefined;
-      this._renderedPointCount = undefined;
-      this._status = "error";
-      this._problem = browserTimedOut
+      const problem: PointCloudProblem = browserTimedOut
         ? {
             title: "Home Assistant did not answer in time",
             detail:
@@ -690,13 +748,43 @@ export class LawnMowerPointCloud extends LitElement {
             stage: "card",
             retryable: true,
           };
+      this._handleLoadFailure(problem);
     } finally {
       window.clearTimeout(requestTimeout);
       abortController.signal.removeEventListener("abort", handleAbort);
       if (this._abortController === abortController) {
+        this._refreshing = false;
         this._stopLoadingTimer();
       }
     }
+  }
+
+  private _handleLoadFailure(problem: PointCloudProblem): void {
+    this._problem = problem;
+    this._refreshing = false;
+    this._status = this._points ? "ready" : "error";
+    const delay = pointCloudRetryDelayMs(problem, this._retryAttempt);
+    if (delay === undefined || !this.active || !this.isConnected) {
+      this._retryDelaySeconds = undefined;
+      return;
+    }
+    this._retryAttempt += 1;
+    this._retryDelaySeconds = Math.ceil(delay / 1000);
+    this._retryTimer = window.setTimeout(() => {
+      this._retryTimer = undefined;
+      this._retryDelaySeconds = undefined;
+      if (this.active && this.isConnected) {
+        void this._load(true);
+      }
+    }, delay);
+  }
+
+  private _cancelRetry(): void {
+    if (this._retryTimer !== undefined) {
+      window.clearTimeout(this._retryTimer);
+      this._retryTimer = undefined;
+    }
+    this._retryDelaySeconds = undefined;
   }
 
   private _mountPointCloud(points: Points): void {
