@@ -49,6 +49,50 @@ function binaryPointCloud(points: Array<[number, number, number, number]>): Arra
   return result.buffer;
 }
 
+function lzfLiteralEncode(content: Uint8Array): Uint8Array {
+  const encoded: number[] = [];
+  for (let offset = 0; offset < content.byteLength; offset += 32) {
+    const chunk = content.subarray(offset, Math.min(offset + 32, content.byteLength));
+    encoded.push(chunk.byteLength - 1, ...chunk);
+  }
+  return Uint8Array.from(encoded);
+}
+
+function binaryCompressedPointCloud(
+  points: Array<[number, number, number, number]>,
+): ArrayBuffer {
+  const header = new TextEncoder().encode(
+    [
+      "# .PCD v0.7",
+      "FIELDS x y z rgb",
+      "SIZE 4 4 4 4",
+      "TYPE F F F U",
+      "COUNT 1 1 1 1",
+      `WIDTH ${points.length}`,
+      "HEIGHT 1",
+      `POINTS ${points.length}`,
+      "DATA binary_compressed",
+      "",
+    ].join("\n"),
+  );
+  const fields = new Uint8Array(points.length * 16);
+  const fieldView = new DataView(fields.buffer);
+  points.forEach(([x, y, z, color], index) => {
+    fieldView.setFloat32(index * 4, x, true);
+    fieldView.setFloat32(points.length * 4 + index * 4, y, true);
+    fieldView.setFloat32(points.length * 8 + index * 4, z, true);
+    fieldView.setUint32(points.length * 12 + index * 4, color, true);
+  });
+  const compressed = lzfLiteralEncode(fields);
+  const result = new Uint8Array(header.byteLength + 8 + compressed.byteLength);
+  result.set(header);
+  const sizes = new DataView(result.buffer, header.byteLength, 8);
+  sizes.setUint32(0, compressed.byteLength, true);
+  sizes.setUint32(4, fields.byteLength, true);
+  result.set(compressed, header.byteLength + 8);
+  return result.buffer;
+}
+
 test("ASCII parsing preserves coordinates and deterministically downsamples", () => {
   const parsed = parsePointCloudBuffer(
     asciiPointCloud([
@@ -98,6 +142,22 @@ test("binary parsing reads packed colors without copying the source payload", ()
   assert.deepEqual([...parsed.colors!], [0x11, 0x22, 0x33, 0xaa, 0xbb, 0xcc]);
 });
 
+test("binary-compressed parsing preserves field-major coordinates and colors", () => {
+  const parsed = parsePointCloudBuffer(
+    binaryCompressedPointCloud([
+      [1, 2, 3, 0x112233],
+      [4, 5, 6, 0x445566],
+      [7, 8, 9, 0x778899],
+    ]),
+    2,
+  );
+
+  assert.equal(parsed.sourcePoints, 3);
+  assert.equal(parsed.renderedPoints, 2);
+  assert.deepEqual([...parsed.positions], [1, 2, 3, 7, 8, 9]);
+  assert.deepEqual([...parsed.colors!], [0x11, 0x22, 0x33, 0x77, 0x88, 0x99]);
+});
+
 test("parser rejects unsafe limits, malformed coordinates, and truncated binary", () => {
   assert.throws(
     () => parsePointCloudBuffer(asciiPointCloud(["0 1 2 0"]), 0),
@@ -112,5 +172,10 @@ test("parser rejects unsafe limits, malformed coordinates, and truncated binary"
   assert.throws(
     () => parsePointCloudBuffer(binary.slice(0, binary.byteLength - 1), 10),
     /truncated/,
+  );
+  const compressed = binaryCompressedPointCloud([[1, 2, 3, 0]]);
+  assert.throws(
+    () => parsePointCloudBuffer(compressed.slice(0, compressed.byteLength - 1), 10),
+    /truncated|invalid/,
   );
 });

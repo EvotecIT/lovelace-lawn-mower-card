@@ -778,29 +778,44 @@ export class LawnMowerPointCloud extends LitElement {
     if (!path || !this.hass) {
       return;
     }
-    const signed = await this.hass.callWS<unknown>({
-      type: "auth/sign_path",
-      path: pointCloudRequestPath(path, false),
-      expires: 60,
-    });
-    const signedPath = signedPathFromResponse(signed);
-    if (!signedPath) {
-      return;
+    try {
+      const signed = await this.hass.callWS<unknown>({
+        type: "auth/sign_path",
+        path: pointCloudRequestPath(path, false),
+        expires: 60,
+      });
+      const signedPath = signedPathFromResponse(signed);
+      if (!signedPath) {
+        throw new Error("Home Assistant returned an invalid signed path.");
+      }
+      const response = await fetch(this.hass.hassUrl(signedPath), {
+        credentials: "same-origin",
+      });
+      if (!response.ok) {
+        this._problem = await pointCloudProblemFromResponse(response);
+        this._status = "error";
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const pathSegments = this.path?.split("/") || [];
+      anchor.href = url;
+      anchor.download =
+        `dreame-map-${pathSegments[pathSegments.length - 1] || "0"}.pcd`;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      this._problem = {
+        title: "PCD download failed",
+        detail:
+          "Home Assistant could not sign or download the original point-cloud file.",
+        code: "point_cloud_download_failed",
+        stage: "download",
+        retryable: true,
+      };
+      this._status = "error";
     }
-    const response = await fetch(this.hass.hassUrl(signedPath), {
-      credentials: "same-origin",
-    });
-    if (!response.ok) {
-      return;
-    }
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    const pathSegments = this.path?.split("/") || [];
-    anchor.href = url;
-    anchor.download = `dreame-map-${pathSegments[pathSegments.length - 1] || "0"}.pcd`;
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   private async _parsePointCloud(

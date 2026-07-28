@@ -26,11 +26,12 @@ type Header = {
   types: string[];
   counts: number[];
   points: number;
-  data: "ascii" | "binary";
+  data: "ascii" | "binary" | "binary_compressed";
   payloadOffset: number;
 };
 
 const HEADER_LIMIT = 64 * 1024;
+const MAX_DECOMPRESSED_BYTES = 64 * 1024 * 1024;
 
 function parseHeader(content: Uint8Array): Header {
   const limit = Math.min(content.byteLength, HEADER_LIMIT);
@@ -88,11 +89,19 @@ function parseHeader(content: Uint8Array): Header {
     !types.every((value) => ["F", "I", "U"].includes(value)) ||
     !Number.isSafeInteger(points) ||
     points < 0 ||
-    (data !== "ascii" && data !== "binary")
+    !["ascii", "binary", "binary_compressed"].includes(data || "")
   ) {
     throw new Error("The PCD header is not supported.");
   }
-  return { fields, sizes, types, counts, points, data, payloadOffset };
+  return {
+    fields,
+    sizes,
+    types,
+    counts,
+    points,
+    data: data as Header["data"],
+    payloadOffset,
+  };
 }
 
 function scalarOffsets(header: Header): {
@@ -192,6 +201,137 @@ function parseBinary(
       const colorOffset = base + byteOffsets[colorIndex];
       const packed = view.getUint32(colorOffset, true);
       colors.set(packedColor(packed), outputOffset);
+    }
+    output += 1;
+  }
+  return {
+    positions: output === targetPoints ? positions : positions.slice(0, output * 3),
+    colors:
+      colors && output !== targetPoints ? colors.slice(0, output * 3) : colors,
+    count: output,
+  };
+}
+
+function decompressLzf(input: Uint8Array, outputLength: number): Uint8Array {
+  const output = new Uint8Array(outputLength);
+  let inputOffset = 0;
+  let outputOffset = 0;
+  while (inputOffset < input.byteLength) {
+    const control = input[inputOffset++];
+    if (control < 32) {
+      const length = control + 1;
+      if (
+        inputOffset + length > input.byteLength ||
+        outputOffset + length > outputLength
+      ) {
+        throw new Error("The compressed PCD payload is invalid.");
+      }
+      output.set(
+        input.subarray(inputOffset, inputOffset + length),
+        outputOffset,
+      );
+      inputOffset += length;
+      outputOffset += length;
+      continue;
+    }
+
+    let length = control >> 5;
+    let reference = outputOffset - ((control & 0x1f) << 8) - 1;
+    if (inputOffset >= input.byteLength) {
+      throw new Error("The compressed PCD payload is invalid.");
+    }
+    if (length === 7) {
+      length += input[inputOffset++];
+      if (inputOffset >= input.byteLength) {
+        throw new Error("The compressed PCD payload is invalid.");
+      }
+    }
+    reference -= input[inputOffset++];
+    length += 2;
+    if (
+      reference < 0 ||
+      reference >= outputOffset ||
+      outputOffset + length > outputLength
+    ) {
+      throw new Error("The compressed PCD payload is invalid.");
+    }
+    for (let index = 0; index < length; index += 1) {
+      output[outputOffset++] = output[reference++];
+    }
+  }
+  if (outputOffset !== outputLength) {
+    throw new Error("The compressed PCD payload has an invalid size.");
+  }
+  return output;
+}
+
+function parseBinaryCompressed(
+  content: ArrayBuffer,
+  header: Header,
+  step: number,
+  targetPoints: number,
+): { positions: Float32Array; colors?: Uint8Array; count: number } {
+  const { byteOffsets, byteStride } = scalarOffsets(header);
+  const expectedSize = header.points * byteStride;
+  if (
+    !Number.isSafeInteger(expectedSize) ||
+    expectedSize < 0 ||
+    expectedSize > MAX_DECOMPRESSED_BYTES ||
+    header.payloadOffset + 8 > content.byteLength
+  ) {
+    throw new Error("The compressed PCD payload size is not supported.");
+  }
+  const sizes = new DataView(content, header.payloadOffset, 8);
+  const compressedSize = sizes.getUint32(0, true);
+  const decompressedSize = sizes.getUint32(4, true);
+  const compressedOffset = header.payloadOffset + 8;
+  if (
+    decompressedSize !== expectedSize ||
+    compressedSize > content.byteLength - compressedOffset
+  ) {
+    throw new Error("The compressed PCD payload is truncated.");
+  }
+  const decompressed = decompressLzf(
+    new Uint8Array(content, compressedOffset, compressedSize),
+    decompressedSize,
+  );
+  const view = new DataView(
+    decompressed.buffer,
+    decompressed.byteOffset,
+    decompressed.byteLength,
+  );
+  const xIndex = header.fields.indexOf("x");
+  const yIndex = header.fields.indexOf("y");
+  const zIndex = header.fields.indexOf("z");
+  const colorIndex = Math.max(
+    header.fields.indexOf("rgb"),
+    header.fields.indexOf("rgba"),
+  );
+  const positions = new Float32Array(targetPoints * 3);
+  const colors = colorIndex >= 0 ? new Uint8Array(targetPoints * 3) : undefined;
+  let output = 0;
+  for (let point = 0; point < header.points; point += step) {
+    const outputOffset = output * 3;
+    for (const [axis, fieldIndex] of [xIndex, yIndex, zIndex].entries()) {
+      const fieldOffset =
+        header.points * byteOffsets[fieldIndex] +
+        point * header.sizes[fieldIndex];
+      const value = numericReader(
+        view,
+        fieldOffset,
+        header.sizes[fieldIndex],
+        header.types[fieldIndex],
+      );
+      if (!Number.isFinite(value)) {
+        throw new Error("The PCD payload contains an invalid coordinate.");
+      }
+      positions[outputOffset + axis] = value;
+    }
+    if (colors && colorIndex >= 0) {
+      const colorOffset =
+        header.points * byteOffsets[colorIndex] +
+        point * header.sizes[colorIndex];
+      colors.set(packedColor(view.getUint32(colorOffset, true)), outputOffset);
     }
     output += 1;
   }
@@ -310,7 +450,9 @@ export function parsePointCloudBuffer(
   const parsed =
     header.data === "binary"
       ? parseBinary(content, header, step, targetPoints)
-      : parseAscii(bytes, header, step, targetPoints);
+      : header.data === "binary_compressed"
+        ? parseBinaryCompressed(content, header, step, targetPoints)
+        : parseAscii(bytes, header, step, targetPoints);
   return {
     positions: parsed.positions,
     colors: parsed.colors,

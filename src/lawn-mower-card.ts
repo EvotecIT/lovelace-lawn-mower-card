@@ -840,6 +840,21 @@ export class LawnMowerCard extends LitElement {
     super.disconnectedCallback();
   }
 
+  protected updated(): void {
+    if (!this.hass || !this._config || this._config.layout === "hero") {
+      return;
+    }
+    const mapEntity = this._config.map_entity
+      ? this.hass.states[this._config.map_entity]
+      : undefined;
+    const showPointCloud =
+      this._config.show_point_cloud ??
+      Boolean(pointCloudPathFromEntity(mapEntity));
+    if (showPointCloud && !this._pointCloudLoadError) {
+      this._ensurePointCloudModule();
+    }
+  }
+
   public static async getConfigElement(): Promise<HTMLElement> {
     return document.createElement("lawn-mower-card-editor");
   }
@@ -939,11 +954,25 @@ export class LawnMowerCard extends LitElement {
             ${showPointCloud
               ? html`
                   <div class="point-cloud-panel">
-                    <lawn-mower-point-cloud
-                      .hass=${this.hass as PointCloudHomeAssistant}
-                      .path=${pointCloudPath}
-                      .compact=${layout === "compact"}
-                    ></lawn-mower-point-cloud>
+                    ${this._pointCloudLoadError
+                      ? html`
+                          <div role="alert">
+                            <p>${this._pointCloudLoadError}</p>
+                            <button
+                              type="button"
+                              @click=${this._retryPointCloudModule}
+                            >
+                              Retry 3D renderer
+                            </button>
+                          </div>
+                        `
+                      : html`
+                          <lawn-mower-point-cloud
+                            .hass=${this.hass as PointCloudHomeAssistant}
+                            .path=${pointCloudPath}
+                            .compact=${layout === "compact"}
+                          ></lawn-mower-point-cloud>
+                        `}
                   </div>
                 `
               : nothing}
@@ -1172,6 +1201,21 @@ export class LawnMowerCard extends LitElement {
       }, CAMERA_VIEW_GRACE_MS);
     }
   }
+
+  private _ensurePointCloudModule(): void {
+    if (customElements.get("lawn-mower-point-cloud")) {
+      return;
+    }
+    void loadPointCloudModule().catch(() => {
+      this._pointCloudLoadError =
+        "The 3D renderer could not be loaded. Refresh or use a current browser.";
+    });
+  }
+
+  private _retryPointCloudModule = (): void => {
+    this._pointCloudLoadError = undefined;
+    this._ensurePointCloudModule();
+  };
 
   private _clearCameraUnmountTimer(): void {
     if (this._cameraUnmountTimer !== undefined) {

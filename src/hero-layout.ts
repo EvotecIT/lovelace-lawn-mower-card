@@ -428,11 +428,15 @@ export const heroLayoutStyles = css`
     height: 100%;
     display: block;
     object-fit: cover;
-    background: #050605;
   }
 
   .hero-camera-preview {
+    background: #050605;
     filter: saturate(0.92);
+  }
+
+  .hero-camera {
+    background: transparent;
   }
 
   .hero-point-cloud {
