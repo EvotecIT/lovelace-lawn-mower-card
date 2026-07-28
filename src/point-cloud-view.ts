@@ -49,6 +49,7 @@ export class LawnMowerPointCloud extends LitElement {
 
   @state() private _status: ViewerStatus = "idle";
   @state() private _problem?: PointCloudProblem;
+  @state() private _downloadProblem?: PointCloudProblem;
   @state() private _loadingElapsedSeconds = 0;
   @state() private _pointCount?: number;
   @state() private _renderedPointCount?: number;
@@ -64,6 +65,7 @@ export class LawnMowerPointCloud extends LitElement {
   private _points?: Points;
   private _resizeObserver?: ResizeObserver;
   private _basePointSize = 0.01;
+  private _downloadGeneration = 0;
 
   public static styles = css`
     :host {
@@ -174,6 +176,30 @@ export class LawnMowerPointCloud extends LitElement {
     .problem-detail,
     .problem-hint {
       margin: 0;
+    }
+
+    .download-error {
+      position: absolute;
+      z-index: 3;
+      right: 12px;
+      bottom: 68px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(239, 154, 145, 0.4);
+      border-radius: 10px;
+      padding: 9px 12px;
+      background: rgba(54, 20, 18, 0.94);
+      color: rgba(255, 235, 232, 0.96);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      font-size: 0.78rem;
+    }
+
+    .download-error ha-icon {
+      --mdc-icon-size: 18px;
+      flex: 0 0 auto;
+      color: #ef9a91;
     }
 
     .problem-title {
@@ -476,12 +502,27 @@ export class LawnMowerPointCloud extends LitElement {
               </div>
             `
           : nothing}
+        ${this._downloadProblem
+          ? html`
+              <div class="download-error" role="alert">
+                <ha-icon icon="mdi:download-off-outline"></ha-icon>
+                <span>
+                  ${this._downloadProblem.title}: ${this._downloadProblem.detail}
+                  ${this._downloadProblem.code
+                    ? ` (${this._downloadProblem.code})`
+                    : ""}
+                </span>
+              </div>
+            `
+          : nothing}
       </div>
     `;
   }
 
   protected updated(changedProperties: PropertyValues<this>): void {
     if (changedProperties.has("path")) {
+      this._downloadGeneration += 1;
+      this._downloadProblem = undefined;
       this._abortController?.abort();
       this._worker?.terminate();
       this._worker = undefined;
@@ -511,6 +552,8 @@ export class LawnMowerPointCloud extends LitElement {
   }
 
   private async _load(refresh: boolean): Promise<void> {
+    this._downloadGeneration += 1;
+    this._downloadProblem = undefined;
     const path = normalizePointCloudApiPath(this.path);
     if (!path || !this.hass) {
       this._status = "error";
@@ -778,6 +821,11 @@ export class LawnMowerPointCloud extends LitElement {
     if (!path || !this.hass) {
       return;
     }
+    const generation = ++this._downloadGeneration;
+    this._downloadProblem = undefined;
+    const isCurrentDownload = (): boolean =>
+      generation === this._downloadGeneration &&
+      path === normalizePointCloudApiPath(this.path);
     try {
       const signed = await this.hass.callWS<unknown>({
         type: "auth/sign_path",
@@ -792,11 +840,16 @@ export class LawnMowerPointCloud extends LitElement {
         credentials: "same-origin",
       });
       if (!response.ok) {
-        this._problem = await pointCloudProblemFromResponse(response);
-        this._status = "error";
+        const problem = await pointCloudProblemFromResponse(response);
+        if (isCurrentDownload()) {
+          this._downloadProblem = problem;
+        }
         return;
       }
       const blob = await response.blob();
+      if (!isCurrentDownload()) {
+        return;
+      }
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       const pathSegments = this.path?.split("/") || [];
@@ -806,15 +859,16 @@ export class LawnMowerPointCloud extends LitElement {
       anchor.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch {
-      this._problem = {
-        title: "PCD download failed",
-        detail:
-          "Home Assistant could not sign or download the original point-cloud file.",
-        code: "point_cloud_download_failed",
-        stage: "download",
-        retryable: true,
-      };
-      this._status = "error";
+      if (isCurrentDownload()) {
+        this._downloadProblem = {
+          title: "PCD download failed",
+          detail:
+            "Home Assistant could not sign or download the original point-cloud file.",
+          code: "point_cloud_download_failed",
+          stage: "download",
+          retryable: true,
+        };
+      }
     }
   };
 

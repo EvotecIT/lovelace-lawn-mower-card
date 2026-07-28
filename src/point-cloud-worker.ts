@@ -76,7 +76,17 @@ function parseHeader(content: Uint8Array): Header {
   const sizes = (values.get("SIZE") || []).map(Number);
   const types = values.get("TYPE") || [];
   const counts = (values.get("COUNT") || fields.map(() => "1")).map(Number);
-  const points = Number(values.get("POINTS")?.[0]);
+  const explicitPoints = values.get("POINTS")?.[0];
+  const width = Number(values.get("WIDTH")?.[0]);
+  const height = Number(values.get("HEIGHT")?.[0]);
+  const dimensionsValid =
+    explicitPoints !== undefined ||
+    (Number.isSafeInteger(width) &&
+      width >= 0 &&
+      Number.isSafeInteger(height) &&
+      height >= 0);
+  const points =
+    explicitPoints !== undefined ? Number(explicitPoints) : width * height;
   const data = values.get("DATA")?.[0]?.toLowerCase();
   if (
     !fields.length ||
@@ -87,6 +97,7 @@ function parseHeader(content: Uint8Array): Header {
     !sizes.every((value) => Number.isSafeInteger(value) && value > 0) ||
     !counts.every((value) => Number.isSafeInteger(value) && value > 0) ||
     !types.every((value) => ["F", "I", "U"].includes(value)) ||
+    !dimensionsValid ||
     !Number.isSafeInteger(points) ||
     points < 0 ||
     !["ascii", "binary", "binary_compressed"].includes(data || "")
@@ -147,7 +158,20 @@ function numericReader(
 
 function packedColor(value: number): [number, number, number] {
   const packed = value >>> 0;
-  return [(packed >> 16) & 255, (packed >> 8) & 255, packed & 255];
+  return [
+    srgbByteToLinearByte((packed >> 16) & 255),
+    srgbByteToLinearByte((packed >> 8) & 255),
+    srgbByteToLinearByte(packed & 255),
+  ];
+}
+
+function srgbByteToLinearByte(value: number): number {
+  const srgb = value / 255;
+  const linear =
+    srgb <= 0.04045
+      ? srgb / 12.92
+      : Math.pow((srgb + 0.055) / 1.055, 2.4);
+  return Math.round(linear * 255);
 }
 
 function packedAsciiColor(value: number, type: string): [number, number, number] {

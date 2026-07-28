@@ -139,7 +139,7 @@ test("binary parsing reads packed colors without copying the source payload", ()
 
   assert.equal(parsed.renderedPoints, 2);
   assert.deepEqual([...parsed.positions], [1.5, 2.5, 3.5, -1, -2, -3]);
-  assert.deepEqual([...parsed.colors!], [0x11, 0x22, 0x33, 0xaa, 0xbb, 0xcc]);
+  assert.deepEqual([...parsed.colors!], [1, 4, 8, 103, 127, 154]);
 });
 
 test("binary-compressed parsing preserves field-major coordinates and colors", () => {
@@ -155,7 +155,45 @@ test("binary-compressed parsing preserves field-major coordinates and colors", (
   assert.equal(parsed.sourcePoints, 3);
   assert.equal(parsed.renderedPoints, 2);
   assert.deepEqual([...parsed.positions], [1, 2, 3, 7, 8, 9]);
-  assert.deepEqual([...parsed.colors!], [0x11, 0x22, 0x33, 0x77, 0x88, 0x99]);
+  assert.deepEqual([...parsed.colors!], [1, 4, 8, 47, 63, 81]);
+});
+
+test("parser derives organized point count from WIDTH and HEIGHT", () => {
+  const content = new TextEncoder().encode(
+    [
+      "# .PCD v0.7",
+      "FIELDS x y z",
+      "SIZE 4 4 4",
+      "TYPE F F F",
+      "COUNT 1 1 1",
+      "WIDTH 2",
+      "HEIGHT 2",
+      "DATA ascii",
+      "0 1 2",
+      "3 4 5",
+      "6 7 8",
+      "9 10 11",
+      "",
+    ].join("\n"),
+  ).buffer as ArrayBuffer;
+
+  const parsed = parsePointCloudBuffer(content, 10);
+
+  assert.equal(parsed.sourcePoints, 4);
+  assert.equal(parsed.renderedPoints, 4);
+  assert.deepEqual(
+    [...parsed.positions],
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  );
+});
+
+test("packed PCD colors are converted from sRGB into linear working values", () => {
+  const parsed = parsePointCloudBuffer(
+    asciiPointCloud(["0 1 2 8421504"]),
+    10,
+  );
+
+  assert.deepEqual([...parsed.colors!], [55, 55, 55]);
 });
 
 test("parser rejects unsafe limits, malformed coordinates, and truncated binary", () => {
