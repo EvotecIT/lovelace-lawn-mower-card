@@ -28,6 +28,7 @@ import {
 import {
   pointCloudPathFromEntity,
 } from "./point-cloud-logic";
+import { loadPointCloudModule } from "./point-cloud-loader";
 import type { PointCloudHomeAssistant } from "./point-cloud-view";
 import {
   discoverScheduleControls,
@@ -51,7 +52,7 @@ import {
   type ZoneChoice,
   type ZoneSelectionKeys,
 } from "./zone-selection";
-import "./point-cloud-view";
+const CAMERA_VIEW_GRACE_MS = 15_000;
 
 type HassEntity = {
   entity_id: string;
@@ -207,6 +208,10 @@ export class LawnMowerCard extends LitElement {
 
   @state() private _config?: LawnMowerCardConfig;
   @state() private _heroView: HeroView = "overview";
+  @state() private _pointCloudMounted = false;
+  @state() private _pointCloudLoadError?: string;
+  @state() private _cameraMounted = false;
+  private _cameraUnmountTimer?: number;
   @state() private _zoneSelection?: ZoneSelectionState;
 
   public static styles = [css`
@@ -817,8 +822,22 @@ export class LawnMowerCard extends LitElement {
     }
     if (this._config?.entity !== config.entity) {
       this._zoneSelection = undefined;
+      this._heroView = "overview";
+      this._pointCloudMounted = false;
+      this._pointCloudLoadError = undefined;
+      this._cameraMounted = false;
+      this._clearCameraUnmountTimer();
     }
     this._config = config;
+  }
+
+  public disconnectedCallback(): void {
+    this._clearCameraUnmountTimer();
+    this._cameraMounted = false;
+    if (this._heroView === "camera") {
+      this._heroView = "overview";
+    }
+    super.disconnectedCallback();
   }
 
   public static async getConfigElement(): Promise<HTMLElement> {
@@ -1100,7 +1119,13 @@ export class LawnMowerCard extends LitElement {
         ? this._renderMapStatus(configuredMapEntity, mower.state)
         : undefined,
       pointCloudPath,
+      pointCloudMounted: this._pointCloudMounted,
+      pointCloudLoadError: this._pointCloudLoadError,
       cameraEntity,
+      cameraMounted: this._cameraMounted,
+      cameraPreviewUrl: cameraEntity
+        ? cameraImageUrl(cameraEntity.entity_id, cameraEntity)
+        : undefined,
       controls,
       hass: this.hass,
       canStart: this._canStart(mower.state) && this._canStartSelectedTarget(),
@@ -1111,9 +1136,7 @@ export class LawnMowerCard extends LitElement {
         this.hass.states[maintenancePointButton.entityId]?.state !== "unavailable",
       showDefaultActions: this._config.show_default_actions ?? true,
       showHelperActions: this._config.show_helper_actions ?? true,
-      onView: (view) => {
-        this._heroView = view;
-      },
+      onView: (view) => this._selectHeroView(view),
       onStart: () => this._startMowing(),
       onPause: () => this._pauseMowing(),
       onDock: () => this._dockMower(),
@@ -1122,6 +1145,39 @@ export class LawnMowerCard extends LitElement {
         : undefined,
       onMoreInfo: () => this._showMoreInfo(),
     });
+  }
+
+  private _selectHeroView(view: HeroView): void {
+    const previous = this._heroView;
+    this._heroView = view;
+    if (view === "point-cloud") {
+      this._pointCloudMounted = true;
+      this._pointCloudLoadError = undefined;
+      void loadPointCloudModule().catch(() => {
+        this._pointCloudMounted = false;
+        this._pointCloudLoadError =
+          "The 3D renderer could not be loaded. Refresh or use a current browser.";
+      });
+    }
+    if (view === "camera") {
+      this._clearCameraUnmountTimer();
+      this._cameraMounted = true;
+    } else if (previous === "camera" && this._cameraMounted) {
+      this._clearCameraUnmountTimer();
+      this._cameraUnmountTimer = window.setTimeout(() => {
+        this._cameraUnmountTimer = undefined;
+        if (this._heroView !== "camera") {
+          this._cameraMounted = false;
+        }
+      }, CAMERA_VIEW_GRACE_MS);
+    }
+  }
+
+  private _clearCameraUnmountTimer(): void {
+    if (this._cameraUnmountTimer !== undefined) {
+      window.clearTimeout(this._cameraUnmountTimer);
+      this._cameraUnmountTimer = undefined;
+    }
   }
 
   private _buildTiles(): Array<{ label: string; value: string }> {

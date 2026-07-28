@@ -722,7 +722,54 @@
     </div>
 
     <script type="module">
-      import "../lawn-mower-card.js";
+      class DemoHaIcon extends HTMLElement {
+        connectedCallback() {
+          const icon = this.getAttribute("icon") || "";
+          const glyphs = {
+            "mdi:camera-retake-outline": "↺",
+            "mdi:refresh": "↻",
+            "mdi:download": "↓",
+          };
+          this.setAttribute("aria-hidden", "true");
+          this.textContent = glyphs[icon] || "";
+          this.style.cssText =
+            glyphs[icon]
+              ? "display:inline-grid;place-items:center;width:1em;height:1em;font:700 18px/1 system-ui"
+              : "display:none";
+        }
+      }
+      customElements.define("ha-icon", DemoHaIcon);
+
+      class DemoHaCameraStream extends HTMLElement {
+        set stateObj(value) {
+          this._stateObj = value;
+          this.render();
+        }
+
+        connectedCallback() {
+          window.__cameraStreamMounts = (window.__cameraStreamMounts || 0) + 1;
+          this.render();
+        }
+
+        disconnectedCallback() {
+          window.__cameraStreamUnmounts =
+            (window.__cameraStreamUnmounts || 0) + 1;
+        }
+
+        render() {
+          if (!this.isConnected || !this._stateObj) {
+            return;
+          }
+          const source = this._stateObj.attributes?.entity_picture || "";
+          this.innerHTML = `
+            <img src="${source}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">
+            <span style="position:absolute;right:16px;bottom:16px;padding:6px 10px;border-radius:999px;background:rgba(4,8,5,.72);color:#fff;font:600 12px/1 system-ui">Live stream</span>
+          `;
+        }
+      }
+      customElements.define("ha-camera-stream", DemoHaCameraStream);
+
+      await import("../lawn-mower-card.js");
 
       const mapImage =
         "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80";
@@ -815,7 +862,11 @@
         "camera.garden_backyard_mower_live_video": {
           entity_id: "camera.garden_backyard_mower_live_video",
           state: "idle",
-          attributes: { friendly_name: "Live Video" },
+          attributes: {
+            friendly_name: "Live Video",
+            entity_picture: mapImage,
+          },
+          last_updated: "2026-07-28T10:00:00+00:00",
         },
         "camera.backyard_mower_live_path_map": {
           entity_id: "camera.backyard_mower_live_path_map",

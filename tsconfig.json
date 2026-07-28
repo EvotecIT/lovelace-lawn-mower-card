@@ -8,9 +8,9 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true
   },
   "include": ["src/**/*.ts"]
 }
-

@@ -25,7 +25,11 @@ export type HeroLayoutModel = {
   mapUrl?: string;
   mapStatus?: TemplateResult;
   pointCloudPath?: string;
+  pointCloudMounted: boolean;
+  pointCloudLoadError?: string;
   cameraEntity?: object;
+  cameraMounted: boolean;
+  cameraPreviewUrl?: string;
   controls?: TemplateResult;
   hass: object;
   canStart: boolean;
@@ -50,65 +54,104 @@ function useBuiltInHeroArtwork(event: Event): void {
 }
 
 function renderView(model: HeroLayoutModel): TemplateResult {
-  if (model.activeView === "point-cloud") {
-    return model.pointCloudPath
-      ? html`
-          <lawn-mower-point-cloud
-            class="hero-point-cloud"
-            .hass=${model.hass}
-            .path=${model.pointCloudPath}
-            .active=${true}
-            .compact=${true}
-          ></lawn-mower-point-cloud>
-        `
-      : html`
-          <div class="hero-empty">
-            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
-            <span>No 3D point cloud is available.</span>
-          </div>
-        `;
-  }
-
-  if (model.activeView === "map") {
-    return model.mapUrl
-      ? html`<img class="hero-map" src=${model.mapUrl} alt=${`${model.title} map`} />`
-      : html`
-          <div class="hero-empty">
-            <ha-icon icon="mdi:map-outline"></ha-icon>
-            <span>No mower map is available.</span>
-          </div>
-        `;
-  }
-
-  if (model.activeView === "camera") {
-    return model.cameraEntity
-      ? html`
-          <ha-camera-stream
-            class="hero-camera"
-            .hass=${model.hass}
-            .stateObj=${model.cameraEntity}
-            .controls=${true}
-            .muted=${true}
-          ></ha-camera-stream>
-        `
-      : html`
-          <div class="hero-empty">
-            <ha-icon icon="mdi:video-off-outline"></ha-icon>
-            <span>No live-video camera is available.</span>
-          </div>
-        `;
-  }
-
   const image = normalizeHeroImage(model.heroImage) || heroArtwork;
   const position = normalizeHeroImagePosition(model.heroImagePosition);
   return html`
     <img
-      class=${`hero-art position-${position}`}
+      class=${`hero-layer hero-art position-${position}${
+        model.activeView === "overview" ? " active" : ""
+      }`}
       src=${image}
       alt=""
       aria-hidden="true"
       @error=${useBuiltInHeroArtwork}
     />
+    ${model.mapUrl
+      ? html`
+          <img
+            class=${`hero-layer hero-map${
+              model.activeView === "map" ? " active" : ""
+            }`}
+            src=${model.mapUrl}
+            alt=${`${model.title} map`}
+            aria-hidden=${model.activeView === "map" ? "false" : "true"}
+          />
+        `
+      : nothing}
+    ${model.pointCloudMounted && model.pointCloudPath
+      ? html`
+          <lawn-mower-point-cloud
+            class=${`hero-layer hero-point-cloud${
+              model.activeView === "point-cloud" ? " active" : ""
+            }`}
+            .hass=${model.hass}
+            .path=${model.pointCloudPath}
+            .active=${model.activeView === "point-cloud"}
+            .compact=${true}
+            aria-hidden=${model.activeView === "point-cloud" ? "false" : "true"}
+          ></lawn-mower-point-cloud>
+        `
+      : nothing}
+    ${model.cameraMounted && model.cameraEntity
+      ? html`
+          <div
+            class=${`hero-layer hero-camera-layer${
+              model.activeView === "camera" ? " active" : ""
+            }`}
+            aria-hidden=${model.activeView === "camera" ? "false" : "true"}
+          >
+            ${model.cameraPreviewUrl
+              ? html`
+                  <img
+                    class="hero-camera-preview"
+                    src=${model.cameraPreviewUrl}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                `
+              : nothing}
+            <ha-camera-stream
+              class="hero-camera"
+              .hass=${model.hass}
+              .stateObj=${model.cameraEntity}
+              .controls=${true}
+              .muted=${true}
+            ></ha-camera-stream>
+          </div>
+        `
+      : nothing}
+    ${model.activeView === "point-cloud" && !model.pointCloudPath
+      ? html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
+            <span>No 3D point cloud is available.</span>
+          </div>
+        `
+      : nothing}
+    ${model.activeView === "point-cloud" && model.pointCloudLoadError
+      ? html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
+            <span>${model.pointCloudLoadError}</span>
+          </div>
+        `
+      : nothing}
+    ${model.activeView === "map" && !model.mapUrl
+      ? html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:map-outline"></ha-icon>
+            <span>No mower map is available.</span>
+          </div>
+        `
+      : nothing}
+    ${model.activeView === "camera" && !model.cameraEntity
+      ? html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:video-off-outline"></ha-icon>
+            <span>No live-video camera is available.</span>
+          </div>
+        `
+      : nothing}
   `;
 }
 
@@ -175,14 +218,6 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
         <section class=${`hero-stage view-${model.activeView}`}>
           ${renderView(model)}
           ${model.activeView === "map" ? model.mapStatus : nothing}
-          ${model.activeView !== "map" && model.mapUrl
-            ? html`<img
-                class="hero-map-preload"
-                src=${model.mapUrl}
-                alt=""
-                aria-hidden="true"
-              />`
-            : nothing}
           <div class="hero-scrim" aria-hidden="true"></div>
 
           <div class="hero-heading">
@@ -327,6 +362,7 @@ export const heroLayoutStyles = css`
   .hero-art,
   .hero-map,
   .hero-point-cloud,
+  .hero-camera-layer,
   .hero-camera,
   .hero-empty {
     position: absolute;
@@ -335,12 +371,16 @@ export const heroLayoutStyles = css`
     height: 100%;
   }
 
-  .hero-map-preload {
-    position: absolute;
-    width: 1px;
-    height: 1px;
+  .hero-layer {
+    visibility: hidden;
     opacity: 0;
     pointer-events: none;
+  }
+
+  .hero-layer.active {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .hero-art {
@@ -375,10 +415,24 @@ export const heroLayoutStyles = css`
     background: #0b0f0c;
   }
 
-  .hero-camera {
+  .hero-camera-layer {
+    overflow: hidden;
+    background: #050605;
+  }
+
+  .hero-camera,
+  .hero-camera-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     display: block;
     object-fit: cover;
     background: #050605;
+  }
+
+  .hero-camera-preview {
+    filter: saturate(0.92);
   }
 
   .hero-point-cloud {
@@ -682,6 +736,14 @@ export const heroLayoutStyles = css`
   .hero-action ha-icon,
   .hero-tab ha-icon {
     --mdc-icon-size: 20px;
+  }
+
+  @media (max-height: 600px) and (min-width: 561px) {
+    .hero-stage {
+      height: min(330px, 62vh);
+      min-height: 300px;
+      aspect-ratio: auto;
+    }
   }
 
   @media (max-width: 560px) {

@@ -1,3 +1,5 @@
+import { entityIndex } from "./entity-index.ts";
+
 export type MinimalHassEntity = {
   state: string;
   attributes?: Record<string, unknown>;
@@ -141,7 +143,7 @@ function resolveMowerCompanionEntity(
     return undefined;
   }
 
-  const entityIds = Object.keys(states).sort();
+  const entityIds = entityIndex(states).ids;
   for (const suffix of suffixes) {
     const entityId = `${domain}.${objectId}_${suffix}`;
     if (states[entityId]) {
@@ -545,9 +547,9 @@ export function defaultHelperEntities(
     }
 
     const areaPrefixedSuffix = `_${objectId}_${suffix}`;
-    const matches = Object.keys(states).filter(
+    const matches = entityIndex(states).byDomain(domain).filter(
       (entityId) =>
-        entityId.startsWith(`${domain}.`) && entityId.endsWith(areaPrefixedSuffix),
+        entityId.endsWith(areaPrefixedSuffix),
     );
     return matches.length === 1 ? matches[0] : undefined;
   };
