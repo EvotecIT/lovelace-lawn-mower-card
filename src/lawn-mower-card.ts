@@ -2,7 +2,11 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import {
+  cameraCanRecoverWhileUnavailable,
   cameraImageUrl,
+  cameraReconnectDelayMs,
+  cameraRecoveryMarker,
+  cameraRecoveryVerified,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
@@ -211,7 +215,12 @@ export class LawnMowerCard extends LitElement {
   @state() private _pointCloudMounted = false;
   @state() private _pointCloudLoadError?: string;
   @state() private _cameraMounted = false;
+  @state() private _cameraRenderGeneration = 0;
+  @state() private _cameraReconnecting = false;
   private _cameraUnmountTimer?: number;
+  private _cameraReconnectTimer?: number;
+  private _cameraReconnectAttempt = 0;
+  private _lastCameraRecoveryMarker?: string;
   @state() private _zoneSelection?: ZoneSelectionState;
 
   public static styles = [css`
@@ -827,12 +836,14 @@ export class LawnMowerCard extends LitElement {
       this._pointCloudLoadError = undefined;
       this._cameraMounted = false;
       this._clearCameraUnmountTimer();
+      this._resetCameraRecovery();
     }
     this._config = config;
   }
 
   public disconnectedCallback(): void {
     this._clearCameraUnmountTimer();
+    this._resetCameraRecovery();
     this._cameraMounted = false;
     if (this._heroView === "camera") {
       this._heroView = "overview";
@@ -841,7 +852,11 @@ export class LawnMowerCard extends LitElement {
   }
 
   protected updated(): void {
-    if (!this.hass || !this._config || this._config.layout === "hero") {
+    if (!this.hass || !this._config) {
+      return;
+    }
+    this._syncCameraRecovery();
+    if (this._config.layout === "hero") {
       return;
     }
     const mapEntity = this._config.map_entity
@@ -1083,16 +1098,13 @@ export class LawnMowerCard extends LitElement {
       return nothing;
     }
 
-    const cameraEntityId =
-      this._config.camera_entity ||
-      defaultHelperEntities(this.hass.states, this._config.entity).find(
-        (helper) => helper.label === "Live Video",
-      )?.entityId;
-    const candidateCameraEntity = cameraEntityId
-      ? this.hass.states[cameraEntityId]
-      : undefined;
+    const candidateCameraEntity = this._cameraCandidate();
     const cameraEntity =
-      candidateCameraEntity && !this._isUnavailableEntity(candidateCameraEntity)
+      candidateCameraEntity &&
+      (!this._isUnavailableEntity(candidateCameraEntity) ||
+        (this._heroView === "camera" &&
+          this._cameraMounted &&
+          cameraCanRecoverWhileUnavailable(candidateCameraEntity)))
         ? candidateCameraEntity
         : undefined;
     const maintenancePointButton = defaultHelperEntities(
@@ -1152,6 +1164,10 @@ export class LawnMowerCard extends LitElement {
       pointCloudLoadError: this._pointCloudLoadError,
       cameraEntity,
       cameraMounted: this._cameraMounted,
+      cameraRenderKey: cameraEntity
+        ? `${cameraEntity.entity_id}:${this._cameraRenderGeneration}`
+        : undefined,
+      cameraReconnecting: this._cameraReconnecting,
       cameraPreviewUrl: cameraEntity
         ? cameraImageUrl(cameraEntity.entity_id, cameraEntity)
         : undefined,
@@ -1192,6 +1208,7 @@ export class LawnMowerCard extends LitElement {
       this._clearCameraUnmountTimer();
       this._cameraMounted = true;
     } else if (previous === "camera" && this._cameraMounted) {
+      this._resetCameraRecovery();
       this._clearCameraUnmountTimer();
       this._cameraUnmountTimer = window.setTimeout(() => {
         this._cameraUnmountTimer = undefined;
@@ -1222,6 +1239,74 @@ export class LawnMowerCard extends LitElement {
       window.clearTimeout(this._cameraUnmountTimer);
       this._cameraUnmountTimer = undefined;
     }
+  }
+
+  private _cameraCandidate(): HassEntity | undefined {
+    if (!this._config || !this.hass) {
+      return undefined;
+    }
+    const cameraEntityId =
+      this._config.camera_entity ||
+      defaultHelperEntities(this.hass.states, this._config.entity).find(
+        (helper) => helper.label === "Live Video",
+      )?.entityId;
+    return cameraEntityId ? this.hass.states[cameraEntityId] : undefined;
+  }
+
+  private _syncCameraRecovery(): void {
+    const camera = this._cameraCandidate();
+    if (
+      this._heroView !== "camera" ||
+      !this._cameraMounted ||
+      !camera
+    ) {
+      this._resetCameraRecovery();
+      return;
+    }
+    if (cameraRecoveryVerified(camera)) {
+      this._resetCameraRecovery();
+      return;
+    }
+    const marker = cameraRecoveryMarker(camera);
+    if (!marker) {
+      if (
+        this._cameraReconnecting ||
+        this._cameraReconnectTimer !== undefined
+      ) {
+        this._resetCameraRecovery();
+      }
+      return;
+    }
+    if (marker === this._lastCameraRecoveryMarker) {
+      return;
+    }
+    this._lastCameraRecoveryMarker = marker;
+    this._cameraReconnecting = true;
+    if (this._cameraReconnectTimer !== undefined) {
+      window.clearTimeout(this._cameraReconnectTimer);
+    }
+    const delay = cameraReconnectDelayMs(this._cameraReconnectAttempt);
+    this._cameraReconnectAttempt += 1;
+    this._cameraReconnectTimer = window.setTimeout(() => {
+      this._cameraReconnectTimer = undefined;
+      if (
+        this.isConnected &&
+        this._heroView === "camera" &&
+        this._cameraMounted
+      ) {
+        this._cameraRenderGeneration += 1;
+      }
+    }, delay);
+  }
+
+  private _resetCameraRecovery(): void {
+    if (this._cameraReconnectTimer !== undefined) {
+      window.clearTimeout(this._cameraReconnectTimer);
+      this._cameraReconnectTimer = undefined;
+    }
+    this._cameraReconnectAttempt = 0;
+    this._lastCameraRecoveryMarker = undefined;
+    this._cameraReconnecting = false;
   }
 
   private _buildTiles(): Array<{ label: string; value: string }> {

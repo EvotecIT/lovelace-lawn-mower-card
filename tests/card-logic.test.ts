@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 
 import {
   autoDetectedControlEntities,
+  cameraCanRecoverWhileUnavailable,
   cameraImageUrl,
+  cameraReconnectDelayMs,
+  cameraRecoveryMarker,
+  cameraRecoveryVerified,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
@@ -64,6 +68,49 @@ test("camera URLs use stable Home Assistant revisions instead of render time", (
     cameraImageUrl("camera.garden", entity("idle")),
     "/api/camera_proxy/camera.garden",
   );
+});
+
+test("camera recovery backoff is bounded for repeated Wi-Fi failures", () => {
+  assert.deepEqual(
+    Array.from({ length: 8 }, (_value, attempt) =>
+      cameraReconnectDelayMs(attempt),
+    ),
+    [3_000, 6_000, 12_000, 24_000, 30_000, 30_000, 30_000, 30_000],
+  );
+});
+
+test("camera recovery markers ignore safety blocks and reset on verified media", () => {
+  const reconnecting: MinimalHassEntity = {
+    state: "idle",
+    attributes: {
+      video_recovery_pending: true,
+      video_recovery_failure_count: 3,
+      last_stream_error_at: "2026-07-28T20:00:00Z",
+      xp2p_provisioning_cached: true,
+      last_stream_health: {
+        playback_session_verified: false,
+      },
+    },
+  };
+
+  assert.equal(
+    cameraRecoveryMarker(reconnecting),
+    "3:2026-07-28T20:00:00Z",
+  );
+  assert.equal(cameraRecoveryVerified(reconnecting), false);
+  assert.equal(cameraCanRecoverWhileUnavailable(reconnecting), true);
+
+  reconnecting.attributes!.video_block_reason = "The mower is docked.";
+  assert.equal(cameraRecoveryMarker(reconnecting), undefined);
+  assert.equal(cameraCanRecoverWhileUnavailable(reconnecting), false);
+
+  reconnecting.attributes = {
+    video_recovery_pending: false,
+    last_stream_health: {
+      playback_session_verified: true,
+    },
+  };
+  assert.equal(cameraRecoveryVerified(reconnecting), true);
 });
 
 test("progress fallback skips unavailable companion entities", () => {

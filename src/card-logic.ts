@@ -41,6 +41,9 @@ export type EntityRegistryEntries = Record<
   EntityRegistryEntry | undefined
 >;
 
+const CAMERA_RECONNECT_BASE_DELAY_MS = 3_000;
+const CAMERA_RECONNECT_MAX_DELAY_MS = 30_000;
+
 const PREFERENCE_CONTROL_SUFFIXES = [
   "_selected_map_preference_mode",
   "_selected_map_mowing_height",
@@ -87,6 +90,67 @@ export function cameraImageUrl(entityId: string, entity: MinimalHassEntity): str
   }
   const separator = base.includes("?") ? "&" : "?";
   return `${base}${separator}v=${encodeURIComponent(revision)}`;
+}
+
+export function cameraReconnectDelayMs(attempt: number): number {
+  const boundedAttempt = Math.max(0, Math.min(Math.floor(attempt), 4));
+  return Math.min(
+    CAMERA_RECONNECT_MAX_DELAY_MS,
+    CAMERA_RECONNECT_BASE_DELAY_MS * 2 ** boundedAttempt,
+  );
+}
+
+export function cameraRecoveryMarker(
+  entity: MinimalHassEntity,
+): string | undefined {
+  const attributes = entity.attributes;
+  if (
+    !attributes ||
+    attributes.video_recovery_pending !== true ||
+    (typeof attributes.video_block_reason === "string" &&
+      attributes.video_block_reason.trim())
+  ) {
+    return undefined;
+  }
+  const failureCount = attributes.video_recovery_failure_count;
+  const errorAt = attributes.last_stream_error_at;
+  if (
+    typeof failureCount !== "number" ||
+    !Number.isFinite(failureCount) ||
+    failureCount < 1
+  ) {
+    return undefined;
+  }
+  return `${Math.floor(failureCount)}:${
+    typeof errorAt === "string" ? errorAt : ""
+  }`;
+}
+
+export function cameraRecoveryVerified(entity: MinimalHassEntity): boolean {
+  const health = entity.attributes?.last_stream_health;
+  return Boolean(
+    entity.attributes?.video_recovery_pending !== true &&
+      health &&
+      typeof health === "object" &&
+      !Array.isArray(health) &&
+      (health as Record<string, unknown>).playback_session_verified === true,
+  );
+}
+
+export function cameraCanRecoverWhileUnavailable(
+  entity: MinimalHassEntity,
+): boolean {
+  const attributes = entity.attributes;
+  return Boolean(
+    attributes &&
+      !(
+        typeof attributes.video_block_reason === "string" &&
+        attributes.video_block_reason.trim()
+      ) &&
+      (attributes.video_recovery_pending === true ||
+        attributes.xp2p_provisioning_cached === true ||
+        attributes.lan_video_endpoint_cached === true),
+  );
 }
 
 export function firstAvailableEntity<T extends MinimalHassEntity>(

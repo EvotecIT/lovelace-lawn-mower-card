@@ -1,4 +1,5 @@
 import { css, html, nothing, type TemplateResult } from "lit";
+import { keyed } from "lit/directives/keyed.js";
 
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
 import {
@@ -29,6 +30,8 @@ export type HeroLayoutModel = {
   pointCloudLoadError?: string;
   cameraEntity?: object;
   cameraMounted: boolean;
+  cameraRenderKey?: string;
+  cameraReconnecting: boolean;
   cameraPreviewUrl?: string;
   controls?: TemplateResult;
   hass: object;
@@ -92,8 +95,10 @@ function renderView(model: HeroLayoutModel): TemplateResult {
           ></lawn-mower-point-cloud>
         `
       : nothing}
-    ${model.cameraMounted && model.cameraEntity
-      ? html`
+    ${model.cameraMounted && model.cameraEntity && model.cameraRenderKey
+      ? keyed(
+          model.cameraRenderKey,
+          html`
           <div
             class=${`hero-layer hero-camera-layer${
               model.activeView === "camera" ? " active" : ""
@@ -117,8 +122,17 @@ function renderView(model: HeroLayoutModel): TemplateResult {
               .controls=${true}
               .muted=${true}
             ></ha-camera-stream>
+            ${model.cameraReconnecting && model.activeView === "camera"
+              ? html`
+                  <div class="hero-camera-reconnecting" role="status">
+                    <ha-icon icon="mdi:wifi-sync"></ha-icon>
+                    <span>Reconnecting live video…</span>
+                  </div>
+                `
+              : nothing}
           </div>
-        `
+        `,
+        )
       : nothing}
     ${model.activeView === "point-cloud" && !model.pointCloudPath
       ? html`
@@ -437,6 +451,30 @@ export const heroLayoutStyles = css`
 
   .hero-camera {
     background: transparent;
+  }
+
+  .hero-camera-reconnecting {
+    position: absolute;
+    z-index: 3;
+    bottom: 56px;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100% - 32px);
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(15, 23, 42, 0.84);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(8px);
+    transform: translateX(-50%);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
   }
 
   .hero-point-cloud {
