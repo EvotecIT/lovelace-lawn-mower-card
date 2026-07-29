@@ -1,7 +1,8 @@
 import esbuild from "esbuild";
 import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
-import { gzipSync } from "node:zlib";
+
+import { createDeterministicGzip } from "./build-gzip.mjs";
 
 const watch = process.argv.includes("--watch");
 
@@ -50,9 +51,10 @@ const embeddedPointCloudPlugin = {
         loader: { ".jpg": "dataurl" },
         plugins: [pointCloudAssetsPlugin],
       });
-      pointCloudModuleBase64 = gzipSync(pointCloud.outputFiles[0].contents, {
-        level: 9,
-      }).toString("base64");
+      pointCloudModuleBase64 = createDeterministicGzip(
+        pointCloud.outputFiles[0].contents,
+        { level: 9 },
+      ).toString("base64");
       pointCloudWatchFiles = [
         ...new Set(
           [
