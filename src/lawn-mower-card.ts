@@ -58,6 +58,12 @@ import {
   type ZoneSelectionKeys,
 } from "./zone-selection";
 const CAMERA_VIEW_GRACE_MS = 15_000;
+const HERO_VIEW_RECONNECT_TTL_MS = 30_000;
+
+const transientHeroViews = new Map<
+  string,
+  { view: Exclude<HeroView, "overview">; storedAt: number }
+>();
 
 type HassEntity = {
   entity_id: string;
@@ -79,6 +85,11 @@ type HomeAssistant = {
     }
   >;
   services?: Record<string, Record<string, unknown>>;
+  connection?: {
+    socket?: {
+      readyState?: number;
+    };
+  };
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<void>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
   hassUrl(path: string): string;
@@ -882,6 +893,7 @@ export class LawnMowerCard extends LitElement {
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
+    const previousEntity = this._config?.entity;
     const previousLayout = this._config?.layout || "default";
     const nextLayout = config.layout || "default";
     if (this._config?.entity !== config.entity) {
@@ -895,6 +907,16 @@ export class LawnMowerCard extends LitElement {
       this._resetHeroMediaState();
     }
     this._config = config;
+    if (previousEntity === undefined) {
+      const retained = transientHeroViews.get(config.entity);
+      transientHeroViews.delete(config.entity);
+      if (
+        retained &&
+        Date.now() - retained.storedAt <= HERO_VIEW_RECONNECT_TTL_MS
+      ) {
+        this._selectHeroView(retained.view);
+      }
+    }
   }
 
   public connectedCallback(): void {
@@ -905,6 +927,26 @@ export class LawnMowerCard extends LitElement {
   }
 
   public disconnectedCallback(): void {
+    const entityId = this._config?.entity;
+    if (
+      entityId &&
+      this._heroView !== "overview" &&
+      this.hass?.connection?.socket?.readyState !== undefined &&
+      this.hass.connection.socket.readyState !== 1
+    ) {
+      const retained = {
+        view: this._heroView,
+        storedAt: Date.now(),
+      } as const;
+      transientHeroViews.set(entityId, retained);
+      window.setTimeout(() => {
+        if (transientHeroViews.get(entityId) === retained) {
+          transientHeroViews.delete(entityId);
+        }
+      }, HERO_VIEW_RECONNECT_TTL_MS);
+    } else if (entityId) {
+      transientHeroViews.delete(entityId);
+    }
     this._actionGeneration += 1;
     this._actionFeedback = undefined;
     this._clearActionFeedbackTimer();
@@ -1309,6 +1351,9 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _selectHeroView(view: HeroView): void {
+    if (this._config?.entity) {
+      transientHeroViews.delete(this._config.entity);
+    }
     const previous = this._heroView;
     this._heroView = view;
     if (view === "point-cloud") {
