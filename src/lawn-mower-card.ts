@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import {
+  cameraBlockReason,
   cameraCanRecoverWhileUnavailable,
   cameraImageUrl,
   cameraReconnectDelayMs,
@@ -1215,6 +1216,9 @@ export class LawnMowerCard extends LitElement {
       (this._heroView === "point-cloud" && !pointCloudPath)
         ? "overview"
         : this._heroView;
+    const cameraBlockedReason = cameraEntity
+      ? cameraBlockReason(cameraEntity)
+      : undefined;
 
     return renderHeroLayout({
       title,
@@ -1242,7 +1246,8 @@ export class LawnMowerCard extends LitElement {
         ? `${cameraEntity.entity_id}:${this._cameraRenderGeneration}`
         : undefined,
       cameraReconnecting: this._cameraReconnecting,
-      cameraPreviewUrl: cameraEntity
+      cameraBlockReason: cameraBlockedReason,
+      cameraPreviewUrl: cameraEntity && !cameraBlockedReason
         ? cameraImageUrl(cameraEntity.entity_id, cameraEntity)
         : undefined,
       controls,

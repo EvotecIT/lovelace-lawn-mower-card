@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   autoDetectedControlEntities,
+  cameraBlockReason,
   cameraCanRecoverWhileUnavailable,
   cameraImageUrl,
   cameraReconnectDelayMs,
@@ -68,6 +69,27 @@ test("camera URLs use stable Home Assistant revisions instead of render time", (
     cameraImageUrl("camera.garden", entity("idle")),
     "/api/camera_proxy/camera.garden",
   );
+});
+
+test("camera safety blocks are normalized and bounded for display", () => {
+  assert.equal(
+    cameraBlockReason({
+      state: "idle",
+      attributes: {
+        video_block_reason:
+          "  Camera stream handshake probe is blocked\nwhile the mower is docked.  ",
+      },
+    }),
+    "Camera stream handshake probe is blocked while the mower is docked.",
+  );
+  assert.equal(
+    cameraBlockReason({
+      state: "idle",
+      attributes: { video_block_reason: "x".repeat(400) },
+    })?.length,
+    280,
+  );
+  assert.equal(cameraBlockReason(entity("idle")), undefined);
 });
 
 test("camera recovery backoff is bounded for repeated Wi-Fi failures", () => {

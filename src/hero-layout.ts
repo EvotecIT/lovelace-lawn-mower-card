@@ -32,6 +32,7 @@ export type HeroLayoutModel = {
   cameraMounted: boolean;
   cameraRenderKey?: string;
   cameraReconnecting: boolean;
+  cameraBlockReason?: string;
   cameraPreviewUrl?: string;
   controls?: TemplateResult;
   hass: object;
@@ -100,7 +101,10 @@ function renderView(model: HeroLayoutModel): TemplateResult {
           ></lawn-mower-point-cloud>
         `
       : nothing}
-    ${model.cameraMounted && model.cameraEntity && model.cameraRenderKey
+    ${model.cameraMounted &&
+    model.cameraEntity &&
+    model.cameraRenderKey &&
+    !model.cameraBlockReason
       ? keyed(
           model.cameraRenderKey,
           html`
@@ -168,6 +172,14 @@ function renderView(model: HeroLayoutModel): TemplateResult {
           <div class="hero-empty">
             <ha-icon icon="mdi:video-off-outline"></ha-icon>
             <span>No live-video camera is available.</span>
+          </div>
+        `
+        : nothing}
+    ${model.activeView === "camera" && model.cameraBlockReason
+      ? html`
+          <div class="hero-empty" role="status">
+            <ha-icon icon="mdi:shield-lock-outline"></ha-icon>
+            <span>${model.cameraBlockReason}</span>
           </div>
         `
       : nothing}

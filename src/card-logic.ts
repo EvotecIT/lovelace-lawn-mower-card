@@ -92,6 +92,17 @@ export function cameraImageUrl(entityId: string, entity: MinimalHassEntity): str
   return `${base}${separator}v=${encodeURIComponent(revision)}`;
 }
 
+export function cameraBlockReason(
+  entity: MinimalHassEntity,
+): string | undefined {
+  const value = entity.attributes?.video_block_reason;
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized ? normalized.slice(0, 280) : undefined;
+}
+
 export function cameraReconnectDelayMs(attempt: number): number {
   const boundedAttempt = Math.max(0, Math.min(Math.floor(attempt), 4));
   return Math.min(
