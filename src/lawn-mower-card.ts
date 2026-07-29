@@ -65,6 +65,47 @@ const transientHeroViews = new Map<
   { view: Exclude<HeroView, "overview">; route: string; storedAt: number }
 >();
 
+function transientHeroViewKey(
+  entityId: string,
+  route: string,
+  cardSlot: string,
+): string {
+  return JSON.stringify([entityId, route, cardSlot]);
+}
+
+function connectedCardSlot(element: Element): string | undefined {
+  if (!element.isConnected) {
+    return undefined;
+  }
+
+  const segments: string[] = [];
+  let current: Node | null = element;
+  while (current && current !== document) {
+    const parent: ParentNode | null = current.parentNode;
+    if (
+      !parent ||
+      (!(parent instanceof Element) &&
+        !(parent instanceof Document) &&
+        !(parent instanceof ShadowRoot))
+    ) {
+      return undefined;
+    }
+
+    const currentElement = current instanceof Element ? current : undefined;
+    if (!currentElement) {
+      return undefined;
+    }
+    const index = Array.from(parent.children).indexOf(currentElement);
+    if (index < 0) {
+      return undefined;
+    }
+    segments.push(`${currentElement.localName}:${index}`);
+    current = parent instanceof ShadowRoot ? parent.host : parent;
+  }
+
+  return segments.reverse().join("/");
+}
+
 type HassEntity = {
   entity_id: string;
   state: string;
@@ -236,6 +277,7 @@ export class LawnMowerCard extends LitElement {
   private _cameraReconnectAttempt = 0;
   private _lastCameraRecoveryMarker?: string;
   private _heroViewRoute?: string;
+  private _heroViewSlot?: string;
   private _actionFeedbackTimer?: number;
   private _actionGeneration = 0;
   private _traditionalPointCloudGeneration = 0;
@@ -903,21 +945,14 @@ export class LawnMowerCard extends LitElement {
       this._resetHeroMediaState();
     }
     this._config = config;
-    if (previousEntity === undefined) {
-      const retained = transientHeroViews.get(config.entity);
-      transientHeroViews.delete(config.entity);
-      if (
-        retained &&
-        retained.route === window.location.pathname &&
-        Date.now() - retained.storedAt <= HERO_VIEW_RECONNECT_TTL_MS
-      ) {
-        this._selectHeroView(retained.view);
-      }
+    if (previousEntity === undefined && this.isConnected) {
+      this._restoreRetainedHeroView();
     }
   }
 
   public connectedCallback(): void {
     super.connectedCallback();
+    this._heroViewSlot = connectedCardSlot(this);
     if (
       this._heroView !== "overview" &&
       this._heroViewRoute !== window.location.pathname
@@ -925,6 +960,7 @@ export class LawnMowerCard extends LitElement {
       this._resetHeroMediaState();
       return;
     }
+    this._restoreRetainedHeroView();
     if (this._heroView === "camera") {
       this._cameraMounted = true;
     }
@@ -934,22 +970,34 @@ export class LawnMowerCard extends LitElement {
     const entityId = this._config?.entity;
     if (
       entityId &&
+      this._heroViewSlot &&
       this._heroView !== "overview" &&
       this._heroViewRoute === window.location.pathname
     ) {
+      const key = transientHeroViewKey(
+        entityId,
+        this._heroViewRoute,
+        this._heroViewSlot,
+      );
       const retained = {
         view: this._heroView,
         route: this._heroViewRoute,
         storedAt: Date.now(),
       } as const;
-      transientHeroViews.set(entityId, retained);
+      transientHeroViews.set(key, retained);
       window.setTimeout(() => {
-        if (transientHeroViews.get(entityId) === retained) {
-          transientHeroViews.delete(entityId);
+        if (transientHeroViews.get(key) === retained) {
+          transientHeroViews.delete(key);
         }
       }, HERO_VIEW_RECONNECT_TTL_MS);
-    } else if (entityId) {
-      transientHeroViews.delete(entityId);
+    } else if (entityId && this._heroViewSlot) {
+      transientHeroViews.delete(
+        transientHeroViewKey(
+          entityId,
+          this._heroViewRoute || window.location.pathname,
+          this._heroViewSlot,
+        ),
+      );
     }
     this._actionGeneration += 1;
     this._actionFeedback = undefined;
@@ -1073,19 +1121,26 @@ export class LawnMowerCard extends LitElement {
             ${showPointCloud
               ? html`
                   <div class="point-cloud-panel">
-                    ${this._pointCloudLoadError
+                    ${!pointCloudPath
                       ? html`
-                          <div role="alert">
-                            <p>${this._pointCloudLoadError}</p>
-                            <button
-                              type="button"
-                              @click=${this._retryPointCloudModule}
-                            >
-                              Retry 3D renderer
-                            </button>
+                          <div class="point-cloud-placeholder" role="status">
+                            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
+                            <p>3D map is not configured for this mower.</p>
                           </div>
                         `
-                      : this._traditionalPointCloudActive
+                      : this._pointCloudLoadError
+                        ? html`
+                            <div role="alert">
+                              <p>${this._pointCloudLoadError}</p>
+                              <button
+                                type="button"
+                                @click=${this._retryPointCloudModule}
+                              >
+                                Retry 3D renderer
+                              </button>
+                            </div>
+                          `
+                        : this._traditionalPointCloudActive
                         ? html`
                           <lawn-mower-point-cloud
                             .hass=${this.hass as PointCloudHomeAssistant}
@@ -1252,7 +1307,7 @@ export class LawnMowerCard extends LitElement {
       candidateCameraEntity &&
       cameraCanBePresented(
         candidateCameraEntity,
-        this._heroView === "camera" && this._cameraMounted,
+        this._cameraMounted,
       )
         ? candidateCameraEntity
         : undefined;
@@ -1355,14 +1410,17 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _selectHeroView(view: HeroView): void {
-    if (this._config?.entity) {
-      transientHeroViews.delete(this._config.entity);
-    }
+    this._deleteRetainedHeroView();
     const previous = this._heroView;
     this._heroView = view;
     this._heroViewRoute =
       view === "overview" ? undefined : window.location.pathname;
     if (view === "point-cloud") {
+      if (!this._currentPointCloudPath()) {
+        this._pointCloudMounted = false;
+        this._pointCloudLoadError = undefined;
+        return;
+      }
       this._pointCloudMounted = true;
       this._pointCloudLoadError = undefined;
       void loadPointCloudModule().catch(() => {
@@ -1392,6 +1450,10 @@ export class LawnMowerCard extends LitElement {
   };
 
   private _activateTraditionalPointCloud = (): void => {
+    if (!this._currentPointCloudPath()) {
+      this._pointCloudLoadError = undefined;
+      return;
+    }
     if (
       this._traditionalPointCloudActive ||
       this._traditionalPointCloudLoading
@@ -1430,6 +1492,7 @@ export class LawnMowerCard extends LitElement {
   };
 
   private _resetHeroMediaState(): void {
+    this._deleteRetainedHeroView();
     this._heroView = "overview";
     this._heroViewRoute = undefined;
     this._pointCloudMounted = false;
@@ -1437,6 +1500,48 @@ export class LawnMowerCard extends LitElement {
     this._cameraMounted = false;
     this._clearCameraUnmountTimer();
     this._resetCameraRecovery();
+  }
+
+  private _currentPointCloudPath(): string | undefined {
+    const mapEntity = this._config?.map_entity
+      ? this.hass?.states[this._config.map_entity]
+      : undefined;
+    return pointCloudPathFromEntity(mapEntity);
+  }
+
+  private _deleteRetainedHeroView(): void {
+    if (!this._config?.entity || !this._heroViewSlot) {
+      return;
+    }
+    transientHeroViews.delete(
+      transientHeroViewKey(
+        this._config.entity,
+        this._heroViewRoute || window.location.pathname,
+        this._heroViewSlot,
+      ),
+    );
+  }
+
+  private _restoreRetainedHeroView(): void {
+    if (!this._config?.entity || !this._heroViewSlot) {
+      return;
+    }
+    const route = window.location.pathname;
+    const key = transientHeroViewKey(
+      this._config.entity,
+      route,
+      this._heroViewSlot,
+    );
+    const retained = transientHeroViews.get(key);
+    transientHeroViews.delete(key);
+    if (
+      this._heroView === "overview" &&
+      retained &&
+      retained.route === route &&
+      Date.now() - retained.storedAt <= HERO_VIEW_RECONNECT_TTL_MS
+    ) {
+      this._selectHeroView(retained.view);
+    }
   }
 
   private _clearCameraUnmountTimer(): void {
