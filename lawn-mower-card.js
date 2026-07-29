@@ -222,6 +222,8 @@ var At=Object.defineProperty;var Nt=Object.getOwnPropertyDescriptor;var S=(r,n,e
 
   .hero-stage {
     position: relative;
+    width: 100%;
+    min-width: 0;
     min-height: 330px;
     aspect-ratio: 16 / 9.5;
     overflow: hidden;
