@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   normalizePointCloudApiPath,
+  pointCloudActivationErrorIsCurrent,
   pointCloudClientFailure,
   pointCloudPathFromEntity,
   pointCloudProblemHint,
@@ -49,6 +50,37 @@ test("refresh is added before Home Assistant signs the path", () => {
 
   assert.equal(pointCloudRequestPath(path, false), path);
   assert.equal(pointCloudRequestPath(path, true), `${path}?refresh=1`);
+});
+
+test("obsolete Hero renderer failures cannot leak into a new card state", () => {
+  const path = "/api/dreame_lawn_mower/point-cloud/entry/0";
+
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(3, 3, "hero", "point-cloud", path),
+    true,
+  );
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(2, 3, "hero", "point-cloud", path),
+    false,
+  );
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(3, 3, "default", "point-cloud", path),
+    false,
+  );
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(3, 3, "hero", "map", path),
+    false,
+  );
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(
+      3,
+      3,
+      "hero",
+      "point-cloud",
+      undefined,
+    ),
+    false,
+  );
 });
 
 test("signed path responses remain local", () => {

@@ -185,7 +185,6 @@ function packedAsciiColor(value: number, type: string): [number, number, number]
 function parseBinary(
   content: ArrayBuffer,
   header: Header,
-  step: number,
   targetPoints: number,
 ): { positions: Float32Array; colors?: Uint8Array; count: number } {
   const { byteOffsets, byteStride } = scalarOffsets(header);
@@ -206,7 +205,8 @@ function parseBinary(
     throw new Error("The binary PCD payload is truncated.");
   }
   let output = 0;
-  for (let point = 0; point < header.points; point += step) {
+  for (; output < targetPoints; output += 1) {
+    const point = sampledPointIndex(output, header.points, targetPoints);
     const base = header.payloadOffset + point * byteStride;
     const outputOffset = output * 3;
     for (const [axis, fieldIndex] of [xIndex, yIndex, zIndex].entries()) {
@@ -226,7 +226,6 @@ function parseBinary(
       const packed = view.getUint32(colorOffset, true);
       colors.set(packedColor(packed), outputOffset);
     }
-    output += 1;
   }
   return {
     positions: output === targetPoints ? positions : positions.slice(0, output * 3),
@@ -292,7 +291,6 @@ function decompressLzf(input: Uint8Array, outputLength: number): Uint8Array {
 function parseBinaryCompressed(
   content: ArrayBuffer,
   header: Header,
-  step: number,
   targetPoints: number,
 ): { positions: Float32Array; colors?: Uint8Array; count: number } {
   const { byteOffsets, byteStride } = scalarOffsets(header);
@@ -334,7 +332,8 @@ function parseBinaryCompressed(
   const positions = new Float32Array(targetPoints * 3);
   const colors = colorIndex >= 0 ? new Uint8Array(targetPoints * 3) : undefined;
   let output = 0;
-  for (let point = 0; point < header.points; point += step) {
+  for (; output < targetPoints; output += 1) {
+    const point = sampledPointIndex(output, header.points, targetPoints);
     const outputOffset = output * 3;
     for (const [axis, fieldIndex] of [xIndex, yIndex, zIndex].entries()) {
       const fieldOffset =
@@ -357,7 +356,6 @@ function parseBinaryCompressed(
         point * header.sizes[colorIndex];
       colors.set(packedColor(view.getUint32(colorOffset, true)), outputOffset);
     }
-    output += 1;
   }
   return {
     positions: output === targetPoints ? positions : positions.slice(0, output * 3),
@@ -370,7 +368,6 @@ function parseBinaryCompressed(
 function parseAscii(
   bytes: Uint8Array,
   header: Header,
-  step: number,
   targetPoints: number,
 ): { positions: Float32Array; colors?: Uint8Array; count: number } {
   const { scalarIndices } = scalarOffsets(header);
@@ -401,7 +398,10 @@ function parseAscii(
     if (!line) {
       continue;
     }
-    if (sourcePoint % step === 0) {
+    if (
+      output < targetPoints &&
+      sourcePoint === sampledPointIndex(output, header.points, targetPoints)
+    ) {
       const values = line.split(/\s+/).map(Number);
       if (
         values.length < requiredScalars ||
@@ -434,6 +434,22 @@ function parseAscii(
       colors && output !== targetPoints ? colors.slice(0, output * 3) : colors,
     count: output,
   };
+}
+
+function sampledPointIndex(
+  outputIndex: number,
+  sourcePoints: number,
+  targetPoints: number,
+): number {
+  if (targetPoints >= sourcePoints) {
+    return outputIndex;
+  }
+  if (targetPoints === 1) {
+    return 0;
+  }
+  return Math.round(
+    outputIndex * ((sourcePoints - 1) / (targetPoints - 1)),
+  );
 }
 
 export function parsePointCloudBuffer(
@@ -469,14 +485,13 @@ export function parsePointCloudBuffer(
   if (colorIndex >= 0 && header.sizes[colorIndex] !== 4) {
     throw new Error("The packed PCD color encoding is not supported.");
   }
-  const step = Math.max(1, Math.ceil(header.points / maxPoints));
-  const targetPoints = Math.ceil(header.points / step);
+  const targetPoints = Math.min(header.points, maxPoints);
   const parsed =
     header.data === "binary"
-      ? parseBinary(content, header, step, targetPoints)
+      ? parseBinary(content, header, targetPoints)
       : header.data === "binary_compressed"
-        ? parseBinaryCompressed(content, header, step, targetPoints)
-        : parseAscii(bytes, header, step, targetPoints);
+        ? parseBinaryCompressed(content, header, targetPoints)
+        : parseAscii(bytes, header, targetPoints);
   return {
     positions: parsed.positions,
     colors: parsed.colors,

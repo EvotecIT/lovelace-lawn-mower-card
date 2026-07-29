@@ -31,6 +31,7 @@ import {
   type HeroImagePosition,
 } from "./hero-image";
 import {
+  pointCloudActivationErrorIsCurrent,
   pointCloudPathFromEntity,
 } from "./point-cloud-logic";
 import { loadPointCloudModule } from "./point-cloud-loader";
@@ -280,6 +281,7 @@ export class LawnMowerCard extends LitElement {
   private _heroViewSlot?: string;
   private _actionFeedbackTimer?: number;
   private _actionGeneration = 0;
+  private _heroPointCloudGeneration = 0;
   private _traditionalPointCloudGeneration = 0;
   @state() private _zoneSelection?: ZoneSelectionState;
 
@@ -1412,6 +1414,7 @@ export class LawnMowerCard extends LitElement {
   private _selectHeroView(view: HeroView): void {
     this._deleteRetainedHeroView();
     const previous = this._heroView;
+    const pointCloudGeneration = ++this._heroPointCloudGeneration;
     this._heroView = view;
     this._heroViewRoute =
       view === "overview" ? undefined : window.location.pathname;
@@ -1424,6 +1427,17 @@ export class LawnMowerCard extends LitElement {
       this._pointCloudMounted = true;
       this._pointCloudLoadError = undefined;
       void loadPointCloudModule().catch(() => {
+        if (
+          !pointCloudActivationErrorIsCurrent(
+            pointCloudGeneration,
+            this._heroPointCloudGeneration,
+            this._config?.layout,
+            this._heroView,
+            this._currentPointCloudPath(),
+          )
+        ) {
+          return;
+        }
         this._pointCloudMounted = false;
         this._pointCloudLoadError =
           "The 3D renderer could not be loaded. Refresh or use a current browser.";
@@ -1493,6 +1507,7 @@ export class LawnMowerCard extends LitElement {
 
   private _resetHeroMediaState(): void {
     this._deleteRetainedHeroView();
+    this._heroPointCloudGeneration += 1;
     this._heroView = "overview";
     this._heroViewRoute = undefined;
     this._pointCloudMounted = false;

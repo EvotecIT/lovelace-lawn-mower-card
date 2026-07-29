@@ -106,8 +106,28 @@ test("ASCII parsing preserves coordinates and deterministically downsamples", ()
 
   assert.equal(parsed.sourcePoints, 4);
   assert.equal(parsed.renderedPoints, 2);
-  assert.deepEqual([...parsed.positions], [0, 1, 2, 6, 7, 8]);
-  assert.deepEqual([...parsed.colors!], [255, 0, 0, 0, 0, 255]);
+  assert.deepEqual([...parsed.positions], [0, 1, 2, 9, 10, 11]);
+  assert.deepEqual([...parsed.colors!], [255, 0, 0, 255, 255, 255]);
+});
+
+test("downsampling fills the point budget with evenly distributed samples", () => {
+  const parsed = parsePointCloudBuffer(
+    asciiPointCloud(
+      Array.from({ length: 11 }, (_value, index) =>
+        `${index} ${index + 1} ${index + 2} 0`,
+      ),
+    ),
+    10,
+  );
+
+  assert.equal(parsed.sourcePoints, 11);
+  assert.equal(parsed.renderedPoints, 10);
+  assert.deepEqual(
+    Array.from({ length: parsed.renderedPoints }, (_value, index) =>
+      parsed.positions[index * 3],
+    ),
+    [0, 1, 2, 3, 4, 6, 7, 8, 9, 10],
+  );
 });
 
 test("ASCII parsing skips blank rows without consuming declared points", () => {

@@ -71,6 +71,21 @@ export function pointCloudRequestPath(
   return refresh ? `${path}?refresh=1` : path;
 }
 
+export function pointCloudActivationErrorIsCurrent(
+  requestGeneration: number,
+  currentGeneration: number,
+  layout: string | undefined,
+  view: string,
+  path: string | undefined,
+): boolean {
+  return (
+    requestGeneration === currentGeneration &&
+    layout === "hero" &&
+    view === "point-cloud" &&
+    path !== undefined
+  );
+}
+
 export function signedPathFromResponse(
   response: unknown,
 ): string | undefined {
