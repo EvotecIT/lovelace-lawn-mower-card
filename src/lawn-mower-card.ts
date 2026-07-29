@@ -897,6 +897,13 @@ export class LawnMowerCard extends LitElement {
     this._config = config;
   }
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    if (this._heroView === "camera") {
+      this._cameraMounted = true;
+    }
+  }
+
   public disconnectedCallback(): void {
     this._actionGeneration += 1;
     this._actionFeedback = undefined;
@@ -905,9 +912,6 @@ export class LawnMowerCard extends LitElement {
     this._resetCameraRecovery();
     this._cameraMounted = false;
     this._resetTraditionalPointCloudState();
-    if (this._heroView === "camera") {
-      this._heroView = "overview";
-    }
     super.disconnectedCallback();
   }
 
