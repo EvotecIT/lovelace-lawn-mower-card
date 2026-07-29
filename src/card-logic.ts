@@ -164,6 +164,19 @@ export function cameraCanRecoverWhileUnavailable(
   );
 }
 
+export function cameraCanBePresented(
+  entity: MinimalHassEntity,
+  recoveryPlayerMounted: boolean,
+): boolean {
+  const state = entity.state.trim().toLowerCase();
+  return Boolean(
+    cameraBlockReason(entity) ||
+      !["unknown", "unavailable", ""].includes(state) ||
+      (recoveryPlayerMounted &&
+        cameraCanRecoverWhileUnavailable(entity)),
+  );
+}
+
 export function firstAvailableEntity<T extends MinimalHassEntity>(
   entities: readonly (T | undefined)[],
 ): T | undefined {

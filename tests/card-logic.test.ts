@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   autoDetectedControlEntities,
   cameraBlockReason,
+  cameraCanBePresented,
   cameraCanRecoverWhileUnavailable,
   cameraImageUrl,
   cameraReconnectDelayMs,
@@ -133,6 +134,26 @@ test("camera recovery markers ignore safety blocks and reset on verified media",
     },
   };
   assert.equal(cameraRecoveryVerified(reconnecting), true);
+});
+
+test("unavailable safety-blocked cameras remain presentable without recovery", () => {
+  const blocked: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_block_reason: "The mower is docked.",
+    },
+  };
+  const reconnecting: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_recovery_pending: true,
+      video_recovery_failure_count: 1,
+    },
+  };
+
+  assert.equal(cameraCanBePresented(blocked, false), true);
+  assert.equal(cameraCanBePresented(reconnecting, false), false);
+  assert.equal(cameraCanBePresented(reconnecting, true), true);
 });
 
 test("progress fallback skips unavailable companion entities", () => {

@@ -32,3 +32,14 @@ test("a replacement Home Assistant state snapshot receives a new index", () => {
   assert.notEqual(second, first);
   assert.deepEqual(second.byDomain("sensor"), ["sensor.two"]);
 });
+
+test("cached identifiers resolve replacement entity values from the live container", () => {
+  const states = {
+    "switch.mower_schedule": { state: "off" },
+  };
+  const index = entityIndex(states);
+
+  states["switch.mower_schedule"] = { state: "on" };
+
+  assert.equal(index.entries[0][1].state, "on");
+});

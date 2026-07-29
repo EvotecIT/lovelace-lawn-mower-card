@@ -3,7 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 
 import {
   cameraBlockReason,
-  cameraCanRecoverWhileUnavailable,
+  cameraCanBePresented,
   cameraImageUrl,
   cameraReconnectDelayMs,
   cameraRecoveryMarker,
@@ -215,6 +215,7 @@ export class LawnMowerCard extends LitElement {
   @state() private _heroView: HeroView = "overview";
   @state() private _pointCloudMounted = false;
   @state() private _traditionalPointCloudActive = false;
+  @state() private _traditionalPointCloudLoading = false;
   @state() private _pointCloudLoadError?: string;
   @state() private _cameraMounted = false;
   @state() private _cameraRenderGeneration = 0;
@@ -230,6 +231,7 @@ export class LawnMowerCard extends LitElement {
   private _lastCameraRecoveryMarker?: string;
   private _actionFeedbackTimer?: number;
   private _actionGeneration = 0;
+  private _traditionalPointCloudGeneration = 0;
   @state() private _zoneSelection?: ZoneSelectionState;
 
   public static styles = [css`
@@ -420,6 +422,26 @@ export class LawnMowerCard extends LitElement {
 
     .layout-compact .point-cloud-panel {
       min-height: 250px;
+    }
+
+    .point-cloud-placeholder {
+      min-height: inherit;
+      display: grid;
+      place-content: center;
+      justify-items: center;
+      gap: 12px;
+      padding: 24px;
+      color: rgba(247, 250, 247, 0.76);
+      text-align: center;
+    }
+
+    .point-cloud-placeholder ha-icon {
+      --mdc-icon-size: 36px;
+      color: #9fca8b;
+    }
+
+    .point-cloud-placeholder p {
+      margin: 0;
     }
 
     .selectors {
@@ -864,11 +886,10 @@ export class LawnMowerCard extends LitElement {
     const nextLayout = config.layout || "default";
     if (this._config?.entity !== config.entity) {
       this._actionGeneration += 1;
-      this._mutationInFlight = undefined;
       this._actionFeedback = undefined;
       this._clearActionFeedbackTimer();
       this._zoneSelection = undefined;
-      this._traditionalPointCloudActive = false;
+      this._resetTraditionalPointCloudState();
       this._resetHeroMediaState();
     } else if (previousLayout === "hero" && nextLayout !== "hero") {
       this._resetHeroMediaState();
@@ -878,13 +899,12 @@ export class LawnMowerCard extends LitElement {
 
   public disconnectedCallback(): void {
     this._actionGeneration += 1;
-    this._mutationInFlight = undefined;
     this._actionFeedback = undefined;
     this._clearActionFeedbackTimer();
     this._clearCameraUnmountTimer();
     this._resetCameraRecovery();
     this._cameraMounted = false;
-    this._traditionalPointCloudActive = false;
+    this._resetTraditionalPointCloudState();
     if (this._heroView === "camera") {
       this._heroView = "overview";
     }
@@ -900,15 +920,6 @@ export class LawnMowerCard extends LitElement {
       return;
     }
     this._resetCameraRecovery();
-    const mapEntity = this._config.map_entity
-      ? this.hass.states[this._config.map_entity]
-      : undefined;
-    const showPointCloud =
-      this._config.show_point_cloud ??
-      Boolean(pointCloudPathFromEntity(mapEntity));
-    if (showPointCloud && !this._pointCloudLoadError) {
-      this._ensurePointCloudModule();
-    }
   }
 
   public static async getConfigElement(): Promise<HTMLElement> {
@@ -1024,16 +1035,33 @@ export class LawnMowerCard extends LitElement {
                             </button>
                           </div>
                         `
-                      : html`
+                      : this._traditionalPointCloudActive
+                        ? html`
                           <lawn-mower-point-cloud
                             .hass=${this.hass as PointCloudHomeAssistant}
                             .path=${pointCloudPath}
-                            .active=${this._traditionalPointCloudActive}
+                            .active=${true}
+                            .autoLoad=${true}
                             .compact=${layout === "compact"}
-                            @point-cloud-load-requested=${this
-                              ._activateTraditionalPointCloud}
                           ></lawn-mower-point-cloud>
-                        `}
+                        `
+                        : html`
+                            <div class="point-cloud-placeholder">
+                              <ha-icon icon="mdi:cube-scan"></ha-icon>
+                              <p>
+                                Load the interactive 3D map when you need it.
+                              </p>
+                              <button
+                                type="button"
+                                ?disabled=${this._traditionalPointCloudLoading}
+                                @click=${this._activateTraditionalPointCloud}
+                              >
+                                ${this._traditionalPointCloudLoading
+                                  ? "Loading 3D renderer…"
+                                  : "Load 3D map"}
+                              </button>
+                            </div>
+                          `}
                   </div>
                 `
               : nothing}
@@ -1172,10 +1200,10 @@ export class LawnMowerCard extends LitElement {
     const candidateCameraEntity = this._cameraCandidate();
     const cameraEntity =
       candidateCameraEntity &&
-      (!this._isUnavailableEntity(candidateCameraEntity) ||
-        (this._heroView === "camera" &&
-          this._cameraMounted &&
-          cameraCanRecoverWhileUnavailable(candidateCameraEntity)))
+      cameraCanBePresented(
+        candidateCameraEntity,
+        this._heroView === "camera" && this._cameraMounted,
+      )
         ? candidateCameraEntity
         : undefined;
     const maintenancePointButton = defaultHelperEntities(
@@ -1303,23 +1331,47 @@ export class LawnMowerCard extends LitElement {
     }
   }
 
-  private _ensurePointCloudModule(): void {
-    if (customElements.get("lawn-mower-point-cloud")) {
-      return;
-    }
-    void loadPointCloudModule().catch(() => {
-      this._pointCloudLoadError =
-        "The 3D renderer could not be loaded. Refresh or use a current browser.";
-    });
-  }
-
   private _retryPointCloudModule = (): void => {
     this._pointCloudLoadError = undefined;
-    this._ensurePointCloudModule();
+    this._activateTraditionalPointCloud();
   };
 
   private _activateTraditionalPointCloud = (): void => {
-    this._traditionalPointCloudActive = true;
+    if (
+      this._traditionalPointCloudActive ||
+      this._traditionalPointCloudLoading
+    ) {
+      return;
+    }
+    const generation = ++this._traditionalPointCloudGeneration;
+    this._pointCloudLoadError = undefined;
+    this._traditionalPointCloudLoading = true;
+    void loadPointCloudModule()
+      .then(() => {
+        if (
+          generation === this._traditionalPointCloudGeneration &&
+          this.isConnected
+        ) {
+          this._traditionalPointCloudActive = true;
+        }
+      })
+      .catch(() => {
+        if (generation === this._traditionalPointCloudGeneration) {
+          this._pointCloudLoadError =
+            "The 3D renderer could not be loaded. Refresh or use a current browser.";
+        }
+      })
+      .finally(() => {
+        if (generation === this._traditionalPointCloudGeneration) {
+          this._traditionalPointCloudLoading = false;
+        }
+      });
+  };
+
+  private _resetTraditionalPointCloudState(): void {
+    this._traditionalPointCloudGeneration += 1;
+    this._traditionalPointCloudActive = false;
+    this._traditionalPointCloudLoading = false;
   };
 
   private _resetHeroMediaState(): void {
@@ -2953,7 +3005,7 @@ export class LawnMowerCard extends LitElement {
         error: true,
       };
     } finally {
-      if (generation === this._actionGeneration) {
+      if (this._mutationInFlight === key) {
         this._mutationInFlight = undefined;
       }
     }

@@ -19,9 +19,6 @@ export function entityIndex<T extends IndexedEntity>(
     return existing as EntityIndex<T>;
   }
   const ids = Object.keys(states).sort();
-  const entries = ids.map(
-    (entityId) => [entityId, states[entityId]] as const,
-  );
   const domains = new Map<string, string[]>();
   for (const entityId of ids) {
     const separator = entityId.indexOf(".");
@@ -35,7 +32,11 @@ export function entityIndex<T extends IndexedEntity>(
   }
   const index: EntityIndex<T> = {
     ids,
-    entries,
+    get entries() {
+      return ids.map(
+        (entityId) => [entityId, states[entityId]] as const,
+      );
+    },
     byDomain: (domain) => domains.get(domain) || [],
   };
   indexes.set(states, index as EntityIndex<IndexedEntity>);
