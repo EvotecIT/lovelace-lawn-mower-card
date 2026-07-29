@@ -608,7 +608,7 @@ export class LawnMowerPointCloud extends LitElement {
         (this._status === "ready" && this._problem?.retryable === true)) &&
       (changedProperties.has("active") || changedProperties.has("path"))
     ) {
-      void this._load(this._problem !== undefined);
+      void this._load(false);
     }
   }
 
@@ -625,7 +625,10 @@ export class LawnMowerPointCloud extends LitElement {
         (this.autoLoad || this._loadRequested) &&
         this._status === "idle"
       ) {
-        void this._load(this._problem !== undefined);
+        // Reconnection should reuse a completed or stored point cloud. A
+        // transient browser/Wi-Fi interruption must not force another slow
+        // mower-side generation; only the explicit Refresh action does that.
+        void this._load(false);
       }
     });
   }
@@ -814,7 +817,7 @@ export class LawnMowerPointCloud extends LitElement {
       this._retryTimer = undefined;
       this._retryDelaySeconds = undefined;
       if (this.active && this.isConnected) {
-        void this._load(true);
+        void this._load(false);
       }
     }, delay);
   }
