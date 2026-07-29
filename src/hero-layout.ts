@@ -728,6 +728,12 @@ export const heroLayoutStyles = css`
   }
 
   .hero-selectors {
+    --card-background-color: #151b16;
+    --primary-text-color: #f7faf7;
+    --secondary-text-color: rgba(232, 240, 228, 0.68);
+    --divider-color: rgba(255, 255, 255, 0.12);
+    --primary-color: #9fca8b;
+    color-scheme: dark;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 8px;
