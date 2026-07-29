@@ -59,6 +59,7 @@ export class LawnMowerPointCloud extends LitElement {
   @state() private _renderedPointCount?: number;
   @state() private _pointSize = 1;
   @state() private _refreshing = false;
+  @state() private _downloadPending = false;
   @state() private _retryDelaySeconds?: number;
 
   private _abortController?: AbortController;
@@ -73,6 +74,7 @@ export class LawnMowerPointCloud extends LitElement {
   private _points?: Points;
   private _resizeObserver?: ResizeObserver;
   private _basePointSize = 0.01;
+  private _downloadAbortController?: AbortController;
   private _downloadGeneration = 0;
   private _loadRequested = false;
   private _reloadOnConnect = false;
@@ -529,10 +531,12 @@ export class LawnMowerPointCloud extends LitElement {
                   type="button"
                   aria-label="Download original PCD"
                   title="Download original PCD"
+                  aria-busy=${this._downloadPending ? "true" : "false"}
+                  ?disabled=${this._downloadPending}
                   @click=${this._download}
                 >
                   <ha-icon icon="mdi:download"></ha-icon>
-                  <span>PCD</span>
+                  <span>${this._downloadPending ? "Downloading…" : "PCD"}</span>
                 </button>
               </div>
             `
@@ -573,7 +577,7 @@ export class LawnMowerPointCloud extends LitElement {
   protected updated(changedProperties: PropertyValues<this>): void {
     if (changedProperties.has("path")) {
       this._cancelRetry();
-      this._downloadGeneration += 1;
+      this._cancelDownload();
       this._downloadProblem = undefined;
       this._abortController?.abort();
       this._worker?.terminate();
@@ -634,6 +638,7 @@ export class LawnMowerPointCloud extends LitElement {
   }
 
   public disconnectedCallback(): void {
+    this._cancelDownload();
     this._abortController?.abort();
     this._worker?.terminate();
     this._worker = undefined;
@@ -658,7 +663,7 @@ export class LawnMowerPointCloud extends LitElement {
 
   private async _load(refresh: boolean): Promise<void> {
     this._cancelRetry();
-    this._downloadGeneration += 1;
+    this._cancelDownload();
     this._downloadProblem = undefined;
     const path = normalizePointCloudApiPath(this.path);
     if (!path || !this.hass) {
@@ -949,26 +954,34 @@ export class LawnMowerPointCloud extends LitElement {
 
   private _download = async (): Promise<void> => {
     const path = normalizePointCloudApiPath(this.path);
-    if (!path || !this.hass) {
+    if (!path || !this.hass || this._downloadPending) {
       return;
     }
     const generation = ++this._downloadGeneration;
+    const abortController = new AbortController();
+    this._downloadAbortController = abortController;
+    this._downloadPending = true;
     this._downloadProblem = undefined;
     const isCurrentDownload = (): boolean =>
       generation === this._downloadGeneration &&
-      path === normalizePointCloudApiPath(this.path);
+      path === normalizePointCloudApiPath(this.path) &&
+      !abortController.signal.aborted;
     try {
       const signed = await this.hass.callWS<unknown>({
         type: "auth/sign_path",
         path: pointCloudRequestPath(path, false),
         expires: 60,
       });
+      if (!isCurrentDownload()) {
+        return;
+      }
       const signedPath = signedPathFromResponse(signed);
       if (!signedPath) {
         throw new Error("Home Assistant returned an invalid signed path.");
       }
       const response = await fetch(this.hass.hassUrl(signedPath), {
         credentials: "same-origin",
+        signal: abortController.signal,
       });
       if (!response.ok) {
         const problem = await pointCloudProblemFromResponse(response);
@@ -1000,8 +1013,20 @@ export class LawnMowerPointCloud extends LitElement {
           retryable: true,
         };
       }
+    } finally {
+      if (generation === this._downloadGeneration) {
+        this._downloadAbortController = undefined;
+        this._downloadPending = false;
+      }
     }
   };
+
+  private _cancelDownload(): void {
+    this._downloadGeneration += 1;
+    this._downloadAbortController?.abort();
+    this._downloadAbortController = undefined;
+    this._downloadPending = false;
+  }
 
   private async _parsePointCloud(
     content: ArrayBuffer,

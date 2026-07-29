@@ -31,6 +31,12 @@ import {
   type HeroImagePosition,
 } from "./hero-image";
 import {
+  acquireMowerMutation,
+  currentMowerMutation,
+  releaseMowerMutation,
+  subscribeMowerMutations,
+} from "./mower-mutation-lock";
+import {
   pointCloudActivationErrorIsCurrent,
   pointCloudPathFromEntity,
 } from "./point-cloud-logic";
@@ -268,7 +274,6 @@ export class LawnMowerCard extends LitElement {
   @state() private _cameraMounted = false;
   @state() private _cameraRenderGeneration = 0;
   @state() private _cameraReconnecting = false;
-  @state() private _mutationInFlight?: string;
   @state() private _actionFeedback?: {
     message: string;
     error: boolean;
@@ -282,8 +287,15 @@ export class LawnMowerCard extends LitElement {
   private _actionFeedbackTimer?: number;
   private _actionGeneration = 0;
   private _heroPointCloudGeneration = 0;
+  private _mutationSubscription?: () => void;
   private _traditionalPointCloudGeneration = 0;
   @state() private _zoneSelection?: ZoneSelectionState;
+
+  private get _mutationInFlight(): string | undefined {
+    return this._config?.entity
+      ? currentMowerMutation(this._config.entity)
+      : undefined;
+  }
 
   public static styles = [css`
     :host {
@@ -954,6 +966,11 @@ export class LawnMowerCard extends LitElement {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    this._mutationSubscription ??= subscribeMowerMutations((entityId) => {
+      if (entityId === this._config?.entity) {
+        this.requestUpdate();
+      }
+    });
     this._heroViewSlot = connectedCardSlot(this);
     if (
       this._heroView !== "overview" &&
@@ -1007,7 +1024,8 @@ export class LawnMowerCard extends LitElement {
     this._clearCameraUnmountTimer();
     this._resetCameraRecovery();
     this._cameraMounted = false;
-    this._resetTraditionalPointCloudState();
+    this._mutationSubscription?.();
+    this._mutationSubscription = undefined;
     super.disconnectedCallback();
   }
 
@@ -1479,10 +1497,7 @@ export class LawnMowerCard extends LitElement {
     this._traditionalPointCloudLoading = true;
     void loadPointCloudModule()
       .then(() => {
-        if (
-          generation === this._traditionalPointCloudGeneration &&
-          this.isConnected
-        ) {
+        if (generation === this._traditionalPointCloudGeneration) {
           this._traditionalPointCloudActive = true;
         }
       })
@@ -3143,12 +3158,16 @@ export class LawnMowerCard extends LitElement {
     label: string,
     operation: () => Promise<void>,
   ): Promise<void> {
-    if (this._mutationInFlight) {
+    const entityId = this._config?.entity;
+    if (!entityId) {
+      return;
+    }
+    const mutationToken = acquireMowerMutation(entityId, key);
+    if (!mutationToken) {
       return;
     }
     const generation = this._actionGeneration;
     this._clearActionFeedbackTimer();
-    this._mutationInFlight = key;
     this._actionFeedback = {
       message: `${label}: waiting for mower confirmation…`,
       error: false,
@@ -3181,9 +3200,7 @@ export class LawnMowerCard extends LitElement {
         error: true,
       };
     } finally {
-      if (this._mutationInFlight === key) {
-        this._mutationInFlight = undefined;
-      }
+      releaseMowerMutation(entityId, mutationToken);
     }
   }
 
