@@ -44,6 +44,12 @@ export type EntityRegistryEntries = Record<
 const CAMERA_RECONNECT_BASE_DELAY_MS = 3_000;
 const CAMERA_RECONNECT_MAX_DELAY_MS = 30_000;
 
+export function heroViewRestorationAllowed(
+  layout: string | undefined,
+): boolean {
+  return layout === "hero";
+}
+
 const PREFERENCE_CONTROL_SUFFIXES = [
   "_selected_map_preference_mode",
   "_selected_map_mowing_height",

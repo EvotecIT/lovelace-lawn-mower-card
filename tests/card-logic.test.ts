@@ -14,6 +14,7 @@ import {
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
+  heroViewRestorationAllowed,
   isPreferenceControlEntity,
   numberControlSettings,
   prioritizedHeaderSummary,
@@ -25,6 +26,14 @@ import {
 } from "../src/card-logic.ts";
 
 const entity = (state: string): MinimalHassEntity => ({ state });
+
+test("Hero reconnect state restores only into the Hero layout", () => {
+  assert.equal(heroViewRestorationAllowed("hero"), true);
+  assert.equal(heroViewRestorationAllowed("default"), false);
+  assert.equal(heroViewRestorationAllowed("compact"), false);
+  assert.equal(heroViewRestorationAllowed("wide"), false);
+  assert.equal(heroViewRestorationAllowed(undefined), false);
+});
 
 const dreameRegistry = (
   mowerEntityId: string,

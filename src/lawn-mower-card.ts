@@ -12,6 +12,7 @@ import {
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
+  heroViewRestorationAllowed,
   isPreferenceControlEntity,
   numberControlSettings,
   prioritizedHeaderSummary,
@@ -1564,6 +1565,9 @@ export class LawnMowerCard extends LitElement {
     );
     const retained = transientHeroViews.get(key);
     transientHeroViews.delete(key);
+    if (!heroViewRestorationAllowed(this._config.layout)) {
+      return;
+    }
     if (
       this._heroView === "overview" &&
       retained &&
