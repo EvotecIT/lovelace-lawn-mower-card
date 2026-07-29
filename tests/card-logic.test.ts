@@ -3,11 +3,18 @@ import assert from "node:assert/strict";
 
 import {
   autoDetectedControlEntities,
+  cameraBlockReason,
+  cameraCanBePresented,
+  cameraCanRecoverWhileUnavailable,
   cameraImageUrl,
+  cameraReconnectDelayMs,
+  cameraRecoveryMarker,
+  cameraRecoveryVerified,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
+  heroViewRestorationAllowed,
   isPreferenceControlEntity,
   numberControlSettings,
   prioritizedHeaderSummary,
@@ -19,6 +26,14 @@ import {
 } from "../src/card-logic.ts";
 
 const entity = (state: string): MinimalHassEntity => ({ state });
+
+test("Hero reconnect state restores only into the Hero layout", () => {
+  assert.equal(heroViewRestorationAllowed("hero"), true);
+  assert.equal(heroViewRestorationAllowed("default"), false);
+  assert.equal(heroViewRestorationAllowed("compact"), false);
+  assert.equal(heroViewRestorationAllowed("wide"), false);
+  assert.equal(heroViewRestorationAllowed(undefined), false);
+});
 
 const dreameRegistry = (
   mowerEntityId: string,
@@ -64,6 +79,90 @@ test("camera URLs use stable Home Assistant revisions instead of render time", (
     cameraImageUrl("camera.garden", entity("idle")),
     "/api/camera_proxy/camera.garden",
   );
+});
+
+test("camera safety blocks are normalized and bounded for display", () => {
+  assert.equal(
+    cameraBlockReason({
+      state: "idle",
+      attributes: {
+        video_block_reason:
+          "  Camera stream handshake probe is blocked\nwhile the mower is docked.  ",
+      },
+    }),
+    "Camera stream handshake probe is blocked while the mower is docked.",
+  );
+  assert.equal(
+    cameraBlockReason({
+      state: "idle",
+      attributes: { video_block_reason: "x".repeat(400) },
+    })?.length,
+    280,
+  );
+  assert.equal(cameraBlockReason(entity("idle")), undefined);
+});
+
+test("camera recovery backoff is bounded for repeated Wi-Fi failures", () => {
+  assert.deepEqual(
+    Array.from({ length: 8 }, (_value, attempt) =>
+      cameraReconnectDelayMs(attempt),
+    ),
+    [3_000, 6_000, 12_000, 24_000, 30_000, 30_000, 30_000, 30_000],
+  );
+});
+
+test("camera recovery markers ignore safety blocks and reset on verified media", () => {
+  const reconnecting: MinimalHassEntity = {
+    state: "idle",
+    attributes: {
+      video_recovery_pending: true,
+      video_recovery_failure_count: 3,
+      last_stream_error_at: "2026-07-28T20:00:00Z",
+      xp2p_provisioning_cached: true,
+      last_stream_health: {
+        playback_session_verified: false,
+      },
+    },
+  };
+
+  assert.equal(
+    cameraRecoveryMarker(reconnecting),
+    "3:2026-07-28T20:00:00Z",
+  );
+  assert.equal(cameraRecoveryVerified(reconnecting), false);
+  assert.equal(cameraCanRecoverWhileUnavailable(reconnecting), true);
+
+  reconnecting.attributes!.video_block_reason = "The mower is docked.";
+  assert.equal(cameraRecoveryMarker(reconnecting), undefined);
+  assert.equal(cameraCanRecoverWhileUnavailable(reconnecting), false);
+
+  reconnecting.attributes = {
+    video_recovery_pending: false,
+    last_stream_health: {
+      playback_session_verified: true,
+    },
+  };
+  assert.equal(cameraRecoveryVerified(reconnecting), true);
+});
+
+test("unavailable safety-blocked cameras remain presentable without recovery", () => {
+  const blocked: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_block_reason: "The mower is docked.",
+    },
+  };
+  const reconnecting: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_recovery_pending: true,
+      video_recovery_failure_count: 1,
+    },
+  };
+
+  assert.equal(cameraCanBePresented(blocked, false), true);
+  assert.equal(cameraCanBePresented(reconnecting, false), false);
+  assert.equal(cameraCanBePresented(reconnecting, true), true);
 });
 
 test("progress fallback skips unavailable companion entities", () => {

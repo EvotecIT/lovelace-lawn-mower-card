@@ -63,7 +63,7 @@ test("multi-zone mode requires the Dreame entity platform and registered service
     "lawn_mower.other": { platform: "other_mower" },
   };
   const services = {
-    lawn_mower: { start_zone_mowing: {} },
+    dreame_lawn_mower: { start_zone_mowing: {} },
   };
 
   assert.equal(
@@ -86,7 +86,7 @@ test("multi-zone mode requires the Dreame entity platform and registered service
     supportsDreameMultiZoneMowing(
       "lawn_mower.garden",
       entities,
-      { lawn_mower: {} },
+      { dreame_lawn_mower: {} },
     ),
     false,
   );

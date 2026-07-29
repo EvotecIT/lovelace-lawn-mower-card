@@ -1,4 +1,5 @@
 import { css, html, nothing, type TemplateResult } from "lit";
+import { keyed } from "lit/directives/keyed.js";
 
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
 import {
@@ -25,13 +26,24 @@ export type HeroLayoutModel = {
   mapUrl?: string;
   mapStatus?: TemplateResult;
   pointCloudPath?: string;
+  pointCloudMounted: boolean;
+  pointCloudLoadError?: string;
   cameraEntity?: object;
+  cameraMounted: boolean;
+  cameraRenderKey?: string;
+  cameraReconnecting: boolean;
+  cameraBlockReason?: string;
+  cameraPreviewUrl?: string;
   controls?: TemplateResult;
   hass: object;
   canStart: boolean;
   canPause: boolean;
   canDock: boolean;
   maintenancePointAvailable?: boolean;
+  actionFeedback?: {
+    message: string;
+    error: boolean;
+  };
   showDefaultActions: boolean;
   showHelperActions: boolean;
   onView(view: HeroView): void;
@@ -50,65 +62,127 @@ function useBuiltInHeroArtwork(event: Event): void {
 }
 
 function renderView(model: HeroLayoutModel): TemplateResult {
-  if (model.activeView === "point-cloud") {
-    return model.pointCloudPath
-      ? html`
-          <lawn-mower-point-cloud
-            class="hero-point-cloud"
-            .hass=${model.hass}
-            .path=${model.pointCloudPath}
-            .active=${true}
-            .compact=${true}
-          ></lawn-mower-point-cloud>
-        `
-      : html`
-          <div class="hero-empty">
-            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
-            <span>No 3D point cloud is available.</span>
-          </div>
-        `;
-  }
-
-  if (model.activeView === "map") {
-    return model.mapUrl
-      ? html`<img class="hero-map" src=${model.mapUrl} alt=${`${model.title} map`} />`
-      : html`
-          <div class="hero-empty">
-            <ha-icon icon="mdi:map-outline"></ha-icon>
-            <span>No mower map is available.</span>
-          </div>
-        `;
-  }
-
-  if (model.activeView === "camera") {
-    return model.cameraEntity
-      ? html`
-          <ha-camera-stream
-            class="hero-camera"
-            .hass=${model.hass}
-            .stateObj=${model.cameraEntity}
-            .controls=${true}
-            .muted=${true}
-          ></ha-camera-stream>
-        `
-      : html`
-          <div class="hero-empty">
-            <ha-icon icon="mdi:video-off-outline"></ha-icon>
-            <span>No live-video camera is available.</span>
-          </div>
-        `;
-  }
-
   const image = normalizeHeroImage(model.heroImage) || heroArtwork;
   const position = normalizeHeroImagePosition(model.heroImagePosition);
   return html`
     <img
-      class=${`hero-art position-${position}`}
+      class=${`hero-layer hero-art position-${position}${
+        model.activeView === "overview" ? " active" : ""
+      }`}
       src=${image}
       alt=""
       aria-hidden="true"
       @error=${useBuiltInHeroArtwork}
     />
+    ${model.mapUrl
+      ? html`
+          <img
+            class=${`hero-layer hero-map${
+              model.activeView === "map" ? " active" : ""
+            }`}
+            src=${model.mapUrl}
+            alt=${`${model.title} map`}
+            aria-hidden=${model.activeView === "map" ? "false" : "true"}
+          />
+        `
+      : nothing}
+    ${model.pointCloudMounted && model.pointCloudPath
+      ? html`
+          <lawn-mower-point-cloud
+            class=${`hero-layer hero-point-cloud${
+              model.activeView === "point-cloud" ? " active" : ""
+            }`}
+            .hass=${model.hass}
+            .path=${model.pointCloudPath}
+            .active=${model.activeView === "point-cloud"}
+            .autoLoad=${true}
+            .compact=${true}
+            aria-hidden=${model.activeView === "point-cloud" ? "false" : "true"}
+          ></lawn-mower-point-cloud>
+        `
+      : nothing}
+    ${model.cameraMounted &&
+    model.cameraEntity &&
+    model.cameraRenderKey &&
+    !model.cameraBlockReason
+      ? keyed(
+          model.cameraRenderKey,
+          html`
+          <div
+            class=${`hero-layer hero-camera-layer${
+              model.activeView === "camera" ? " active" : ""
+            }`}
+            aria-hidden=${model.activeView === "camera" ? "false" : "true"}
+          >
+            ${model.cameraPreviewUrl
+              ? html`
+                  <img
+                    class="hero-camera-preview"
+                    src=${model.cameraPreviewUrl}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                `
+              : nothing}
+            <ha-camera-stream
+              class="hero-camera"
+              .hass=${model.hass}
+              .stateObj=${model.cameraEntity}
+              .controls=${true}
+              .muted=${true}
+            ></ha-camera-stream>
+            ${model.cameraReconnecting && model.activeView === "camera"
+              ? html`
+                  <div class="hero-camera-reconnecting" role="status">
+                    <ha-icon icon="mdi:wifi-sync"></ha-icon>
+                    <span>Reconnecting live video…</span>
+                  </div>
+                `
+              : nothing}
+          </div>
+        `,
+        )
+      : nothing}
+    ${model.activeView === "point-cloud" && !model.pointCloudPath
+      ? html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
+            <span>No 3D point cloud is available.</span>
+          </div>
+        `
+      : nothing}
+    ${model.activeView === "point-cloud" && model.pointCloudLoadError
+      ? html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
+            <span>${model.pointCloudLoadError}</span>
+          </div>
+        `
+      : nothing}
+    ${model.activeView === "map" && !model.mapUrl
+      ? html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:map-outline"></ha-icon>
+            <span>No mower map is available.</span>
+          </div>
+        `
+      : nothing}
+    ${model.activeView === "camera" && !model.cameraEntity
+      ? html`
+          <div class="hero-empty">
+            <ha-icon icon="mdi:video-off-outline"></ha-icon>
+            <span>No live-video camera is available.</span>
+          </div>
+        `
+        : nothing}
+    ${model.activeView === "camera" && model.cameraBlockReason
+      ? html`
+          <div class="hero-empty" role="status">
+            <ha-icon icon="mdi:shield-lock-outline"></ha-icon>
+            <span>${model.cameraBlockReason}</span>
+          </div>
+        `
+      : nothing}
   `;
 }
 
@@ -175,14 +249,6 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
         <section class=${`hero-stage view-${model.activeView}`}>
           ${renderView(model)}
           ${model.activeView === "map" ? model.mapStatus : nothing}
-          ${model.activeView !== "map" && model.mapUrl
-            ? html`<img
-                class="hero-map-preload"
-                src=${model.mapUrl}
-                alt=""
-                aria-hidden="true"
-              />`
-            : nothing}
           <div class="hero-scrim" aria-hidden="true"></div>
 
           <div class="hero-heading">
@@ -239,6 +305,25 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
           ? html`
               <div class="hero-selectors" aria-label="Mower selections">
                 ${model.controls}
+              </div>
+            `
+          : nothing}
+
+        ${model.actionFeedback
+          ? html`
+              <div
+                class=${`hero-action-feedback${
+                  model.actionFeedback.error ? " error" : ""
+                }`}
+                role=${model.actionFeedback.error ? "alert" : "status"}
+                aria-live=${model.actionFeedback.error ? "assertive" : "polite"}
+              >
+                <ha-icon
+                  icon=${model.actionFeedback.error
+                    ? "mdi:alert-circle-outline"
+                    : "mdi:wifi-sync"}
+                ></ha-icon>
+                <span>${model.actionFeedback.message}</span>
               </div>
             `
           : nothing}
@@ -315,8 +400,34 @@ export const heroLayoutStyles = css`
       #0a0d0b;
   }
 
+  .hero-action-feedback {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 14px 10px;
+    border: 1px solid color-mix(in srgb, #8bc978 42%, transparent);
+    border-radius: 10px;
+    padding: 9px 11px;
+    background: color-mix(in srgb, #17391c 88%, transparent);
+    color: #eaf8e7;
+    font-size: 0.8rem;
+  }
+
+  .hero-action-feedback.error {
+    border-color: color-mix(in srgb, #ef8178 48%, transparent);
+    background: color-mix(in srgb, #4a1816 88%, transparent);
+    color: #ffe8e5;
+  }
+
+  .hero-action-feedback ha-icon {
+    --mdc-icon-size: 18px;
+    flex: 0 0 auto;
+  }
+
   .hero-stage {
     position: relative;
+    width: 100%;
+    min-width: 0;
     min-height: 330px;
     aspect-ratio: 16 / 9.5;
     overflow: hidden;
@@ -327,6 +438,7 @@ export const heroLayoutStyles = css`
   .hero-art,
   .hero-map,
   .hero-point-cloud,
+  .hero-camera-layer,
   .hero-camera,
   .hero-empty {
     position: absolute;
@@ -335,12 +447,16 @@ export const heroLayoutStyles = css`
     height: 100%;
   }
 
-  .hero-map-preload {
-    position: absolute;
-    width: 1px;
-    height: 1px;
+  .hero-layer {
+    visibility: hidden;
     opacity: 0;
     pointer-events: none;
+  }
+
+  .hero-layer.active {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .hero-art {
@@ -375,10 +491,52 @@ export const heroLayoutStyles = css`
     background: #0b0f0c;
   }
 
-  .hero-camera {
+  .hero-camera-layer {
+    overflow: hidden;
+    background: #050605;
+  }
+
+  .hero-camera,
+  .hero-camera-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     display: block;
     object-fit: cover;
+  }
+
+  .hero-camera-preview {
     background: #050605;
+    filter: saturate(0.92);
+  }
+
+  .hero-camera {
+    background: transparent;
+  }
+
+  .hero-camera-reconnecting {
+    position: absolute;
+    z-index: 3;
+    bottom: 56px;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100% - 32px);
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(15, 23, 42, 0.84);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(8px);
+    transform: translateX(-50%);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
   }
 
   .hero-point-cloud {
@@ -570,6 +728,12 @@ export const heroLayoutStyles = css`
   }
 
   .hero-selectors {
+    --card-background-color: #151b16;
+    --primary-text-color: #f7faf7;
+    --secondary-text-color: rgba(232, 240, 228, 0.68);
+    --divider-color: rgba(255, 255, 255, 0.12);
+    --primary-color: #9fca8b;
+    color-scheme: dark;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 8px;
@@ -682,6 +846,14 @@ export const heroLayoutStyles = css`
   .hero-action ha-icon,
   .hero-tab ha-icon {
     --mdc-icon-size: 20px;
+  }
+
+  @media (max-height: 600px) and (min-width: 561px) {
+    .hero-stage {
+      height: min(330px, 62vh);
+      min-height: 300px;
+      aspect-ratio: auto;
+    }
   }
 
   @media (max-width: 560px) {

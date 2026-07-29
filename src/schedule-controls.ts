@@ -1,3 +1,5 @@
+import { entityIndex } from "./entity-index.ts";
+
 export type ScheduleEntity = {
   state: string;
   attributes?: Record<string, unknown>;
@@ -22,12 +24,13 @@ export function discoverScheduleControls(
   if (!objectId) {
     return [];
   }
-  const mowerObjectIds = Object.keys(states)
-    .filter((entityId) => entityId.startsWith("lawn_mower."))
+  const index = entityIndex(states);
+  const mowerObjectIds = index
+    .byDomain("lawn_mower")
     .map((entityId) => entityId.split(".", 2)[1])
     .filter((candidate): candidate is string => Boolean(candidate))
     .sort((left, right) => right.length - left.length);
-  return Object.entries(states)
+  return index.entries
     .filter(([entityId, entity]) => {
       if (!entityId.startsWith("switch.")) {
         return false;

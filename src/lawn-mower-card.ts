@@ -2,11 +2,17 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import {
+  cameraBlockReason,
+  cameraCanBePresented,
   cameraImageUrl,
+  cameraReconnectDelayMs,
+  cameraRecoveryMarker,
+  cameraRecoveryVerified,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
+  heroViewRestorationAllowed,
   isPreferenceControlEntity,
   numberControlSettings,
   prioritizedHeaderSummary,
@@ -26,8 +32,16 @@ import {
   type HeroImagePosition,
 } from "./hero-image";
 import {
+  acquireMowerMutation,
+  currentMowerMutation,
+  releaseMowerMutation,
+  subscribeMowerMutations,
+} from "./mower-mutation-lock";
+import {
+  pointCloudActivationErrorIsCurrent,
   pointCloudPathFromEntity,
 } from "./point-cloud-logic";
+import { loadPointCloudModule } from "./point-cloud-loader";
 import type { PointCloudHomeAssistant } from "./point-cloud-view";
 import {
   discoverScheduleControls,
@@ -51,7 +65,54 @@ import {
   type ZoneChoice,
   type ZoneSelectionKeys,
 } from "./zone-selection";
-import "./point-cloud-view";
+const CAMERA_VIEW_GRACE_MS = 15_000;
+const HERO_VIEW_RECONNECT_TTL_MS = 30_000;
+
+const transientHeroViews = new Map<
+  string,
+  { view: Exclude<HeroView, "overview">; route: string; storedAt: number }
+>();
+
+function transientHeroViewKey(
+  entityId: string,
+  route: string,
+  cardSlot: string,
+): string {
+  return JSON.stringify([entityId, route, cardSlot]);
+}
+
+function connectedCardSlot(element: Element): string | undefined {
+  if (!element.isConnected) {
+    return undefined;
+  }
+
+  const segments: string[] = [];
+  let current: Node | null = element;
+  while (current && current !== document) {
+    const parent: ParentNode | null = current.parentNode;
+    if (
+      !parent ||
+      (!(parent instanceof Element) &&
+        !(parent instanceof Document) &&
+        !(parent instanceof ShadowRoot))
+    ) {
+      return undefined;
+    }
+
+    const currentElement = current instanceof Element ? current : undefined;
+    if (!currentElement) {
+      return undefined;
+    }
+    const index = Array.from(parent.children).indexOf(currentElement);
+    if (index < 0) {
+      return undefined;
+    }
+    segments.push(`${currentElement.localName}:${index}`);
+    current = parent instanceof ShadowRoot ? parent.host : parent;
+  }
+
+  return segments.reverse().join("/");
+}
 
 type HassEntity = {
   entity_id: string;
@@ -207,7 +268,35 @@ export class LawnMowerCard extends LitElement {
 
   @state() private _config?: LawnMowerCardConfig;
   @state() private _heroView: HeroView = "overview";
+  @state() private _pointCloudMounted = false;
+  @state() private _traditionalPointCloudActive = false;
+  @state() private _traditionalPointCloudLoading = false;
+  @state() private _pointCloudLoadError?: string;
+  @state() private _cameraMounted = false;
+  @state() private _cameraRenderGeneration = 0;
+  @state() private _cameraReconnecting = false;
+  @state() private _actionFeedback?: {
+    message: string;
+    error: boolean;
+  };
+  private _cameraUnmountTimer?: number;
+  private _cameraReconnectTimer?: number;
+  private _cameraReconnectAttempt = 0;
+  private _lastCameraRecoveryMarker?: string;
+  private _heroViewRoute?: string;
+  private _heroViewSlot?: string;
+  private _actionFeedbackTimer?: number;
+  private _actionGeneration = 0;
+  private _heroPointCloudGeneration = 0;
+  private _mutationSubscription?: () => void;
+  private _traditionalPointCloudGeneration = 0;
   @state() private _zoneSelection?: ZoneSelectionState;
+
+  private get _mutationInFlight(): string | undefined {
+    return this._config?.entity
+      ? currentMowerMutation(this._config.entity)
+      : undefined;
+  }
 
   public static styles = [css`
     :host {
@@ -397,6 +486,26 @@ export class LawnMowerCard extends LitElement {
 
     .layout-compact .point-cloud-panel {
       min-height: 250px;
+    }
+
+    .point-cloud-placeholder {
+      min-height: inherit;
+      display: grid;
+      place-content: center;
+      justify-items: center;
+      gap: 12px;
+      padding: 24px;
+      color: rgba(247, 250, 247, 0.76);
+      text-align: center;
+    }
+
+    .point-cloud-placeholder ha-icon {
+      --mdc-icon-size: 36px;
+      color: #9fca8b;
+    }
+
+    .point-cloud-placeholder p {
+      margin: 0;
     }
 
     .selectors {
@@ -704,6 +813,28 @@ export class LawnMowerCard extends LitElement {
       gap: 10px;
     }
 
+    .action-feedback {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid color-mix(in srgb, var(--success-color, #67b55b) 42%, transparent);
+      border-radius: 10px;
+      padding: 9px 11px;
+      background: color-mix(in srgb, var(--success-color, #67b55b) 13%, transparent);
+      color: var(--primary-text-color);
+      font-size: 0.8rem;
+    }
+
+    .action-feedback.error {
+      border-color: color-mix(in srgb, var(--error-color, #db4437) 48%, transparent);
+      background: color-mix(in srgb, var(--error-color, #db4437) 13%, transparent);
+    }
+
+    .action-feedback ha-icon {
+      --mdc-icon-size: 18px;
+      flex: 0 0 auto;
+    }
+
     .action-group {
       display: grid;
       gap: 10px;
@@ -815,10 +946,99 @@ export class LawnMowerCard extends LitElement {
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
+    const previousEntity = this._config?.entity;
+    const previousLayout = this._config?.layout || "default";
+    const nextLayout = config.layout || "default";
     if (this._config?.entity !== config.entity) {
+      this._actionGeneration += 1;
+      this._actionFeedback = undefined;
+      this._clearActionFeedbackTimer();
       this._zoneSelection = undefined;
+      this._resetTraditionalPointCloudState();
+      this._resetHeroMediaState();
+    } else if (previousLayout === "hero" && nextLayout !== "hero") {
+      this._resetHeroMediaState();
     }
     this._config = config;
+    if (previousEntity === undefined && this.isConnected) {
+      this._restoreRetainedHeroView();
+    }
+  }
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._mutationSubscription ??= subscribeMowerMutations((entityId) => {
+      if (entityId === this._config?.entity) {
+        this.requestUpdate();
+      }
+    });
+    this._heroViewSlot = connectedCardSlot(this);
+    if (
+      this._heroView !== "overview" &&
+      this._heroViewRoute !== window.location.pathname
+    ) {
+      this._resetHeroMediaState();
+      return;
+    }
+    this._restoreRetainedHeroView();
+    if (this._heroView === "camera") {
+      this._cameraMounted = true;
+    }
+  }
+
+  public disconnectedCallback(): void {
+    const entityId = this._config?.entity;
+    if (
+      entityId &&
+      this._heroViewSlot &&
+      this._heroView !== "overview" &&
+      this._heroViewRoute === window.location.pathname
+    ) {
+      const key = transientHeroViewKey(
+        entityId,
+        this._heroViewRoute,
+        this._heroViewSlot,
+      );
+      const retained = {
+        view: this._heroView,
+        route: this._heroViewRoute,
+        storedAt: Date.now(),
+      } as const;
+      transientHeroViews.set(key, retained);
+      window.setTimeout(() => {
+        if (transientHeroViews.get(key) === retained) {
+          transientHeroViews.delete(key);
+        }
+      }, HERO_VIEW_RECONNECT_TTL_MS);
+    } else if (entityId && this._heroViewSlot) {
+      transientHeroViews.delete(
+        transientHeroViewKey(
+          entityId,
+          this._heroViewRoute || window.location.pathname,
+          this._heroViewSlot,
+        ),
+      );
+    }
+    this._actionGeneration += 1;
+    this._actionFeedback = undefined;
+    this._clearActionFeedbackTimer();
+    this._clearCameraUnmountTimer();
+    this._resetCameraRecovery();
+    this._cameraMounted = false;
+    this._mutationSubscription?.();
+    this._mutationSubscription = undefined;
+    super.disconnectedCallback();
+  }
+
+  protected updated(): void {
+    if (!this.hass || !this._config) {
+      return;
+    }
+    if (this._config.layout === "hero") {
+      this._syncCameraRecovery();
+      return;
+    }
+    this._resetCameraRecovery();
   }
 
   public static async getConfigElement(): Promise<HTMLElement> {
@@ -873,6 +1093,8 @@ export class LawnMowerCard extends LitElement {
     const plannedRun = this._plannedRunDetails(mower);
     const runtimeSession = this._runtimeSessionDetails();
     const showAdvancedDetails = this._config.show_advanced_details ?? false;
+    const visibleActionFeedback =
+      this._actionFeedback || this._connectionFeedback(mower);
 
     if (layout === "hero") {
       return this._renderHeroCard(
@@ -920,11 +1142,52 @@ export class LawnMowerCard extends LitElement {
             ${showPointCloud
               ? html`
                   <div class="point-cloud-panel">
-                    <lawn-mower-point-cloud
-                      .hass=${this.hass as PointCloudHomeAssistant}
-                      .path=${pointCloudPath}
-                      .compact=${layout === "compact"}
-                    ></lawn-mower-point-cloud>
+                    ${!pointCloudPath
+                      ? html`
+                          <div class="point-cloud-placeholder" role="status">
+                            <ha-icon icon="mdi:cube-off-outline"></ha-icon>
+                            <p>3D map is not configured for this mower.</p>
+                          </div>
+                        `
+                      : this._pointCloudLoadError
+                        ? html`
+                            <div role="alert">
+                              <p>${this._pointCloudLoadError}</p>
+                              <button
+                                type="button"
+                                @click=${this._retryPointCloudModule}
+                              >
+                                Retry 3D renderer
+                              </button>
+                            </div>
+                          `
+                        : this._traditionalPointCloudActive
+                        ? html`
+                          <lawn-mower-point-cloud
+                            .hass=${this.hass as PointCloudHomeAssistant}
+                            .path=${pointCloudPath}
+                            .active=${true}
+                            .autoLoad=${true}
+                            .compact=${layout === "compact"}
+                          ></lawn-mower-point-cloud>
+                        `
+                        : html`
+                            <div class="point-cloud-placeholder">
+                              <ha-icon icon="mdi:cube-scan"></ha-icon>
+                              <p>
+                                Load the interactive 3D map when you need it.
+                              </p>
+                              <button
+                                type="button"
+                                ?disabled=${this._traditionalPointCloudLoading}
+                                @click=${this._activateTraditionalPointCloud}
+                              >
+                                ${this._traditionalPointCloudLoading
+                                  ? "Loading 3D renderer…"
+                                  : "Load 3D map"}
+                              </button>
+                            </div>
+                          `}
                   </div>
                 `
               : nothing}
@@ -941,7 +1204,11 @@ export class LawnMowerCard extends LitElement {
 
             ${scheduleControls.length
               ? renderSchedulePanel(
-                  scheduleControls,
+                  scheduleControls.map((control) => ({
+                    ...control,
+                    available:
+                      control.available && !Boolean(this._mutationInFlight),
+                  })),
                   (entityId, enabled) => this._toggleSwitch(entityId, enabled),
                 )
               : nothing}
@@ -978,6 +1245,27 @@ export class LawnMowerCard extends LitElement {
                       </div>
                     `,
                   )}
+                `
+              : nothing}
+
+            ${visibleActionFeedback
+              ? html`
+                  <div
+                    class=${`action-feedback${
+                      visibleActionFeedback.error ? " error" : ""
+                    }`}
+                    role=${visibleActionFeedback.error ? "alert" : "status"}
+                    aria-live=${visibleActionFeedback.error
+                      ? "assertive"
+                      : "polite"}
+                  >
+                    <ha-icon
+                      icon=${visibleActionFeedback.error
+                        ? "mdi:alert-circle-outline"
+                        : "mdi:wifi-sync"}
+                    ></ha-icon>
+                    <span>${visibleActionFeedback.message}</span>
+                  </div>
                 `
               : nothing}
 
@@ -1035,16 +1323,13 @@ export class LawnMowerCard extends LitElement {
       return nothing;
     }
 
-    const cameraEntityId =
-      this._config.camera_entity ||
-      defaultHelperEntities(this.hass.states, this._config.entity).find(
-        (helper) => helper.label === "Live Video",
-      )?.entityId;
-    const candidateCameraEntity = cameraEntityId
-      ? this.hass.states[cameraEntityId]
-      : undefined;
+    const candidateCameraEntity = this._cameraCandidate();
     const cameraEntity =
-      candidateCameraEntity && !this._isUnavailableEntity(candidateCameraEntity)
+      candidateCameraEntity &&
+      cameraCanBePresented(
+        candidateCameraEntity,
+        this._cameraMounted,
+      )
         ? candidateCameraEntity
         : undefined;
     const maintenancePointButton = defaultHelperEntities(
@@ -1063,7 +1348,11 @@ export class LawnMowerCard extends LitElement {
       ? html`
           ${scheduleControls.length
             ? renderSchedulePanel(
-                scheduleControls,
+                scheduleControls.map((control) => ({
+                  ...control,
+                  available:
+                    control.available && !Boolean(this._mutationInFlight),
+                })),
                 (entityId, enabled) => this._toggleSwitch(entityId, enabled),
               )
             : nothing}
@@ -1081,6 +1370,9 @@ export class LawnMowerCard extends LitElement {
       (this._heroView === "point-cloud" && !pointCloudPath)
         ? "overview"
         : this._heroView;
+    const cameraBlockedReason = cameraEntity
+      ? cameraBlockReason(cameraEntity)
+      : undefined;
 
     return renderHeroLayout({
       title,
@@ -1100,20 +1392,34 @@ export class LawnMowerCard extends LitElement {
         ? this._renderMapStatus(configuredMapEntity, mower.state)
         : undefined,
       pointCloudPath,
+      pointCloudMounted: this._pointCloudMounted,
+      pointCloudLoadError: this._pointCloudLoadError,
       cameraEntity,
+      cameraMounted: this._cameraMounted,
+      cameraRenderKey: cameraEntity
+        ? `${cameraEntity.entity_id}:${this._cameraRenderGeneration}`
+        : undefined,
+      cameraReconnecting: this._cameraReconnecting,
+      cameraBlockReason: cameraBlockedReason,
+      cameraPreviewUrl: cameraEntity && !cameraBlockedReason
+        ? cameraImageUrl(cameraEntity.entity_id, cameraEntity)
+        : undefined,
       controls,
       hass: this.hass,
-      canStart: this._canStart(mower.state) && this._canStartSelectedTarget(),
-      canPause: this._canPause(mower.state),
-      canDock: this._canDock(mower.state),
+      canStart:
+        !this._mutationInFlight &&
+        this._canStart(mower.state) &&
+        this._canStartSelectedTarget(),
+      canPause: !this._mutationInFlight && this._canPause(mower.state),
+      canDock: !this._mutationInFlight && this._canDock(mower.state),
       maintenancePointAvailable:
+        !this._mutationInFlight &&
         maintenancePointButton !== undefined &&
         this.hass.states[maintenancePointButton.entityId]?.state !== "unavailable",
       showDefaultActions: this._config.show_default_actions ?? true,
       showHelperActions: this._config.show_helper_actions ?? true,
-      onView: (view) => {
-        this._heroView = view;
-      },
+      actionFeedback: this._actionFeedback || this._connectionFeedback(mower),
+      onView: (view) => this._selectHeroView(view),
       onStart: () => this._startMowing(),
       onPause: () => this._pauseMowing(),
       onDock: () => this._dockMower(),
@@ -1122,6 +1428,229 @@ export class LawnMowerCard extends LitElement {
         : undefined,
       onMoreInfo: () => this._showMoreInfo(),
     });
+  }
+
+  private _selectHeroView(view: HeroView): void {
+    this._deleteRetainedHeroView();
+    const previous = this._heroView;
+    const pointCloudGeneration = ++this._heroPointCloudGeneration;
+    this._heroView = view;
+    this._heroViewRoute =
+      view === "overview" ? undefined : window.location.pathname;
+    if (view === "point-cloud") {
+      if (!this._currentPointCloudPath()) {
+        this._pointCloudMounted = false;
+        this._pointCloudLoadError = undefined;
+        return;
+      }
+      this._pointCloudMounted = true;
+      this._pointCloudLoadError = undefined;
+      void loadPointCloudModule().catch(() => {
+        if (
+          !pointCloudActivationErrorIsCurrent(
+            pointCloudGeneration,
+            this._heroPointCloudGeneration,
+            this._config?.layout,
+            this._heroView,
+            this._currentPointCloudPath(),
+          )
+        ) {
+          return;
+        }
+        this._pointCloudMounted = false;
+        this._pointCloudLoadError =
+          "The 3D renderer could not be loaded. Refresh or use a current browser.";
+      });
+    }
+    if (view === "camera") {
+      this._clearCameraUnmountTimer();
+      this._cameraMounted = true;
+    } else if (previous === "camera" && this._cameraMounted) {
+      this._resetCameraRecovery();
+      this._clearCameraUnmountTimer();
+      this._cameraUnmountTimer = window.setTimeout(() => {
+        this._cameraUnmountTimer = undefined;
+        if (this._heroView !== "camera") {
+          this._cameraMounted = false;
+        }
+      }, CAMERA_VIEW_GRACE_MS);
+    }
+  }
+
+  private _retryPointCloudModule = (): void => {
+    this._pointCloudLoadError = undefined;
+    this._activateTraditionalPointCloud();
+  };
+
+  private _activateTraditionalPointCloud = (): void => {
+    if (!this._currentPointCloudPath()) {
+      this._pointCloudLoadError = undefined;
+      return;
+    }
+    if (
+      this._traditionalPointCloudActive ||
+      this._traditionalPointCloudLoading
+    ) {
+      return;
+    }
+    const generation = ++this._traditionalPointCloudGeneration;
+    this._pointCloudLoadError = undefined;
+    this._traditionalPointCloudLoading = true;
+    void loadPointCloudModule()
+      .then(() => {
+        if (generation === this._traditionalPointCloudGeneration) {
+          this._traditionalPointCloudActive = true;
+        }
+      })
+      .catch(() => {
+        if (generation === this._traditionalPointCloudGeneration) {
+          this._pointCloudLoadError =
+            "The 3D renderer could not be loaded. Refresh or use a current browser.";
+        }
+      })
+      .finally(() => {
+        if (generation === this._traditionalPointCloudGeneration) {
+          this._traditionalPointCloudLoading = false;
+        }
+      });
+  };
+
+  private _resetTraditionalPointCloudState(): void {
+    this._traditionalPointCloudGeneration += 1;
+    this._traditionalPointCloudActive = false;
+    this._traditionalPointCloudLoading = false;
+  };
+
+  private _resetHeroMediaState(): void {
+    this._deleteRetainedHeroView();
+    this._heroPointCloudGeneration += 1;
+    this._heroView = "overview";
+    this._heroViewRoute = undefined;
+    this._pointCloudMounted = false;
+    this._pointCloudLoadError = undefined;
+    this._cameraMounted = false;
+    this._clearCameraUnmountTimer();
+    this._resetCameraRecovery();
+  }
+
+  private _currentPointCloudPath(): string | undefined {
+    const mapEntity = this._config?.map_entity
+      ? this.hass?.states[this._config.map_entity]
+      : undefined;
+    return pointCloudPathFromEntity(mapEntity);
+  }
+
+  private _deleteRetainedHeroView(): void {
+    if (!this._config?.entity || !this._heroViewSlot) {
+      return;
+    }
+    transientHeroViews.delete(
+      transientHeroViewKey(
+        this._config.entity,
+        this._heroViewRoute || window.location.pathname,
+        this._heroViewSlot,
+      ),
+    );
+  }
+
+  private _restoreRetainedHeroView(): void {
+    if (!this._config?.entity || !this._heroViewSlot) {
+      return;
+    }
+    const route = window.location.pathname;
+    const key = transientHeroViewKey(
+      this._config.entity,
+      route,
+      this._heroViewSlot,
+    );
+    const retained = transientHeroViews.get(key);
+    transientHeroViews.delete(key);
+    if (!heroViewRestorationAllowed(this._config.layout)) {
+      return;
+    }
+    if (
+      this._heroView === "overview" &&
+      retained &&
+      retained.route === route &&
+      Date.now() - retained.storedAt <= HERO_VIEW_RECONNECT_TTL_MS
+    ) {
+      this._selectHeroView(retained.view);
+    }
+  }
+
+  private _clearCameraUnmountTimer(): void {
+    if (this._cameraUnmountTimer !== undefined) {
+      window.clearTimeout(this._cameraUnmountTimer);
+      this._cameraUnmountTimer = undefined;
+    }
+  }
+
+  private _cameraCandidate(): HassEntity | undefined {
+    if (!this._config || !this.hass) {
+      return undefined;
+    }
+    const cameraEntityId =
+      this._config.camera_entity ||
+      defaultHelperEntities(this.hass.states, this._config.entity).find(
+        (helper) => helper.label === "Live Video",
+      )?.entityId;
+    return cameraEntityId ? this.hass.states[cameraEntityId] : undefined;
+  }
+
+  private _syncCameraRecovery(): void {
+    const camera = this._cameraCandidate();
+    if (
+      this._heroView !== "camera" ||
+      !this._cameraMounted ||
+      !camera
+    ) {
+      this._resetCameraRecovery();
+      return;
+    }
+    if (cameraRecoveryVerified(camera)) {
+      this._resetCameraRecovery();
+      return;
+    }
+    const marker = cameraRecoveryMarker(camera);
+    if (!marker) {
+      if (
+        this._cameraReconnecting ||
+        this._cameraReconnectTimer !== undefined
+      ) {
+        this._resetCameraRecovery();
+      }
+      return;
+    }
+    if (marker === this._lastCameraRecoveryMarker) {
+      return;
+    }
+    this._lastCameraRecoveryMarker = marker;
+    this._cameraReconnecting = true;
+    if (this._cameraReconnectTimer !== undefined) {
+      window.clearTimeout(this._cameraReconnectTimer);
+    }
+    const delay = cameraReconnectDelayMs(this._cameraReconnectAttempt);
+    this._cameraReconnectAttempt += 1;
+    this._cameraReconnectTimer = window.setTimeout(() => {
+      this._cameraReconnectTimer = undefined;
+      if (
+        this.isConnected &&
+        this._heroView === "camera" &&
+        this._cameraMounted
+      ) {
+        this._cameraRenderGeneration += 1;
+      }
+    }, delay);
+  }
+
+  private _resetCameraRecovery(): void {
+    if (this._cameraReconnectTimer !== undefined) {
+      window.clearTimeout(this._cameraReconnectTimer);
+      this._cameraReconnectTimer = undefined;
+    }
+    this._cameraReconnectAttempt = 0;
+    this._lastCameraRecoveryMarker = undefined;
+    this._cameraReconnecting = false;
   }
 
   private _buildTiles(): Array<{ label: string; value: string }> {
@@ -1272,7 +1801,7 @@ export class LawnMowerCard extends LitElement {
                 <input
                   type="checkbox"
                   .checked=${checked}
-                  ?disabled=${unavailable}
+                  ?disabled=${unavailable || Boolean(this._mutationInFlight)}
                   @change=${(event: Event) =>
                     this._toggleZone(entityId, choice, event)}
                 />
@@ -1311,7 +1840,7 @@ export class LawnMowerCard extends LitElement {
             role="switch"
             aria-label=${`${label}: ${enabled ? "on" : "off"}`}
             aria-checked=${String(enabled)}
-            ?disabled=${!available}
+            ?disabled=${!available || Boolean(this._mutationInFlight)}
             @click=${() => this._toggleSwitch(entityId, enabled)}
           ></button>
         </div>
@@ -1361,7 +1890,7 @@ export class LawnMowerCard extends LitElement {
       <label class="selector-card">
         <span class="selector-label">${label}</span>
         <select
-          ?disabled=${unavailable}
+          ?disabled=${unavailable || Boolean(this._mutationInFlight)}
           @change=${(event: Event) => this._selectOption(entityId, event)}
         >
           ${options.map(
@@ -1406,7 +1935,7 @@ export class LawnMowerCard extends LitElement {
           max=${settings?.max ?? 1}
           step=${settings?.step ?? 1}
           .value=${settings ? String(settings.value) : "0"}
-          ?disabled=${unavailable || !settings}
+          ?disabled=${unavailable || !settings || Boolean(this._mutationInFlight)}
           @change=${(event: Event) => this._setNumberValue(entityId, event)}
         />
       </label>
@@ -1471,19 +2000,23 @@ export class LawnMowerCard extends LitElement {
           label: "Start",
           icon: "mdi:play",
           disabled:
-            !this._canStart(mowerState) || !this._canStartSelectedTarget(),
+            Boolean(this._mutationInFlight) ||
+            !this._canStart(mowerState) ||
+            !this._canStartSelectedTarget(),
           handler: () => this._startMowing(),
         },
         {
           label: "Pause",
           icon: "mdi:pause",
-          disabled: !this._canPause(mowerState),
+          disabled:
+            Boolean(this._mutationInFlight) || !this._canPause(mowerState),
           handler: () => this._pauseMowing(),
         },
         {
           label: "Dock",
           icon: "mdi:home-import-outline",
-          disabled: !this._canDock(mowerState),
+          disabled:
+            Boolean(this._mutationInFlight) || !this._canDock(mowerState),
           handler: () => this._dockMower(),
         },
       );
@@ -1537,6 +2070,7 @@ export class LawnMowerCard extends LitElement {
         label: action.label || "Start",
         icon: action.icon || "mdi:play",
         disabled:
+          Boolean(this._mutationInFlight) ||
           !this._canStart(mowerState) || !this._canStartSelectedTarget(),
         handler: () => this._startMowing(),
       };
@@ -1546,7 +2080,8 @@ export class LawnMowerCard extends LitElement {
       return {
         label: action.label || "Pause",
         icon: action.icon || "mdi:pause",
-        disabled: !this._canPause(mowerState),
+        disabled:
+          Boolean(this._mutationInFlight) || !this._canPause(mowerState),
         handler: () => this._pauseMowing(),
       };
     }
@@ -1555,7 +2090,8 @@ export class LawnMowerCard extends LitElement {
       return {
         label: action.label || "Dock",
         icon: action.icon || "mdi:home-import-outline",
-        disabled: !this._canDock(mowerState),
+        disabled:
+          Boolean(this._mutationInFlight) || !this._canDock(mowerState),
         handler: () => this._dockMower(),
       };
     }
@@ -1573,7 +2109,7 @@ export class LawnMowerCard extends LitElement {
       return {
         label: action.label || action.service,
         icon: action.icon || "mdi:flash-outline",
-        disabled: false,
+        disabled: Boolean(this._mutationInFlight),
         handler: () => this._callConfiguredService(action.service!, action.service_data),
       };
     }
@@ -1595,7 +2131,8 @@ export class LawnMowerCard extends LitElement {
       icon: helper.icon,
       disabled:
         helper.action === "press" &&
-        this.hass.states[helper.entityId]?.state === "unavailable",
+        (Boolean(this._mutationInFlight) ||
+          this.hass.states[helper.entityId]?.state === "unavailable"),
       handler: () =>
         helper.action === "press"
           ? this._pressButton(helper.entityId)
@@ -2613,16 +3150,81 @@ export class LawnMowerCard extends LitElement {
     );
   }
 
+  private _clearActionFeedbackTimer(): void {
+    if (this._actionFeedbackTimer !== undefined) {
+      window.clearTimeout(this._actionFeedbackTimer);
+      this._actionFeedbackTimer = undefined;
+    }
+  }
+
+  private async _runMowerAction(
+    key: string,
+    label: string,
+    operation: () => Promise<void>,
+  ): Promise<void> {
+    const entityId = this._config?.entity;
+    if (!entityId) {
+      return;
+    }
+    const mutationToken = acquireMowerMutation(entityId, key);
+    if (!mutationToken) {
+      return;
+    }
+    const generation = this._actionGeneration;
+    this._clearActionFeedbackTimer();
+    this._actionFeedback = {
+      message: `${label}: waiting for mower confirmation…`,
+      error: false,
+    };
+    try {
+      await operation();
+      if (generation !== this._actionGeneration) {
+        return;
+      }
+      this._actionFeedback = {
+        message: `${label}: confirmed.`,
+        error: false,
+      };
+      this._actionFeedbackTimer = window.setTimeout(() => {
+        this._actionFeedbackTimer = undefined;
+        if (generation === this._actionGeneration) {
+          this._actionFeedback = undefined;
+        }
+      }, 3_000);
+    } catch (error) {
+      if (generation !== this._actionGeneration) {
+        return;
+      }
+      const detail =
+        error instanceof Error && error.message
+          ? error.message.replace(/[\r\n\t]+/g, " ").slice(0, 240)
+          : "Home Assistant could not confirm the mower action.";
+      this._actionFeedback = {
+        message: `${label} was not confirmed. ${detail}`,
+        error: true,
+      };
+    } finally {
+      releaseMowerMutation(entityId, mutationToken);
+    }
+  }
+
   private async _callConfiguredService(
     service: string,
     serviceData?: Record<string, unknown>,
   ) {
     const [domain, name] = service.split(".", 2);
     if (!domain || !name) {
-      throw new Error(`Invalid service '${service}'. Use domain.service format.`);
+      await this._runMowerAction(`service:${service}`, `Run ${service}`, async () => {
+        throw new Error(`Invalid service '${service}'. Use domain.service format.`);
+      });
+      return;
     }
 
-    await this.hass.callService(domain, name, serviceData || {});
+    await this._runMowerAction(
+      `service:${service}`,
+      `Run ${service}`,
+      () => this.hass.callService(domain, name, serviceData || {}),
+    );
   }
 
   private async _selectOption(entityId: string, event: Event) {
@@ -2636,10 +3238,15 @@ export class LawnMowerCard extends LitElement {
   }
 
   private async _selectOptionValue(entityId: string, option: string) {
-    await this.hass.callService("select", "select_option", {
-      entity_id: entityId,
-      option,
-    });
+    await this._runMowerAction(
+      `select:${entityId}`,
+      `Set ${this._entityName(entityId)}`,
+      () =>
+        this.hass.callService("select", "select_option", {
+          entity_id: entityId,
+          option,
+        }),
+    );
   }
 
   private _zoneChoices(entityId: string): ZoneChoice[] {
@@ -2872,22 +3479,37 @@ export class LawnMowerCard extends LitElement {
     if (!Number.isFinite(value)) {
       return;
     }
-    await this.hass.callService("number", "set_value", {
-      entity_id: entityId,
-      value,
-    });
+    await this._runMowerAction(
+      `number:${entityId}`,
+      `Set ${this._entityName(entityId)}`,
+      () =>
+        this.hass.callService("number", "set_value", {
+          entity_id: entityId,
+          value,
+        }),
+    );
   }
 
   private async _toggleSwitch(entityId: string, enabled: boolean) {
-    await this.hass.callService("switch", enabled ? "turn_off" : "turn_on", {
-      entity_id: entityId,
-    });
+    await this._runMowerAction(
+      `switch:${entityId}`,
+      `${enabled ? "Disable" : "Enable"} ${this._entityName(entityId)}`,
+      () =>
+        this.hass.callService("switch", enabled ? "turn_off" : "turn_on", {
+          entity_id: entityId,
+        }),
+    );
   }
 
   private async _pressButton(entityId: string) {
-    await this.hass.callService("button", "press", {
-      entity_id: entityId,
-    });
+    await this._runMowerAction(
+      `button:${entityId}`,
+      this._entityName(entityId),
+      () =>
+        this.hass.callService("button", "press", {
+          entity_id: entityId,
+        }),
+    );
   }
 
   private _companionEntityId(domain: string, suffix: string): string | undefined {
@@ -2935,6 +3557,27 @@ export class LawnMowerCard extends LitElement {
     return entityId ? this.hass.states[entityId] : undefined;
   }
 
+  private _connectionFeedback(
+    mower: HassEntity,
+  ): { message: string; error: boolean } | undefined {
+    if (mower.attributes.connection_degraded !== true) {
+      return undefined;
+    }
+    const retryAfter = Number(
+      mower.attributes.connection_retry_after_seconds,
+    );
+    const retryText =
+      Number.isFinite(retryAfter) && retryAfter > 0
+        ? ` Retrying in ${retryAfter}s.`
+        : "";
+    return {
+      message:
+        `Mower connection interrupted. Showing the last confirmed state.` +
+        retryText,
+      error: false,
+    };
+  }
+
   private _isUnavailableEntity(entity: HassEntity): boolean {
     return ["unknown", "unavailable", ""].includes(String(entity.state).trim().toLowerCase());
   }
@@ -2980,37 +3623,43 @@ export class LawnMowerCard extends LitElement {
     ) {
       return;
     }
-    const zoneContext = this._zoneStartContext();
-    if (zoneContext && this._config) {
-      const serviceData = zoneMowingServiceData(
-        this._config.entity,
-        zoneContext.zoneIds,
-      );
-      if (!serviceData) {
+    await this._runMowerAction("start", "Start mowing", async () => {
+      const zoneContext = this._zoneStartContext();
+      if (zoneContext && this._config) {
+        const serviceData = zoneMowingServiceData(
+          this._config.entity,
+          zoneContext.zoneIds,
+        );
+        if (!serviceData) {
+          throw new Error("The selected zones are no longer available.");
+        }
+        await this.hass.callService(
+          "dreame_lawn_mower",
+          "start_zone_mowing",
+          serviceData,
+        );
         return;
       }
-      await this.hass.callService(
-        "lawn_mower",
-        "start_zone_mowing",
-        serviceData,
-      );
-      return;
-    }
-    await this.hass.callService("lawn_mower", "start_mowing", {
-      entity_id: this._config?.entity,
+      await this.hass.callService("lawn_mower", "start_mowing", {
+        entity_id: this._config?.entity,
+      });
     });
   }
 
   private async _pauseMowing() {
-    await this.hass.callService("lawn_mower", "pause", {
-      entity_id: this._config?.entity,
-    });
+    await this._runMowerAction("pause", "Pause mowing", () =>
+      this.hass.callService("lawn_mower", "pause", {
+        entity_id: this._config?.entity,
+      }),
+    );
   }
 
   private async _dockMower() {
-    await this.hass.callService("lawn_mower", "dock", {
-      entity_id: this._config?.entity,
-    });
+    await this._runMowerAction("dock", "Return to dock", () =>
+      this.hass.callService("lawn_mower", "dock", {
+        entity_id: this._config?.entity,
+      }),
+    );
   }
 }
 

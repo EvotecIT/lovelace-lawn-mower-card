@@ -21,6 +21,11 @@ export type PointCloudProblem = {
   timeoutSeconds?: number;
 };
 
+export type PointCloudClientFailureStage =
+  | "delivery"
+  | "parser"
+  | "renderer";
+
 type PointCloudProblemResponse = Pick<Response, "status" | "headers" | "json">;
 
 const SAFE_PROBLEM_TOKEN = /^[a-z][a-z0-9_]{0,63}$/;
@@ -64,6 +69,21 @@ export function pointCloudRequestPath(
   refresh: boolean,
 ): string {
   return refresh ? `${path}?refresh=1` : path;
+}
+
+export function pointCloudActivationErrorIsCurrent(
+  requestGeneration: number,
+  currentGeneration: number,
+  layout: string | undefined,
+  view: string,
+  path: string | undefined,
+): boolean {
+  return (
+    requestGeneration === currentGeneration &&
+    layout === "hero" &&
+    view === "point-cloud" &&
+    path !== undefined
+  );
 }
 
 export function signedPathFromResponse(
@@ -144,9 +164,72 @@ export function pointCloudProblemHint(problem: PointCloudProblem): string {
     return "Sign in with a Home Assistant administrator account, or ask an administrator to open this 3D map.";
   }
   if (problem.retryable) {
-    return "Try again after a few seconds. If this repeats, download the integration diagnostics before restarting Home Assistant.";
+    return "The card will retry automatically. If this repeats, download the integration diagnostics before restarting Home Assistant.";
   }
   return "Download the integration diagnostics and include this diagnostic reference in the issue report.";
+}
+
+export function pointCloudRetryDelayMs(
+  problem: PointCloudProblem,
+  attempt: number,
+): number | undefined {
+  if (!problem.retryable) {
+    return undefined;
+  }
+  if (
+    typeof problem.retryAfterSeconds === "number" &&
+    Number.isFinite(problem.retryAfterSeconds)
+  ) {
+    return Math.min(Math.max(problem.retryAfterSeconds, 1), 30) * 1000;
+  }
+  const retrySeconds = [1, 2, 5, 10, 30];
+  return retrySeconds[Math.min(Math.max(Math.floor(attempt), 0), 4)] * 1000;
+}
+
+export function pointCloudClientFailure(
+  stage: PointCloudClientFailureStage,
+  browserTimedOut: boolean,
+): PointCloudProblem {
+  if (browserTimedOut) {
+    return {
+      title: "Home Assistant did not answer in time",
+      detail:
+        "The 3D map request exceeded the 65-second browser safety limit.",
+      code: "point_cloud_browser_timeout",
+      stage: "delivery",
+      retryable: true,
+      elapsedMs: 65_000,
+      timeoutSeconds: 65,
+    };
+  }
+  if (stage === "parser") {
+    return {
+      title: "3D map format is not supported",
+      detail:
+        "The downloaded point cloud could not be parsed. Automatic retries are paused; use Try again after the source changes.",
+      code: "point_cloud_parse_failed",
+      stage,
+      retryable: false,
+    };
+  }
+  if (stage === "renderer") {
+    return {
+      title: "3D renderer could not start",
+      detail:
+        "The browser could not render this point cloud. Automatic retries are paused; use Try again after the browser recovers.",
+      code: "point_cloud_renderer_failed",
+      stage,
+      retryable: false,
+    };
+  }
+  return {
+    title: "3D map could not be loaded",
+    detail:
+      "Home Assistant could not sign or download the 3D map request.",
+    code: "point_cloud_card_failed",
+    stage,
+    retryable: true,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

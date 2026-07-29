@@ -149,7 +149,10 @@ live camera.
 It preloads the map with a stable Home Assistant entity revision, avoiding a new
 cache-busting request on every dashboard update. Live video still starts only
 after you open Camera, so a dashboard view never opens an expensive mower video
-session by itself.
+session by itself. The card uses Home Assistant's standard camera player, which
+prefers an available WebRTC provider and falls back to HLS. A snapshot stays
+behind the player during startup, and leaving Camera keeps the same player warm
+for 15 seconds so a quick return does not restart playback.
 
 For compatible integrations, this minimal configuration is often enough:
 
@@ -279,20 +282,31 @@ the broader stored map.
 The Dreame Lawn Mower integration can advertise a local
 `point_cloud_api_path` on its map camera. The card validates that the path
 belongs to `/api/dreame_lawn_mower/point-cloud/`, asks Home Assistant to sign it
-for 60 seconds, and parses the returned PCD with Three.js.
+for 60 seconds, and parses the returned PCD in a worker before handing bounded
+geometry to Three.js. The 3D renderer and Three.js stay compressed inside the
+single HACS JavaScript resource and are decompressed only when 3D is first
+opened.
 
 The download is deliberately on demand:
 
 - in Hero, select the **3D** tab
 - in compact, default, or wide layouts, press **Load 3D map**
-- use the viewer to orbit, pan, zoom, change point size, reset, refresh, or save
-  the already-loaded PCD
+- use the viewer to orbit, pan, zoom, change point size, reset, or refresh
+- press **PCD** to make a separate signed request for the original file; the
+  viewer does not retain the large downloaded source buffer after parsing
 
 An ordinary dashboard render does not generate or fetch garden geometry. The
 card never receives the vendor cloud URL or transient object name; it sees only
 the integration-owned Home Assistant path. The integration currently limits
 this endpoint to Home Assistant administrators, so non-admin users receive an
 access message instead of the point cloud.
+
+The browser renders at most 750,000 points on ordinary devices and 300,000 on
+devices that report 4 GB of memory or less. Larger supported PCDs are
+deterministically sampled in the worker, keeping parsing away from the main
+thread. Returning to the Hero 3D tab reuses the same scene and camera view
+without downloading or parsing it again. Compatible integration versions also
+serve the private response with an ETag and a five-minute revalidation window.
 
 While the mower prepares a fresh file, the viewer shows elapsed time and the
 integration's normal 45-second generation window. The browser stops a request
@@ -398,7 +412,8 @@ does not encode mower protocol requests itself.
 
 When the selected action is `Zone`, the card can replace the zone dropdown with
 a checkbox list. Home Assistant must identify the mower as a
-`dreame_lawn_mower` entity, publish `lawn_mower.start_zone_mowing`, provide a
+`dreame_lawn_mower` entity, publish
+`dreame_lawn_mower.start_zone_mowing`, provide a
 stable current-map identity, and expose `available_zone_ids` aligned with that
 mower's zone selector. Choose one or more zones, then press `Start`; the
 integration validates those IDs against the active map before sending the

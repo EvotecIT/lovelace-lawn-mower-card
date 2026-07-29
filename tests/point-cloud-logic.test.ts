@@ -3,10 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   normalizePointCloudApiPath,
+  pointCloudActivationErrorIsCurrent,
+  pointCloudClientFailure,
   pointCloudPathFromEntity,
   pointCloudProblemHint,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
+  pointCloudRetryDelayMs,
   signedPathFromResponse,
 } from "../src/point-cloud-logic.ts";
 
@@ -47,6 +50,37 @@ test("refresh is added before Home Assistant signs the path", () => {
 
   assert.equal(pointCloudRequestPath(path, false), path);
   assert.equal(pointCloudRequestPath(path, true), `${path}?refresh=1`);
+});
+
+test("obsolete Hero renderer failures cannot leak into a new card state", () => {
+  const path = "/api/dreame_lawn_mower/point-cloud/entry/0";
+
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(3, 3, "hero", "point-cloud", path),
+    true,
+  );
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(2, 3, "hero", "point-cloud", path),
+    false,
+  );
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(3, 3, "default", "point-cloud", path),
+    false,
+  );
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(3, 3, "hero", "map", path),
+    false,
+  );
+  assert.equal(
+    pointCloudActivationErrorIsCurrent(
+      3,
+      3,
+      "hero",
+      "point-cloud",
+      undefined,
+    ),
+    false,
+  );
 });
 
 test("signed path responses remain local", () => {
@@ -158,7 +192,7 @@ test("point-cloud guidance distinguishes access, retry, and report actions", () 
       detail: "Try later.",
       retryable: true,
     }),
-    /Try again/,
+    /retry automatically/,
   );
   assert.match(
     pointCloudProblemHint({
@@ -168,4 +202,46 @@ test("point-cloud guidance distinguishes access, retry, and report actions", () 
     }),
     /diagnostic reference/,
   );
+});
+
+test("point-cloud reconnect backoff honors server hints and stays bounded", () => {
+  const retryable = {
+    title: "Temporarily unavailable",
+    detail: "The mower connection was interrupted.",
+    retryable: true,
+  };
+  assert.equal(pointCloudRetryDelayMs(retryable, 0), 1_000);
+  assert.equal(pointCloudRetryDelayMs(retryable, 1), 2_000);
+  assert.equal(pointCloudRetryDelayMs(retryable, 2), 5_000);
+  assert.equal(pointCloudRetryDelayMs(retryable, 99), 30_000);
+  assert.equal(
+    pointCloudRetryDelayMs({ ...retryable, retryAfterSeconds: 8 }, 0),
+    8_000,
+  );
+  assert.equal(
+    pointCloudRetryDelayMs({ ...retryable, retryAfterSeconds: 600 }, 0),
+    30_000,
+  );
+  assert.equal(
+    pointCloudRetryDelayMs({ ...retryable, retryable: false }, 0),
+    undefined,
+  );
+});
+
+test("only delivery failures are retried automatically", () => {
+  const delivery = pointCloudClientFailure("delivery", false);
+  const parser = pointCloudClientFailure("parser", false);
+  const renderer = pointCloudClientFailure("renderer", false);
+  const timeout = pointCloudClientFailure("parser", true);
+
+  assert.equal(delivery.retryable, true);
+  assert.equal(pointCloudRetryDelayMs(delivery, 0), 1_000);
+  assert.equal(parser.retryable, false);
+  assert.equal(parser.stage, "parser");
+  assert.equal(pointCloudRetryDelayMs(parser, 0), undefined);
+  assert.equal(renderer.retryable, false);
+  assert.equal(renderer.stage, "renderer");
+  assert.equal(pointCloudRetryDelayMs(renderer, 0), undefined);
+  assert.equal(timeout.retryable, true);
+  assert.equal(timeout.stage, "delivery");
 });

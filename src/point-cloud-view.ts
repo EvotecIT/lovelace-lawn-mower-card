@@ -2,6 +2,8 @@ import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
 import {
   Box3,
+  BufferGeometry,
+  Float32BufferAttribute,
   PerspectiveCamera,
   Points,
   PointsMaterial,
@@ -9,18 +11,23 @@ import {
   Sphere,
   Vector3,
   WebGLRenderer,
+  Uint8BufferAttribute,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { PCDLoader } from "three/examples/jsm/loaders/PCDLoader.js";
 
 import {
   normalizePointCloudApiPath,
+  pointCloudClientFailure,
+  type PointCloudClientFailureStage,
   type PointCloudProblem,
   pointCloudProblemHint,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
+  pointCloudRetryDelayMs,
   signedPathFromResponse,
 } from "./point-cloud-logic";
+import { POINT_CLOUD_WORKER_SOURCE } from "./point-cloud-assets";
+import type { PointCloudWorkerResult } from "./point-cloud-worker";
 
 export type PointCloudHomeAssistant = {
   callWS<T>(message: Record<string, unknown>): Promise<T>;
@@ -31,25 +38,35 @@ type ViewerStatus = "idle" | "loading" | "ready" | "error";
 
 const EXPECTED_GENERATION_SECONDS = 45;
 const BROWSER_REQUEST_TIMEOUT_MS = 65_000;
+const DEFAULT_RENDER_POINT_LIMIT = 750_000;
+const LOW_MEMORY_RENDER_POINT_LIMIT = 300_000;
 
 @customElement("lawn-mower-point-cloud")
 export class LawnMowerPointCloud extends LitElement {
   @property({ attribute: false }) public hass?: PointCloudHomeAssistant;
   @property() public path?: string;
   @property({ type: Boolean }) public active = false;
+  @property({ type: Boolean }) public autoLoad = false;
   @property({ type: Boolean, reflect: true }) public compact = false;
 
   @query(".viewport") private _viewport?: HTMLDivElement;
 
   @state() private _status: ViewerStatus = "idle";
   @state() private _problem?: PointCloudProblem;
+  @state() private _downloadProblem?: PointCloudProblem;
   @state() private _loadingElapsedSeconds = 0;
   @state() private _pointCount?: number;
+  @state() private _renderedPointCount?: number;
   @state() private _pointSize = 1;
+  @state() private _refreshing = false;
+  @state() private _downloadPending = false;
+  @state() private _retryDelaySeconds?: number;
 
   private _abortController?: AbortController;
   private _loadingTimer?: number;
-  private _content?: ArrayBuffer;
+  private _retryTimer?: number;
+  private _retryAttempt = 0;
+  private _worker?: Worker;
   private _scene?: Scene;
   private _camera?: PerspectiveCamera;
   private _renderer?: WebGLRenderer;
@@ -57,6 +74,10 @@ export class LawnMowerPointCloud extends LitElement {
   private _points?: Points;
   private _resizeObserver?: ResizeObserver;
   private _basePointSize = 0.01;
+  private _downloadAbortController?: AbortController;
+  private _downloadGeneration = 0;
+  private _loadRequested = false;
+  private _reloadOnConnect = false;
 
   public static styles = css`
     :host {
@@ -167,6 +188,54 @@ export class LawnMowerPointCloud extends LitElement {
     .problem-detail,
     .problem-hint {
       margin: 0;
+    }
+
+    .download-error {
+      position: absolute;
+      z-index: 3;
+      right: 12px;
+      bottom: 68px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(239, 154, 145, 0.4);
+      border-radius: 10px;
+      padding: 9px 12px;
+      background: rgba(54, 20, 18, 0.94);
+      color: rgba(255, 235, 232, 0.96);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      font-size: 0.78rem;
+    }
+
+    .connection-notice {
+      position: absolute;
+      z-index: 3;
+      top: 12px;
+      right: 12px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid rgba(159, 202, 139, 0.4);
+      border-radius: 10px;
+      padding: 9px 12px;
+      background: rgba(21, 38, 20, 0.94);
+      color: rgba(239, 250, 235, 0.96);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      font-size: 0.78rem;
+    }
+
+    .connection-notice ha-icon {
+      --mdc-icon-size: 18px;
+      flex: 0 0 auto;
+      color: #9fca8b;
+    }
+
+    .download-error ha-icon {
+      --mdc-icon-size: 18px;
+      flex: 0 0 auto;
+      color: #ef9a91;
     }
 
     .problem-title {
@@ -337,7 +406,7 @@ export class LawnMowerPointCloud extends LitElement {
                       <button
                         type="button"
                         class="primary"
-                        @click=${() => this._load(false)}
+                        @click=${this._requestInitialLoad}
                       >
                         <ha-icon icon="mdi:cube-scan"></ha-icon>
                         <span>Load 3D map</span>
@@ -401,7 +470,7 @@ export class LawnMowerPointCloud extends LitElement {
                       `
                     : nothing}
                 </div>
-                ${path && this._problem?.retryable !== false
+                ${path
                   ? html`
                       <button
                         type="button"
@@ -421,11 +490,16 @@ export class LawnMowerPointCloud extends LitElement {
           ? html`
               <div class="toolbar" aria-label="3D map controls">
                 <span class="point-count">
-                  ${this._pointCount?.toLocaleString() || "0"} points
+                  ${this._renderedPointCount?.toLocaleString() || "0"}
+                  ${this._renderedPointCount !== this._pointCount
+                    ? `of ${this._pointCount?.toLocaleString() || "0"}`
+                    : ""}
+                  points
                 </span>
                 <label>
                   <span>Point size</span>
                   <input
+                    aria-label="Point size"
                     type="range"
                     min="0.4"
                     max="3"
@@ -434,18 +508,65 @@ export class LawnMowerPointCloud extends LitElement {
                     @input=${this._pointSizeChanged}
                   />
                 </label>
-                <button type="button" @click=${this._resetView}>
+                <button
+                  type="button"
+                  aria-label="Reset 3D map view"
+                  title="Reset 3D map view"
+                  @click=${this._resetView}
+                >
                   <ha-icon icon="mdi:camera-retake-outline"></ha-icon>
                   <span>Reset</span>
                 </button>
-                <button type="button" @click=${() => this._load(true)}>
+                <button
+                  type="button"
+                  aria-label="Refresh 3D map"
+                  title="Refresh 3D map"
+                  ?disabled=${this._refreshing}
+                  @click=${() => this._load(true)}
+                >
                   <ha-icon icon="mdi:refresh"></ha-icon>
                   <span>Refresh</span>
                 </button>
-                <button type="button" @click=${this._download}>
+                <button
+                  type="button"
+                  aria-label="Download original PCD"
+                  title="Download original PCD"
+                  aria-busy=${this._downloadPending ? "true" : "false"}
+                  ?disabled=${this._downloadPending}
+                  @click=${this._download}
+                >
                   <ha-icon icon="mdi:download"></ha-icon>
-                  <span>PCD</span>
+                  <span>${this._downloadPending ? "Downloading…" : "PCD"}</span>
                 </button>
+              </div>
+            `
+          : nothing}
+        ${this._points && (this._refreshing || this._problem)
+          ? html`
+              <div class="connection-notice" role="status" aria-live="polite">
+                <ha-icon icon="mdi:wifi-sync"></ha-icon>
+                <span>
+                  ${this._refreshing
+                    ? "Refreshing the 3D map…"
+                    : `${this._problem?.title || "3D map connection interrupted"}. ${
+                        this._retryDelaySeconds !== undefined
+                          ? `Retrying in ${this._retryDelaySeconds}s.`
+                          : "The last good 3D map remains available."
+                      }`}
+                </span>
+              </div>
+            `
+          : nothing}
+        ${this._downloadProblem
+          ? html`
+              <div class="download-error" role="alert">
+                <ha-icon icon="mdi:download-off-outline"></ha-icon>
+                <span>
+                  ${this._downloadProblem.title}: ${this._downloadProblem.detail}
+                  ${this._downloadProblem.code
+                    ? ` (${this._downloadProblem.code})`
+                    : ""}
+                </span>
               </div>
             `
           : nothing}
@@ -455,31 +576,95 @@ export class LawnMowerPointCloud extends LitElement {
 
   protected updated(changedProperties: PropertyValues<this>): void {
     if (changedProperties.has("path")) {
+      this._cancelRetry();
+      this._cancelDownload();
+      this._downloadProblem = undefined;
       this._abortController?.abort();
+      this._worker?.terminate();
+      this._worker = undefined;
       this._disposeScene();
-      this._content = undefined;
       this._status = "idle";
       this._problem = undefined;
       this._pointCount = undefined;
+      this._renderedPointCount = undefined;
+      this._refreshing = false;
+      this._retryAttempt = 0;
+      this._retryDelaySeconds = undefined;
+      this._loadRequested = this.autoLoad;
+      this._reloadOnConnect = false;
       this._stopLoadingTimer();
+    }
+    if (changedProperties.has("active") && !this.active) {
+      this._abortController?.abort();
+      this._cancelRetry();
+      this._refreshing = false;
+      if (!this._points && this._status === "loading") {
+        this._status = "idle";
+        this._problem = undefined;
+        this._stopLoadingTimer();
+      }
     }
     if (
       this.active &&
-      this._status === "idle" &&
+      (this.autoLoad || this._loadRequested) &&
+      (this._status === "idle" ||
+        (this._status === "error" && this._problem?.retryable !== false) ||
+        (this._status === "ready" && this._problem?.retryable === true)) &&
       (changedProperties.has("active") || changedProperties.has("path"))
     ) {
       void this._load(false);
     }
   }
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    if (!this.hasUpdated || !this._reloadOnConnect) {
+      return;
+    }
+    this._reloadOnConnect = false;
+    queueMicrotask(() => {
+      if (
+        this.isConnected &&
+        this.active &&
+        (this.autoLoad || this._loadRequested) &&
+        this._status === "idle"
+      ) {
+        // Reconnection should reuse a completed or stored point cloud. A
+        // transient browser/Wi-Fi interruption must not force another slow
+        // mower-side generation; only the explicit Refresh action does that.
+        void this._load(false);
+      }
+    });
+  }
+
   public disconnectedCallback(): void {
+    this._cancelDownload();
     this._abortController?.abort();
+    this._worker?.terminate();
+    this._worker = undefined;
+    this._cancelRetry();
     this._stopLoadingTimer();
     this._disposeScene();
+    this._pointCount = undefined;
+    this._renderedPointCount = undefined;
+    this._refreshing = false;
+    if (
+      this.active &&
+      (this.autoLoad || this._loadRequested) &&
+      this._problem?.retryable !== false
+    ) {
+      this._status = "idle";
+      this._reloadOnConnect = true;
+    } else if (this._status === "ready") {
+      this._status = this._problem ? "error" : "idle";
+    }
     super.disconnectedCallback();
   }
 
   private async _load(refresh: boolean): Promise<void> {
+    this._cancelRetry();
+    this._cancelDownload();
+    this._downloadProblem = undefined;
     const path = normalizePointCloudApiPath(this.path);
     if (!path || !this.hass) {
       this._status = "error";
@@ -496,7 +681,10 @@ export class LawnMowerPointCloud extends LitElement {
     this._abortController?.abort();
     const abortController = new AbortController();
     this._abortController = abortController;
-    this._status = "loading";
+    this._refreshing = Boolean(this._points);
+    if (!this._points) {
+      this._status = "loading";
+    }
     this._problem = undefined;
     this._startLoadingTimer();
     let browserTimedOut = false;
@@ -512,6 +700,7 @@ export class LawnMowerPointCloud extends LitElement {
       browserTimedOut = true;
       abortController.abort();
     }, BROWSER_REQUEST_TIMEOUT_MS);
+    let failureStage: PointCloudClientFailureStage = "delivery";
 
     try {
       const signed = await Promise.race([
@@ -550,11 +739,7 @@ export class LawnMowerPointCloud extends LitElement {
         ) {
           return;
         }
-        this._disposeScene();
-        this._content = undefined;
-        this._pointCount = undefined;
-        this._problem = problem;
-        this._status = "error";
+        this._handleLoadFailure(problem);
         return;
       }
       const content = await Promise.race([response.arrayBuffer(), aborted]);
@@ -565,18 +750,22 @@ export class LawnMowerPointCloud extends LitElement {
         return;
       }
 
-      const points = new PCDLoader().parse(content);
+      failureStage = "parser";
+      const parsed = await this._parsePointCloud(content, abortController.signal);
       if (
         this._abortController !== abortController ||
         abortController.signal.aborted
       ) {
-        points.geometry.dispose();
-        this._disposeMaterial(points.material);
         return;
       }
-      this._content = content;
-      this._pointCount = points.geometry.getAttribute("position")?.count || 0;
+      const points = this._pointsFromWorker(parsed);
+      this._pointCount = parsed.sourcePoints;
+      this._renderedPointCount = parsed.renderedPoints;
       this._status = "ready";
+      this._problem = undefined;
+      this._refreshing = false;
+      this._retryAttempt = 0;
+      this._retryDelaySeconds = undefined;
       await this.updateComplete;
       if (
         this._abortController !== abortController ||
@@ -586,6 +775,7 @@ export class LawnMowerPointCloud extends LitElement {
         this._disposeMaterial(points.material);
         return;
       }
+      failureStage = "renderer";
       this._mountPointCloud(points);
     } catch {
       if (this._abortController !== abortController) {
@@ -594,36 +784,55 @@ export class LawnMowerPointCloud extends LitElement {
       if (abortController.signal.aborted && !browserTimedOut) {
         return;
       }
-      this._disposeScene();
-      this._content = undefined;
-      this._pointCount = undefined;
-      this._status = "error";
-      this._problem = browserTimedOut
-        ? {
-            title: "Home Assistant did not answer in time",
-            detail:
-              "The 3D map request exceeded the 65-second browser safety limit.",
-            code: "point_cloud_browser_timeout",
-            stage: "delivery",
-            retryable: true,
-            elapsedMs: BROWSER_REQUEST_TIMEOUT_MS,
-            timeoutSeconds: BROWSER_REQUEST_TIMEOUT_MS / 1000,
-          }
-        : {
-            title: "3D map could not be loaded",
-            detail:
-              "Home Assistant could not sign, download, or parse the 3D map request.",
-            code: "point_cloud_card_failed",
-            stage: "card",
-            retryable: true,
-          };
+      const problem = pointCloudClientFailure(failureStage, browserTimedOut);
+      this._handleLoadFailure(problem);
     } finally {
       window.clearTimeout(requestTimeout);
       abortController.signal.removeEventListener("abort", handleAbort);
       if (this._abortController === abortController) {
+        this._refreshing = false;
         this._stopLoadingTimer();
       }
     }
+  }
+
+  private _requestInitialLoad = (): void => {
+    this._loadRequested = true;
+    this.dispatchEvent(
+      new CustomEvent("point-cloud-load-requested", {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    void this._load(false);
+  };
+
+  private _handleLoadFailure(problem: PointCloudProblem): void {
+    this._problem = problem;
+    this._refreshing = false;
+    this._status = this._points ? "ready" : "error";
+    const delay = pointCloudRetryDelayMs(problem, this._retryAttempt);
+    if (delay === undefined || !this.active || !this.isConnected) {
+      this._retryDelaySeconds = undefined;
+      return;
+    }
+    this._retryAttempt += 1;
+    this._retryDelaySeconds = Math.ceil(delay / 1000);
+    this._retryTimer = window.setTimeout(() => {
+      this._retryTimer = undefined;
+      this._retryDelaySeconds = undefined;
+      if (this.active && this.isConnected) {
+        void this._load(false);
+      }
+    }, delay);
+  }
+
+  private _cancelRetry(): void {
+    if (this._retryTimer !== undefined) {
+      window.clearTimeout(this._retryTimer);
+      this._retryTimer = undefined;
+    }
+    this._retryDelaySeconds = undefined;
   }
 
   private _mountPointCloud(points: Points): void {
@@ -662,11 +871,16 @@ export class LawnMowerPointCloud extends LitElement {
     camera.up.set(0, 0, 1);
     const renderer = new WebGLRenderer({
       alpha: true,
-      antialias: true,
+      antialias: (this._renderedPointCount || 0) < 300_000,
       powerPreference: "high-performance",
     });
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(
+      Math.min(
+        window.devicePixelRatio || 1,
+        (this._renderedPointCount || 0) < 300_000 ? 2 : 1.5,
+      ),
+    );
     viewport.replaceChildren(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -738,21 +952,157 @@ export class LawnMowerPointCloud extends LitElement {
     }
   };
 
-  private _download = (): void => {
-    if (!this._content) {
+  private _download = async (): Promise<void> => {
+    const path = normalizePointCloudApiPath(this.path);
+    if (!path || !this.hass || this._downloadPending) {
       return;
     }
-    const blob = new Blob([this._content], {
-      type: "application/octet-stream",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    const pathSegments = this.path?.split("/") || [];
-    anchor.href = url;
-    anchor.download = `dreame-map-${pathSegments[pathSegments.length - 1] || "0"}.pcd`;
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    const generation = ++this._downloadGeneration;
+    const abortController = new AbortController();
+    this._downloadAbortController = abortController;
+    this._downloadPending = true;
+    this._downloadProblem = undefined;
+    const isCurrentDownload = (): boolean =>
+      generation === this._downloadGeneration &&
+      path === normalizePointCloudApiPath(this.path) &&
+      !abortController.signal.aborted;
+    try {
+      const signed = await this.hass.callWS<unknown>({
+        type: "auth/sign_path",
+        path: pointCloudRequestPath(path, false),
+        expires: 60,
+      });
+      if (!isCurrentDownload()) {
+        return;
+      }
+      const signedPath = signedPathFromResponse(signed);
+      if (!signedPath) {
+        throw new Error("Home Assistant returned an invalid signed path.");
+      }
+      const response = await fetch(this.hass.hassUrl(signedPath), {
+        credentials: "same-origin",
+        signal: abortController.signal,
+      });
+      if (!response.ok) {
+        const problem = await pointCloudProblemFromResponse(response);
+        if (isCurrentDownload()) {
+          this._downloadProblem = problem;
+        }
+        return;
+      }
+      const blob = await response.blob();
+      if (!isCurrentDownload()) {
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const pathSegments = this.path?.split("/") || [];
+      anchor.href = url;
+      anchor.download =
+        `dreame-map-${pathSegments[pathSegments.length - 1] || "0"}.pcd`;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      if (isCurrentDownload()) {
+        this._downloadProblem = {
+          title: "PCD download failed",
+          detail:
+            "Home Assistant could not sign or download the original point-cloud file.",
+          code: "point_cloud_download_failed",
+          stage: "download",
+          retryable: true,
+        };
+      }
+    } finally {
+      if (generation === this._downloadGeneration) {
+        this._downloadAbortController = undefined;
+        this._downloadPending = false;
+      }
+    }
   };
+
+  private _cancelDownload(): void {
+    this._downloadGeneration += 1;
+    this._downloadAbortController?.abort();
+    this._downloadAbortController = undefined;
+    this._downloadPending = false;
+  }
+
+  private async _parsePointCloud(
+    content: ArrayBuffer,
+    signal: AbortSignal,
+  ): Promise<PointCloudWorkerResult> {
+    this._worker?.terminate();
+    const workerUrl = URL.createObjectURL(
+      new Blob([POINT_CLOUD_WORKER_SOURCE], { type: "text/javascript" }),
+    );
+    const worker = new Worker(workerUrl, {
+      name: "lawn-mower-point-cloud",
+    });
+    URL.revokeObjectURL(workerUrl);
+    this._worker = worker;
+    const id = Date.now();
+    const deviceMemory = Number(
+      (navigator as Navigator & { deviceMemory?: number }).deviceMemory,
+    );
+    const maxPoints =
+      Number.isFinite(deviceMemory) && deviceMemory <= 4
+        ? LOW_MEMORY_RENDER_POINT_LIMIT
+        : DEFAULT_RENDER_POINT_LIMIT;
+    return await new Promise<PointCloudWorkerResult>((resolve, reject) => {
+      const finish = (): void => {
+        signal.removeEventListener("abort", abort);
+        worker.terminate();
+        if (this._worker === worker) {
+          this._worker = undefined;
+        }
+      };
+      const abort = (): void => {
+        finish();
+        reject(new Error("Point-cloud parsing was aborted."));
+      };
+      signal.addEventListener("abort", abort, { once: true });
+      worker.onerror = (event): void => {
+        finish();
+        reject(new Error(event.message || "Point-cloud worker failed."));
+      };
+      worker.onmessage = (
+        event: MessageEvent<PointCloudWorkerResult & { error?: string }>,
+      ): void => {
+        if (event.data.id !== id) {
+          return;
+        }
+        finish();
+        if (event.data.error) {
+          reject(new Error(event.data.error));
+          return;
+        }
+        resolve(event.data);
+      };
+      worker.postMessage({ id, content, maxPoints }, [content]);
+    });
+  }
+
+  private _pointsFromWorker(result: PointCloudWorkerResult): Points {
+    const geometry = new BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new Float32BufferAttribute(new Float32Array(result.positions), 3),
+    );
+    if (result.colors) {
+      geometry.setAttribute(
+        "color",
+        new Uint8BufferAttribute(new Uint8Array(result.colors), 3, true),
+      );
+    }
+    const material = new PointsMaterial({
+      color: 0xffffff,
+      size: 1,
+      sizeAttenuation: true,
+      vertexColors: result.hasColors,
+    });
+    return new Points(geometry, material);
+  }
 
   private _startLoadingTimer(): void {
     this._stopLoadingTimer();
