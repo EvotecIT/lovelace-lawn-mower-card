@@ -783,6 +783,31 @@ export function prioritizedHeaderSummary(
   return [...new Set([...configured, ...automatic])].slice(0, limit);
 }
 
+export function resolvedMowerLiveVideoEntity(
+  states: HassStates,
+  mowerEntityId: string,
+  entities?: EntityRegistryEntries,
+  options: { includeIneligible?: boolean } = {},
+): string | undefined {
+  const entityId = resolvedMowerCompanionEntity(
+    states,
+    mowerEntityId,
+    entities,
+    "camera",
+    "live_video",
+    "video",
+  );
+  if (!entityId || options.includeIneligible) {
+    return entityId;
+  }
+  return cameraCanBeAutoSelected(
+    states[entityId],
+    states[mowerEntityId],
+  )
+    ? entityId
+    : undefined;
+}
+
 export function defaultHelperEntities(
   states: HassStates,
   mowerEntityId: string,
@@ -805,20 +830,15 @@ export function defaultHelperEntities(
       ...roles,
     );
 
-  const liveVideoEntityId = resolveCompanion(
-    "camera",
-    "live_video",
-    "video",
+  const liveVideoEntityId = resolvedMowerLiveVideoEntity(
+    states,
+    mowerEntityId,
+    entities,
   );
-  const mower = states[mowerEntityId];
 
   const candidates: Array<Omit<HelperEntity, "entityId"> & { entityId?: string }> = [
     {
-      entityId:
-        liveVideoEntityId &&
-        cameraCanBeAutoSelected(states[liveVideoEntityId], mower)
-          ? liveVideoEntityId
-          : undefined,
+      entityId: liveVideoEntityId,
       label: "Live Video",
       icon: "mdi:video-wireless-outline",
     },

@@ -24,6 +24,7 @@ import {
   resolvedControlEntities,
   resolvedCoverageEntityIds,
   resolvedMowerCompanionEntity,
+  resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
@@ -279,6 +280,34 @@ test("camera autofill follows explicit tri-state capabilities", () => {
       "lawn_mower.garden",
     ).some((helper) => helper.label === "Live Video"),
     false,
+  );
+});
+
+test("prior autofill recognition includes a camera that is now ineligible", () => {
+  const states = {
+    "lawn_mower.garden": entity("docked", {
+      feature_capabilities: {
+        live_video: { state: "unsupported", source: "model" },
+      },
+    }),
+    "camera.garden_live_video": entity("unavailable", {
+      video_capability: "unsupported",
+      video_capability_source: "model",
+    }),
+  };
+
+  assert.equal(
+    resolvedMowerLiveVideoEntity(states, "lawn_mower.garden"),
+    undefined,
+  );
+  assert.equal(
+    resolvedMowerLiveVideoEntity(
+      states,
+      "lawn_mower.garden",
+      undefined,
+      { includeIneligible: true },
+    ),
+    "camera.garden_live_video",
   );
 });
 

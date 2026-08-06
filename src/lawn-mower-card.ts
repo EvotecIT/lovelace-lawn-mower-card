@@ -19,6 +19,7 @@ import {
   prioritizedHeaderSummary,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
+  resolvedMowerLiveVideoEntity,
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
 } from "./card-logic";
@@ -4454,7 +4455,10 @@ export class LawnMowerCardEditor extends LitElement {
     next: LawnMowerCardConfig,
     previous: LawnMowerCardConfig,
   ) {
-    const previousDetected = this._autoDetectedCompanions(previous.entity);
+    const previousDetected = this._autoDetectedCompanions(
+      previous.entity,
+      true,
+    );
     const nextDetected = this._autoDetectedCompanions(next.entity);
 
     this._replaceAutoEntityField("map_entity", next, previousDetected, nextDetected);
@@ -4501,7 +4505,10 @@ export class LawnMowerCardEditor extends LitElement {
     }
   }
 
-  private _autoDetectedCompanions(entityId?: string): Partial<LawnMowerCardConfig> {
+  private _autoDetectedCompanions(
+    entityId?: string,
+    recognizePriorCamera = false,
+  ): Partial<LawnMowerCardConfig> {
     if (!entityId || !this.hass?.states) {
       return {};
     }
@@ -4532,11 +4539,12 @@ export class LawnMowerCardEditor extends LitElement {
       companion("camera", "all_maps"),
       companion("camera", "map_data"),
     );
-    const cameraEntity = defaultHelperEntities(
+    const cameraEntity = resolvedMowerLiveVideoEntity(
       this.hass.states,
       entityId,
       this.hass.entities,
-    ).find((helper) => helper.label === "Live Video")?.entityId;
+      { includeIneligible: recognizePriorCamera },
+    );
 
     return {
       map_entity: mapEntity,
