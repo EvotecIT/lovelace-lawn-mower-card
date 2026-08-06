@@ -183,6 +183,23 @@ export function cameraCanBePresented(
   );
 }
 
+export function cameraCanBeAutoSelected(entity: MinimalHassEntity): boolean {
+  const attributes = entity.attributes;
+  const explicitlyUnsupported = Boolean(
+    attributes?.video_capability_advertised === false &&
+      attributes.video_capability_observed === false &&
+      attributes.xp2p_provisioning_cached !== true &&
+      attributes.lan_video_endpoint_cached !== true,
+  );
+  if (explicitlyUnsupported) {
+    return false;
+  }
+  return (
+    cameraCanBePresented(entity, false) ||
+    cameraCanRecoverWhileUnavailable(entity)
+  );
+}
+
 export function firstAvailableEntity<T extends MinimalHassEntity>(
   entities: readonly (T | undefined)[],
 ): T | undefined {
@@ -648,9 +665,14 @@ export function defaultHelperEntities(
     return matches.length === 1 ? matches[0] : undefined;
   };
 
+  const liveVideoEntityId = resolveCompanion("camera", "live_video");
+
   const candidates: Array<Omit<HelperEntity, "entityId"> & { entityId?: string }> = [
     {
-      entityId: resolveCompanion("camera", "live_video"),
+      entityId:
+        liveVideoEntityId && cameraCanBeAutoSelected(states[liveVideoEntityId])
+          ? liveVideoEntityId
+          : undefined,
       label: "Live Video",
       icon: "mdi:video-wireless-outline",
     },

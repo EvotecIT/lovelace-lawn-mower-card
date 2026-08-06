@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   autoDetectedControlEntities,
   cameraBlockReason,
+  cameraCanBeAutoSelected,
   cameraCanBePresented,
   cameraCanRecoverWhileUnavailable,
   cameraImageUrl,
@@ -163,6 +164,37 @@ test("unavailable safety-blocked cameras remain presentable without recovery", (
   assert.equal(cameraCanBePresented(blocked, false), true);
   assert.equal(cameraCanBePresented(reconnecting, false), false);
   assert.equal(cameraCanBePresented(reconnecting, true), true);
+});
+
+test("camera autofill excludes explicitly unsupported video entities", () => {
+  const unsupported: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_capability_advertised: false,
+      video_capability_observed: false,
+      xp2p_provisioning_cached: false,
+      lan_video_endpoint_cached: false,
+    },
+  };
+  const cachedRoute: MinimalHassEntity = {
+    ...unsupported,
+    attributes: {
+      ...unsupported.attributes,
+      xp2p_provisioning_cached: true,
+    },
+  };
+
+  assert.equal(cameraCanBeAutoSelected(unsupported), false);
+  assert.equal(cameraCanBeAutoSelected(cachedRoute), true);
+  assert.equal(cameraCanBeAutoSelected(entity("unavailable")), false);
+  assert.equal(cameraCanBeAutoSelected(entity("idle")), true);
+  assert.equal(
+    defaultHelperEntities(
+      { "camera.garden_live_video": unsupported },
+      "lawn_mower.garden",
+    ).some((helper) => helper.label === "Live Video"),
+    false,
+  );
 });
 
 test("progress fallback skips unavailable companion entities", () => {
