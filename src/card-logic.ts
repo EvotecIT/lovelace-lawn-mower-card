@@ -19,6 +19,22 @@ export type CoverageEntityIds = {
   total?: string;
 };
 
+export type FeatureCapabilityState =
+  | "supported"
+  | "unsupported"
+  | "unknown";
+
+export type FeatureCapabilitySource =
+  | "observed"
+  | "model"
+  | "advertised"
+  | "unknown";
+
+type FeatureCapabilityEvidence = {
+  state: FeatureCapabilityState;
+  source: FeatureCapabilitySource;
+};
+
 export type NumberControlSettings = {
   value: number;
   min: number;
@@ -173,6 +189,21 @@ export function cameraCanRecoverWhileUnavailable(
 export function cameraCanBePresented(
   entity: MinimalHassEntity,
   recoveryPlayerMounted: boolean,
+  mower?: MinimalHassEntity,
+): boolean {
+  const capability = resolvedLiveVideoCapability(entity, mower);
+  if (capability === "unsupported") {
+    return false;
+  }
+  if (capability === "supported") {
+    return true;
+  }
+  return configuredCameraCanBePresented(entity, recoveryPlayerMounted);
+}
+
+export function configuredCameraCanBePresented(
+  entity: MinimalHassEntity,
+  recoveryPlayerMounted: boolean,
 ): boolean {
   const state = entity.state.trim().toLowerCase();
   return Boolean(
@@ -180,6 +211,133 @@ export function cameraCanBePresented(
       !["unknown", "unavailable", ""].includes(state) ||
       (recoveryPlayerMounted &&
         cameraCanRecoverWhileUnavailable(entity)),
+  );
+}
+
+export function featureCapabilityState(
+  entity: MinimalHassEntity | undefined,
+  feature: string,
+): FeatureCapabilityState | undefined {
+  return featureCapabilityEvidence(entity, feature)?.state;
+}
+
+function featureCapabilityEvidence(
+  entity: MinimalHassEntity | undefined,
+  feature: string,
+): FeatureCapabilityEvidence | undefined {
+  const capabilities = entity?.attributes?.feature_capabilities;
+  if (
+    !capabilities ||
+    typeof capabilities !== "object" ||
+    Array.isArray(capabilities)
+  ) {
+    return undefined;
+  }
+  const value = (capabilities as Record<string, unknown>)[feature];
+  const stateValue =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>).state
+      : value;
+  const state = normalizedCapabilityState(stateValue);
+  if (!state) {
+    return undefined;
+  }
+  const sourceValue =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>).source
+      : undefined;
+  return {
+    state,
+    source: normalizedCapabilitySource(sourceValue) ?? "unknown",
+  };
+}
+
+function normalizedCapabilityState(
+  value: unknown,
+): FeatureCapabilityState | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  return ["supported", "unsupported", "unknown"].includes(normalized)
+    ? (normalized as FeatureCapabilityState)
+    : undefined;
+}
+
+function normalizedCapabilitySource(
+  value: unknown,
+): FeatureCapabilitySource | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  return ["observed", "model", "advertised", "unknown"].includes(normalized)
+    ? (normalized as FeatureCapabilitySource)
+    : undefined;
+}
+
+function cameraCapabilityEvidence(
+  entity: MinimalHassEntity,
+): FeatureCapabilityEvidence | undefined {
+  const state = normalizedCapabilityState(entity.attributes?.video_capability);
+  if (!state) {
+    return undefined;
+  }
+  return {
+    state,
+    source:
+      normalizedCapabilitySource(entity.attributes?.video_capability_source) ??
+      "unknown",
+  };
+}
+
+function resolvedLiveVideoCapability(
+  entity: MinimalHassEntity,
+  mower?: MinimalHassEntity,
+): FeatureCapabilityState | undefined {
+  const candidates = [
+    featureCapabilityEvidence(mower, "live_video"),
+    cameraCapabilityEvidence(entity),
+  ].filter(
+    (candidate): candidate is FeatureCapabilityEvidence =>
+      Boolean(candidate && candidate.state !== "unknown"),
+  );
+  if (!candidates.length) {
+    return undefined;
+  }
+  const priority: Record<FeatureCapabilitySource, number> = {
+    observed: 3,
+    model: 2,
+    advertised: 1,
+    unknown: 0,
+  };
+  const strongest = Math.max(
+    ...candidates.map((candidate) => priority[candidate.source]),
+  );
+  const strongestCandidates = candidates.filter(
+    (candidate) => priority[candidate.source] === strongest,
+  );
+  return strongestCandidates.some(
+    (candidate) => candidate.state === "unsupported",
+  )
+    ? "unsupported"
+    : "supported";
+}
+
+export function cameraCanBeAutoSelected(
+  entity: MinimalHassEntity,
+  mower?: MinimalHassEntity,
+): boolean {
+  const capability = resolvedLiveVideoCapability(entity, mower);
+  if (capability === "unsupported") {
+    return false;
+  }
+  if (capability === "supported") {
+    return true;
+  }
+  return (
+    cameraCanBePresented(entity, false) ||
+    cameraCanRecoverWhileUnavailable(entity)
   );
 }
 
@@ -244,8 +402,8 @@ function resolveMowerCompanionEntity(
       const mowerEntry = entities?.[mowerEntityId];
       const candidateEntry = entities?.[entityId];
       if (
-        !requireRegistryOwnership ||
-        registryOwnersMatch(mowerEntry, candidateEntry)
+        registryOwnersMatch(mowerEntry, candidateEntry) ||
+        (!requireRegistryOwnership && (!mowerEntry || !candidateEntry))
       ) {
         return entityId;
       }
@@ -625,42 +783,72 @@ export function prioritizedHeaderSummary(
   return [...new Set([...configured, ...automatic])].slice(0, limit);
 }
 
+export function resolvedMowerLiveVideoEntity(
+  states: HassStates,
+  mowerEntityId: string,
+  entities?: EntityRegistryEntries,
+  options: { includeIneligible?: boolean } = {},
+): string | undefined {
+  const entityId = resolvedMowerCompanionEntity(
+    states,
+    mowerEntityId,
+    entities,
+    "camera",
+    "live_video",
+    "video",
+  );
+  if (!entityId || options.includeIneligible) {
+    return entityId;
+  }
+  return cameraCanBeAutoSelected(
+    states[entityId],
+    states[mowerEntityId],
+  )
+    ? entityId
+    : undefined;
+}
+
 export function defaultHelperEntities(
   states: HassStates,
   mowerEntityId: string,
+  entities?: EntityRegistryEntries,
 ): HelperEntity[] {
   const objectId = mowerObjectId(mowerEntityId);
   if (!objectId) {
     return [];
   }
 
-  const resolveCompanion = (domain: string, suffix: string): string | undefined => {
-    const exact = `${domain}.${objectId}_${suffix}`;
-    if (states[exact]) {
-      return exact;
-    }
-
-    const areaPrefixedSuffix = `_${objectId}_${suffix}`;
-    const matches = entityIndex(states).byDomain(domain).filter(
-      (entityId) =>
-        entityId.endsWith(areaPrefixedSuffix),
+  const resolveCompanion = (
+    domain: string,
+    ...roles: readonly string[]
+  ): string | undefined =>
+    resolvedMowerCompanionEntity(
+      states,
+      mowerEntityId,
+      entities,
+      domain,
+      ...roles,
     );
-    return matches.length === 1 ? matches[0] : undefined;
-  };
+
+  const liveVideoEntityId = resolvedMowerLiveVideoEntity(
+    states,
+    mowerEntityId,
+    entities,
+  );
 
   const candidates: Array<Omit<HelperEntity, "entityId"> & { entityId?: string }> = [
     {
-      entityId: resolveCompanion("camera", "live_video"),
+      entityId: liveVideoEntityId,
       label: "Live Video",
       icon: "mdi:video-wireless-outline",
     },
     {
-      entityId: resolveCompanion("calendar", "schedule"),
+      entityId: resolveCompanion("calendar", "schedule", "schedules"),
       label: "Schedule",
       icon: "mdi:calendar",
     },
     {
-      entityId: resolveCompanion("camera", "live_path_map"),
+      entityId: resolveCompanion("camera", "live_path_map", "map"),
       label: "Live Map",
       icon: "mdi:map-marker-path",
     },

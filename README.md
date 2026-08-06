@@ -113,6 +113,30 @@ The editor also supports explicit companion entities, control selectors,
 summary chips, extra tiles, custom actions, and advanced planning and telemetry
 without requiring raw configuration changes.
 
+### Integration compatibility
+
+Any integration that exposes a standard Home Assistant `lawn_mower` entity can
+use the card's state display and start, pause, and dock controls. Richer
+automatic setup works best when companion cameras, calendars, sensors, selects,
+switches, and buttons belong to the same Home Assistant device and use stable
+translation keys such as `live_video`, `map`, or `schedule`. Entity names may be
+changed by the user; device ownership and translation keys are therefore
+preferred over name matching.
+
+Integrations may expose optional tri-state feature metadata on the mower entity:
+
+```yaml
+feature_capabilities:
+  live_video:
+    state: supported # supported, unsupported, or unknown
+    source: advertised # model, advertised, observed, or unknown
+```
+
+Missing metadata means unknown, not unsupported. The card continues normal
+entity discovery for unknown features and always honors explicitly configured
+entities. Integration-specific services can be added as custom actions without
+changing the generic mower controls.
+
 ### Custom Hero background
 
 Select the **Hero** layout to reveal a **Hero appearance** section in the visual

@@ -4,15 +4,18 @@ import assert from "node:assert/strict";
 import {
   autoDetectedControlEntities,
   cameraBlockReason,
+  cameraCanBeAutoSelected,
   cameraCanBePresented,
   cameraCanRecoverWhileUnavailable,
   cameraImageUrl,
   cameraReconnectDelayMs,
   cameraRecoveryMarker,
   cameraRecoveryVerified,
+  configuredCameraCanBePresented,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
+  featureCapabilityState,
   firstAvailableEntity,
   heroViewRestorationAllowed,
   isPreferenceControlEntity,
@@ -21,6 +24,7 @@ import {
   resolvedControlEntities,
   resolvedCoverageEntityIds,
   resolvedMowerCompanionEntity,
+  resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
@@ -163,6 +167,178 @@ test("unavailable safety-blocked cameras remain presentable without recovery", (
   assert.equal(cameraCanBePresented(blocked, false), true);
   assert.equal(cameraCanBePresented(reconnecting, false), false);
   assert.equal(cameraCanBePresented(reconnecting, true), true);
+  assert.equal(
+    cameraCanBePresented(
+      {
+        state: "unavailable",
+        attributes: {
+          video_capability: "supported",
+          video_capability_source: "model",
+        },
+      },
+      false,
+    ),
+    true,
+  );
+});
+
+test("explicit cameras do not inherit mower capability gating", () => {
+  const unrelatedCamera = entity("idle");
+  const mower: MinimalHassEntity = {
+    state: "docked",
+    attributes: {
+      feature_capabilities: {
+        live_video: { state: "unsupported", source: "model" },
+      },
+    },
+  };
+
+  assert.equal(cameraCanBePresented(unrelatedCamera, false, mower), false);
+  assert.equal(configuredCameraCanBePresented(unrelatedCamera, false), true);
+});
+
+test("camera autofill follows explicit tri-state capabilities", () => {
+  const unsupported: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_capability: "unsupported",
+    },
+  };
+  const supported: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_capability: "supported",
+    },
+  };
+  const mowerSupported: MinimalHassEntity = {
+    state: "docked",
+    attributes: {
+      feature_capabilities: {
+        live_video: { state: "supported", source: "model" },
+      },
+    },
+  };
+  const mowerUnknown: MinimalHassEntity = {
+    state: "docked",
+    attributes: {
+      feature_capabilities: {
+        live_video: { state: "unknown", source: "unknown" },
+      },
+    },
+  };
+  const mowerModelUnsupported: MinimalHassEntity = {
+    state: "docked",
+    attributes: {
+      feature_capabilities: {
+        live_video: { state: "unsupported", source: "model" },
+      },
+    },
+  };
+  const mowerAdvertisedSupported: MinimalHassEntity = {
+    state: "docked",
+    attributes: {
+      feature_capabilities: {
+        live_video: { state: "supported", source: "advertised" },
+      },
+    },
+  };
+  const cameraObservedSupported: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_capability: "supported",
+      video_capability_source: "observed",
+    },
+  };
+  const cameraModelUnsupported: MinimalHassEntity = {
+    state: "unavailable",
+    attributes: {
+      video_capability: "unsupported",
+      video_capability_source: "model",
+    },
+  };
+
+  assert.equal(cameraCanBeAutoSelected(unsupported), false);
+  assert.equal(cameraCanBeAutoSelected(supported), true);
+  assert.equal(
+    cameraCanBeAutoSelected(entity("unavailable"), mowerSupported),
+    true,
+  );
+  assert.equal(cameraCanBeAutoSelected(unsupported, mowerUnknown), false);
+  assert.equal(
+    cameraCanBeAutoSelected(cameraObservedSupported, mowerModelUnsupported),
+    true,
+  );
+  assert.equal(
+    cameraCanBeAutoSelected(cameraModelUnsupported, mowerAdvertisedSupported),
+    false,
+  );
+  assert.equal(cameraCanBeAutoSelected(entity("unavailable")), false);
+  assert.equal(cameraCanBeAutoSelected(entity("idle")), true);
+  assert.equal(
+    defaultHelperEntities(
+      { "camera.garden_live_video": unsupported },
+      "lawn_mower.garden",
+    ).some((helper) => helper.label === "Live Video"),
+    false,
+  );
+});
+
+test("prior autofill recognition includes a camera that is now ineligible", () => {
+  const states = {
+    "lawn_mower.garden": entity("docked", {
+      feature_capabilities: {
+        live_video: { state: "unsupported", source: "model" },
+      },
+    }),
+    "camera.garden_live_video": entity("unavailable", {
+      video_capability: "unsupported",
+      video_capability_source: "model",
+    }),
+  };
+
+  assert.equal(
+    resolvedMowerLiveVideoEntity(states, "lawn_mower.garden"),
+    undefined,
+  );
+  assert.equal(
+    resolvedMowerLiveVideoEntity(
+      states,
+      "lawn_mower.garden",
+      undefined,
+      { includeIneligible: true },
+    ),
+    "camera.garden_live_video",
+  );
+});
+
+test("feature capability parsing accepts compact and detailed contracts", () => {
+  assert.equal(
+    featureCapabilityState(
+      {
+        state: "docked",
+        attributes: {
+          feature_capabilities: {
+            live_video: { state: "supported", source: "advertised" },
+          },
+        },
+      },
+      "live_video",
+    ),
+    "supported",
+  );
+  assert.equal(
+    featureCapabilityState(
+      {
+        state: "docked",
+        attributes: {
+          feature_capabilities: { live_video: "unknown" },
+        },
+      },
+      "live_video",
+    ),
+    "unknown",
+  );
+  assert.equal(featureCapabilityState(entity("docked"), "live_video"), undefined);
 });
 
 test("progress fallback skips unavailable companion entities", () => {
@@ -468,6 +644,16 @@ test("owned mower companion discovery skips an unowned exact-name collision", ()
     ),
     "select.area_garden_zone",
   );
+  assert.equal(
+    resolvedMowerCompanionEntity(
+      states,
+      "lawn_mower.garden",
+      entities,
+      "select",
+      "zone",
+    ),
+    "select.area_garden_zone",
+  );
 });
 
 test("legacy Dreame entity names remain discoverable after preference renames", () => {
@@ -684,5 +870,41 @@ test("default helpers expose user features and omit diagnostics", () => {
   assert.equal(
     defaultHelperEntities(states, "lawn_mower.garden").at(-1)?.action,
     "press",
+  );
+});
+
+test("default helpers discover renamed companions from the mower device registry", () => {
+  const states = {
+    "lawn_mower.garden": entity("docked"),
+    "camera.front_yard_security_feed": entity("idle"),
+    "camera.front_yard_render": entity("idle"),
+  };
+  const entities = {
+    "lawn_mower.garden": {
+      platform: "another_mower",
+      device_id: "garden-device",
+    },
+    "camera.front_yard_security_feed": {
+      platform: "another_mower",
+      device_id: "garden-device",
+      translation_key: "live_video",
+    },
+    "camera.front_yard_render": {
+      platform: "another_mower",
+      device_id: "garden-device",
+      translation_key: "map",
+    },
+  };
+
+  assert.deepEqual(
+    defaultHelperEntities(
+      states,
+      "lawn_mower.garden",
+      entities,
+    ).map(({ entityId, label }) => [entityId, label]),
+    [
+      ["camera.front_yard_security_feed", "Live Video"],
+      ["camera.front_yard_render", "Live Map"],
+    ],
   );
 });
