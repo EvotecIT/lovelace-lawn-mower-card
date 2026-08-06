@@ -8,6 +8,7 @@ import {
   cameraReconnectDelayMs,
   cameraRecoveryMarker,
   cameraRecoveryVerified,
+  configuredCameraCanBePresented,
   configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
@@ -1326,15 +1327,22 @@ export class LawnMowerCard extends LitElement {
     const candidateCameraEntity = this._cameraCandidate();
     const cameraEntity =
       candidateCameraEntity &&
-      cameraCanBePresented(
-        candidateCameraEntity,
-        this._cameraMounted,
-      )
+      (this._config.camera_entity
+        ? configuredCameraCanBePresented(
+            candidateCameraEntity,
+            this._cameraMounted,
+          )
+        : cameraCanBePresented(
+            candidateCameraEntity,
+            this._cameraMounted,
+            mower,
+          ))
         ? candidateCameraEntity
         : undefined;
     const maintenancePointButton = defaultHelperEntities(
       this.hass.states,
       this._config.entity,
+      this.hass.entities,
     ).find((helper) => helper.action === "press");
     const configuredMapEntity = this._config.map_entity
       ? this.hass.states[this._config.map_entity]
@@ -1591,7 +1599,11 @@ export class LawnMowerCard extends LitElement {
     }
     const cameraEntityId =
       this._config.camera_entity ||
-      defaultHelperEntities(this.hass.states, this._config.entity).find(
+      defaultHelperEntities(
+        this.hass.states,
+        this._config.entity,
+        this.hass.entities,
+      ).find(
         (helper) => helper.label === "Live Video",
       )?.entityId;
     return cameraEntityId ? this.hass.states[cameraEntityId] : undefined;
@@ -2126,7 +2138,11 @@ export class LawnMowerCard extends LitElement {
     if (!this._config) {
       return [];
     }
-    return defaultHelperEntities(this.hass.states, this._config.entity).map((helper) => ({
+    return defaultHelperEntities(
+      this.hass.states,
+      this._config.entity,
+      this.hass.entities,
+    ).map((helper) => ({
       label: helper.label,
       icon: helper.icon,
       disabled:
@@ -4495,10 +4511,17 @@ export class LawnMowerCardEditor extends LitElement {
       return {};
     }
 
-    const companion = (domain: string, suffix: string): string | undefined => {
-      const candidate = `${domain}.${objectId}_${suffix}`;
-      return this.hass.states[candidate] ? candidate : undefined;
-    };
+    const companion = (
+      domain: string,
+      ...roles: readonly string[]
+    ): string | undefined =>
+      resolvedMowerCompanionEntity(
+        this.hass.states,
+        entityId,
+        this.hass.entities,
+        domain,
+        ...roles,
+      );
 
     const first = (...values: Array<string | undefined>): string | undefined =>
       values.find((value) => Boolean(value));
@@ -4509,9 +4532,11 @@ export class LawnMowerCardEditor extends LitElement {
       companion("camera", "all_maps"),
       companion("camera", "map_data"),
     );
-    const cameraEntity = defaultHelperEntities(this.hass.states, entityId).find(
-      (helper) => helper.label === "Live Video",
-    )?.entityId;
+    const cameraEntity = defaultHelperEntities(
+      this.hass.states,
+      entityId,
+      this.hass.entities,
+    ).find((helper) => helper.label === "Live Video")?.entityId;
 
     return {
       map_entity: mapEntity,
