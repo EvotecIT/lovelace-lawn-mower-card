@@ -911,6 +911,34 @@
             ],
           },
         },
+        "switch.backyard_mower_charging_period": {
+          entity_id: "switch.backyard_mower_charging_period",
+          state: "on",
+          attributes: { friendly_name: "Charging period" },
+        },
+        "time.backyard_mower_charging_period_start": {
+          entity_id: "time.backyard_mower_charging_period_start",
+          state: "18:00:00",
+          attributes: { friendly_name: "Charging period start" },
+        },
+        "time.backyard_mower_charging_period_end": {
+          entity_id: "time.backyard_mower_charging_period_end",
+          state: "08:00:00",
+          attributes: { friendly_name: "Charging period end" },
+        },
+        "switch.backyard_mower_rain_protection": {
+          entity_id: "switch.backyard_mower_rain_protection",
+          state: "on",
+          attributes: { friendly_name: "Rain protection" },
+        },
+        "select.backyard_mower_rain_delay": {
+          entity_id: "select.backyard_mower_rain_delay",
+          state: "8 hours",
+          attributes: {
+            friendly_name: "After-rain delay",
+            options: ["0 hours", "1 hour", "2 hours", "4 hours", "8 hours"],
+          },
+        },
         "select.backyard_mower_selected_map_preference_mode": {
           entity_id: "select.backyard_mower_selected_map_preference_mode",
           state: "Global",
@@ -1186,6 +1214,18 @@
               stateStore[entityId] = {
                 ...stateStore[entityId],
                 state: String(data.value),
+              };
+              for (const card of Object.values(cards)) {
+                card.requestUpdate();
+              }
+            }
+          }
+          if (domain === "time" && service === "set_value") {
+            const entityId = data?.entity_id;
+            if (typeof entityId === "string" && stateStore[entityId]) {
+              stateStore[entityId] = {
+                ...stateStore[entityId],
+                state: String(data.time),
               };
               for (const card of Object.values(cards)) {
                 card.requestUpdate();

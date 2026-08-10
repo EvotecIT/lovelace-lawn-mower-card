@@ -598,6 +598,11 @@ export function autoDetectedControlEntities(
       "selected_avoid_objects",
       "selected_objects",
     ),
+    charging_period: companion("switch", "charging_period"),
+    charging_period_start: companion("time", "charging_period_start"),
+    charging_period_end: companion("time", "charging_period_end"),
+    rain_protection: companion("switch", "rain_protection"),
+    rain_delay: companion("select", "rain_delay"),
   };
   const targetControls = [
     companions.map,
@@ -615,10 +620,18 @@ export function autoDetectedControlEntities(
   ].filter(
     (value): value is string => Boolean(value),
   );
+  const deviceSettingControls = [
+    companions.charging_period,
+    companions.charging_period_start,
+    companions.charging_period_end,
+    companions.rain_protection,
+    companions.rain_delay,
+  ].filter((value): value is string => Boolean(value));
   const actionEntityId = companions.mowing_action;
   if (!actionEntityId) {
     return [
       ...targetControls,
+      ...deviceSettingControls,
       ...activePreferenceControls(states, companions),
     ];
   }
@@ -639,7 +652,11 @@ export function autoDetectedControlEntities(
   const controls = targetControls.filter(
     (entityId) => !targetEntities.has(entityId) || entityId === activeTarget,
   );
-  return [...controls, ...activePreferenceControls(states, companions)];
+  return [
+    ...controls,
+    ...deviceSettingControls,
+    ...activePreferenceControls(states, companions),
+  ];
 }
 
 function activePreferenceControls(

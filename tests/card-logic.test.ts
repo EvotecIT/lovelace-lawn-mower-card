@@ -430,6 +430,27 @@ test("global mode exposes the complete active preference surface", () => {
   assert.equal(isPreferenceControlEntity("select.garden_map"), false);
 });
 
+test("charging and rain controls are auto-detected across registry prefixes", () => {
+  const states = {
+    "select.dreame_a2_map": entity("Map #1"),
+    "select.dreame_a2_mowing_action": entity("All area"),
+    "switch.garden_dreame_a2_charging_period": entity("on"),
+    "time.garden_dreame_a2_charging_period_start": entity("18:00:00"),
+    "time.garden_dreame_a2_charging_period_end": entity("08:00:00"),
+    "switch.garden_dreame_a2_rain_protection": entity("on"),
+    "select.garden_dreame_a2_rain_delay": entity("8 hours"),
+  };
+
+  assert.deepEqual(
+    autoDetectedControlEntities(
+      states,
+      "lawn_mower.dreame_a2",
+      dreameRegistry("lawn_mower.dreame_a2", Object.keys(states)),
+    ),
+    Object.keys(states),
+  );
+});
+
 test("Dreame registry names and area prefixes auto-discover every mowing preference", () => {
   const states = {
     "select.dreame_a2_bodzio_map": entity("Map #1"),
@@ -704,12 +725,17 @@ test("configured maintenance points are shown while unavailable points stay hidd
   ]);
 });
 
-test("target selectors remain visible when no mowing action selector exists", () => {
+test("target selectors and device settings remain visible without an action selector", () => {
   const states = {
     "select.garden_map": entity("Map 1"),
     "select.garden_edge": entity("Edge 1"),
     "select.garden_zone": entity("Zone 1"),
     "select.garden_spot": entity("Spot 1"),
+    "switch.garden_charging_period": entity("on"),
+    "time.garden_charging_period_start": entity("18:00:00"),
+    "time.garden_charging_period_end": entity("08:00:00"),
+    "switch.garden_rain_protection": entity("on"),
+    "select.garden_rain_delay": entity("8 hours"),
   };
 
   assert.deepEqual(autoDetectedControlEntities(states, "lawn_mower.garden"), [
@@ -717,6 +743,11 @@ test("target selectors remain visible when no mowing action selector exists", ()
     "select.garden_edge",
     "select.garden_zone",
     "select.garden_spot",
+    "switch.garden_charging_period",
+    "time.garden_charging_period_start",
+    "time.garden_charging_period_end",
+    "switch.garden_rain_protection",
+    "select.garden_rain_delay",
   ]);
 });
 

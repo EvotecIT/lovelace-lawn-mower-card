@@ -271,8 +271,8 @@ tiles:
 - `show_helper_actions`: optional boolean, defaults to `true`
 - `show_advanced_details`: optional boolean, defaults to `false`; shows the
   Planned Run and Live Session panels
-- `control_entities`: optional list of `select`, `number`, or `switch` entities
-  rendered as inline mower controls
+- `control_entities`: optional list of `select`, `number`, `switch`, or `time`
+  entities rendered as inline mower controls
 - `summary_entities`: optional list of entities rendered as header summary chips
 - `actions`: optional list of extra action chips
   - `type`: one of `start`, `pause`, `dock`, `more-info`, or `service`
@@ -393,9 +393,9 @@ than appearing as everyday card actions.
 
 ## Control Selectors
 
-When compatible `select`, `number`, or `switch` entities exist, every layout,
-including Hero, can render them as direct inline controls. This is especially useful for
-Dreame and MOVA mower setups that expose entities such as:
+When compatible `select`, `number`, `switch`, or `time` entities exist, every
+layout, including Hero, can render them as direct inline controls. This is
+especially useful for Dreame and MOVA mower setups that expose entities such as:
 
 - `select.my_mower_map`
 - `select.my_mower_mowing_action`
@@ -414,6 +414,11 @@ Dreame and MOVA mower setups that expose entities such as:
 - `select.my_mower_selected_obstacle_height`
 - `select.my_mower_selected_obstacle_distance`
 - `switch.my_mower_selected_lidar_obstacle_recognition`
+- `switch.my_mower_charging_period`
+- `time.my_mower_charging_period_start`
+- `time.my_mower_charging_period_end`
+- `switch.my_mower_rain_protection`
+- `select.my_mower_rain_delay`
 
 If you do not set `control_entities`, the card will try to auto-detect these
 companions from the mower object id. Home Assistant may add an area or device
@@ -425,13 +430,17 @@ only the target selector relevant to the current action. For example, `All area`
 hides the edge, zone, and spot fields; `Zone` shows the zone field. Cutting,
 direction, turning, edge, and obstacle preferences are grouped into a compact
 expandable panel that follows the integration's current `Global` or `Custom`
-scope. In global mode the controls update the selected map's global preference;
+scope. Charging-window and rain-protection entities are grouped in a separate
+Device settings panel, including native time pickers for the charging start and
+end. Time values with precision beyond browser-supported milliseconds remain
+visible but read-only instead of being rounded. In global mode the controls
+update the selected map's global preference;
 in custom mode they update the selected zone. An explicit `control_entities`
 list is left unchanged.
 
 The Dreame integration keeps the device-write behavior in its Home Assistant
-entities. The card calls the standard `select.select_option` and
-`number.set_value`, `switch.turn_on`/`turn_off`, and `button.press` services; it
+entities. The card calls the standard `select.select_option`, `number.set_value`,
+`switch.turn_on`/`turn_off`, `time.set_value`, and `button.press` services; it
 does not encode mower protocol requests itself.
 
 When the selected action is `Zone`, the card can replace the zone dropdown with
