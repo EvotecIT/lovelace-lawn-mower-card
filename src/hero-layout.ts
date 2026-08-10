@@ -771,6 +771,7 @@ export const heroLayoutStyles = css`
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   }
 
+  .hero-selectors .device-settings-panel,
   .hero-selectors .preference-panel {
     grid-column: 1 / -1;
   }

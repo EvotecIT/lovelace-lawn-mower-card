@@ -24,6 +24,16 @@ import {
   resolvedOwnedMowerCompanionEntity,
 } from "./card-logic";
 import {
+  isDeviceSettingControlEntity,
+  timeInputStep,
+  timeInputValue,
+  timeServiceValue,
+} from "./device-settings-controls";
+import {
+  deviceSettingsPanelStyles,
+  renderDeviceSettingsPanel,
+} from "./device-settings-panel";
+import {
   heroLayoutStyles,
   renderHeroLayout,
   type HeroView,
@@ -935,7 +945,7 @@ export class LawnMowerCard extends LitElement {
         grid-template-columns: 1fr;
       }
     }
-  `, schedulePanelStyles, heroLayoutStyles];
+  `, schedulePanelStyles, deviceSettingsPanelStyles, heroLayoutStyles];
 
   public static getStubConfig(): LawnMowerCardConfig {
     return {
@@ -1089,8 +1099,13 @@ export class LawnMowerCard extends LitElement {
     const preferenceControlEntities = controlEntities.filter(
       isPreferenceControlEntity,
     );
+    const deviceSettingControlEntities = controlEntities.filter(
+      isDeviceSettingControlEntity,
+    );
     const primaryControlEntities = controlEntities.filter(
-      (entityId) => !isPreferenceControlEntity(entityId),
+      (entityId) =>
+        !isPreferenceControlEntity(entityId) &&
+        !isDeviceSettingControlEntity(entityId),
     );
     const plannedRun = this._plannedRunDetails(mower);
     const runtimeSession = this._runtimeSessionDetails();
@@ -1222,6 +1237,7 @@ export class LawnMowerCard extends LitElement {
                   </div>
                 `
               : nothing}
+            ${this._renderDeviceSettingsControls(deviceSettingControlEntities)}
             ${this._renderPreferenceControls(preferenceControlEntities)}
 
             ${actionGroups.length
@@ -1366,8 +1382,15 @@ export class LawnMowerCard extends LitElement {
               )
             : nothing}
           ${controlEntities
-            .filter((entityId) => !isPreferenceControlEntity(entityId))
+            .filter(
+              (entityId) =>
+                !isPreferenceControlEntity(entityId) &&
+                !isDeviceSettingControlEntity(entityId),
+            )
             .map((entityId) => this._renderEntityControl(entityId))}
+          ${this._renderDeviceSettingsControls(
+            controlEntities.filter(isDeviceSettingControlEntity),
+          )}
           ${this._renderPreferenceControls(
             controlEntities.filter(isPreferenceControlEntity),
           )}
@@ -1778,6 +1801,9 @@ export class LawnMowerCard extends LitElement {
     if (entityId.startsWith("number.")) {
       return this._renderNumberControl(entityId);
     }
+    if (entityId.startsWith("time.")) {
+      return this._renderTimeControl(entityId);
+    }
     if (this._zoneStartContext()?.entityId === entityId) {
       return this._renderZoneControl(entityId);
     }
@@ -1843,6 +1869,16 @@ export class LawnMowerCard extends LitElement {
       this._entityName(entityId);
     const enabled = entity.state === "on";
     const available = !this._isUnavailableEntity(entity);
+    if (!available) {
+      return html`
+        <div class="selector-card">
+          <span class="selector-label">${label}</span>
+          <div class="selector-switch-body">
+            <span>Unavailable</span>
+          </div>
+        </div>
+      `;
+    }
     return html`
       <div class="selector-card">
         <span class="selector-label">${label}</span>
@@ -1853,7 +1889,7 @@ export class LawnMowerCard extends LitElement {
             role="switch"
             aria-label=${`${label}: ${enabled ? "on" : "off"}`}
             aria-checked=${String(enabled)}
-            ?disabled=${!available || Boolean(this._mutationInFlight)}
+            ?disabled=${Boolean(this._mutationInFlight)}
             @click=${() => this._toggleSwitch(entityId, enabled)}
           ></button>
         </div>
@@ -1906,6 +1942,9 @@ export class LawnMowerCard extends LitElement {
           ?disabled=${unavailable || Boolean(this._mutationInFlight)}
           @change=${(event: Event) => this._selectOption(entityId, event)}
         >
+          ${unavailable
+            ? html`<option selected disabled>Unavailable</option>`
+            : nothing}
           ${options.map(
             (option) => html`
               <option
@@ -1953,6 +1992,52 @@ export class LawnMowerCard extends LitElement {
         />
       </label>
     `;
+  }
+
+  private _renderTimeControl(entityId: string) {
+    const entity = this.hass.states[entityId];
+    if (!entity) {
+      return nothing;
+    }
+    const value = timeInputValue(entity.state);
+    const available = !this._isUnavailableEntity(entity);
+    const label =
+      this._friendlyName(entity) ||
+      this._preferredEntityLabel(entityId) ||
+      this._entityName(entityId);
+    if (!available || !value) {
+      const status = available
+        ? `${timeServiceValue(entity.state) || "Unsupported value"} · Read-only`
+        : "Unavailable";
+      return html`
+        <div class="selector-card">
+          <span class="selector-label">${label}</span>
+          <div class="selector-switch-body">
+            <span>${status}</span>
+          </div>
+        </div>
+      `;
+    }
+    return html`
+      <label class="selector-card">
+        <span class="selector-label">${label}</span>
+        <input
+          type="time"
+          step=${timeInputStep(value || "")}
+          .value=${value}
+          ?disabled=${Boolean(this._mutationInFlight)}
+          @change=${(event: Event) => this._setTimeValue(entityId, event)}
+        />
+      </label>
+    `;
+  }
+
+  private _renderDeviceSettingsControls(entityIds: string[]) {
+    return renderDeviceSettingsPanel(
+      entityIds,
+      this.hass.states,
+      (entityId) => this._renderEntityControl(entityId),
+    );
   }
 
   private _renderPreferenceControls(entityIds: string[]) {
@@ -3507,6 +3592,23 @@ export class LawnMowerCard extends LitElement {
     );
   }
 
+  private async _setTimeValue(entityId: string, event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    const value = timeServiceValue(target.value);
+    if (!value) {
+      return;
+    }
+    await this._runMowerAction(
+      `time:${entityId}`,
+      `Set ${this._entityName(entityId)}`,
+      () =>
+        this.hass.callService("time", "set_value", {
+          entity_id: entityId,
+          time: value,
+        }),
+    );
+  }
+
   private async _toggleSwitch(entityId: string, enabled: boolean) {
     await this._runMowerAction(
       `switch:${entityId}`,
@@ -4081,7 +4183,7 @@ export class LawnMowerCardEditor extends LitElement {
           <div class="section-title">
             <strong>Controls</strong>
             <span class="hint">
-              Add Home Assistant select, number, or switch entities for mower controls.
+              Add Home Assistant select, number, switch, or time entities for mower controls.
             </span>
           </div>
           <button type="button" @click=${this._addControlEntity}>Add control</button>
@@ -4129,6 +4231,7 @@ export class LawnMowerCardEditor extends LitElement {
           "select",
           "number",
           "switch",
+          "time",
         ])}
       </div>
     `;
