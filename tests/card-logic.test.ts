@@ -430,7 +430,7 @@ test("global mode exposes the complete active preference surface", () => {
   assert.equal(isPreferenceControlEntity("select.garden_map"), false);
 });
 
-test("charging and rain controls are auto-detected across registry prefixes", () => {
+test("device settings controls are auto-detected across registry prefixes", () => {
   const states = {
     "select.dreame_a2_map": entity("Map #1"),
     "select.dreame_a2_mowing_action": entity("All area"),
@@ -439,6 +439,9 @@ test("charging and rain controls are auto-detected across registry prefixes", ()
     "time.garden_dreame_a2_charging_period_end": entity("08:00:00"),
     "switch.garden_dreame_a2_rain_protection": entity("on"),
     "select.garden_dreame_a2_rain_delay": entity("8 hours"),
+    "switch.garden_dreame_a2_lift_alarm": entity("off"),
+    "switch.garden_dreame_a2_off_map_alarm": entity("on"),
+    "switch.garden_dreame_a2_real_time_location": entity("on"),
   };
 
   assert.deepEqual(
@@ -736,6 +739,9 @@ test("target selectors and device settings remain visible without an action sele
     "time.garden_charging_period_end": entity("08:00:00"),
     "switch.garden_rain_protection": entity("on"),
     "select.garden_rain_delay": entity("8 hours"),
+    "switch.garden_lift_alarm": entity("off"),
+    "switch.garden_off_map_alarm": entity("on"),
+    "switch.garden_real_time_location": entity("on"),
   };
 
   assert.deepEqual(autoDetectedControlEntities(states, "lawn_mower.garden"), [
@@ -748,6 +754,9 @@ test("target selectors and device settings remain visible without an action sele
     "time.garden_charging_period_end",
     "switch.garden_rain_protection",
     "select.garden_rain_delay",
+    "switch.garden_lift_alarm",
+    "switch.garden_off_map_alarm",
+    "switch.garden_real_time_location",
   ]);
 });
 

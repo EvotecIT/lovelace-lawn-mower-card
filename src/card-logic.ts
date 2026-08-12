@@ -603,6 +603,22 @@ export function autoDetectedControlEntities(
     charging_period_end: companion("time", "charging_period_end"),
     rain_protection: companion("switch", "rain_protection"),
     rain_delay: companion("select", "rain_delay"),
+    lift_alarm: companion("switch", "lift_alarm", "lift_alarm_enabled"),
+    off_map_alarm: companion(
+      "switch",
+      "off_map_alarm",
+      "off_map_alarm_enabled",
+    ),
+    real_time_location: companion(
+      "switch",
+      "real_time_location",
+      "real_time_location_enabled",
+    ),
+    pin_check_before_power_off: companion(
+      "switch",
+      "pin_check_before_power_off",
+      "pin_check_before_power_off_enabled",
+    ),
   };
   const targetControls = [
     companions.map,
@@ -626,6 +642,10 @@ export function autoDetectedControlEntities(
     companions.charging_period_end,
     companions.rain_protection,
     companions.rain_delay,
+    companions.lift_alarm,
+    companions.off_map_alarm,
+    companions.real_time_location,
+    companions.pin_check_before_power_off,
   ].filter((value): value is string => Boolean(value));
   const actionEntityId = companions.mowing_action;
   if (!actionEntityId) {

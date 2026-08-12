@@ -1,4 +1,4 @@
-export type DeviceSettingControlGroup = "charging" | "rain";
+export type DeviceSettingControlGroup = "charging" | "rain" | "anti_theft";
 
 export type DeviceSettingEntity = {
   state: string;
@@ -16,6 +16,17 @@ const RAIN_CONTROL_SUFFIXES = [
   "_rain_delay",
 ] as const;
 
+const ANTI_THEFT_CONTROL_SUFFIXES = [
+  "_lift_alarm",
+  "_lift_alarm_enabled",
+  "_off_map_alarm",
+  "_off_map_alarm_enabled",
+  "_real_time_location",
+  "_real_time_location_enabled",
+  "_pin_check_before_power_off",
+  "_pin_check_before_power_off_enabled",
+] as const;
+
 const unavailableStates = new Set(["", "unknown", "unavailable"]);
 const timePattern =
   /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d)(?:\.(\d{1,6}))?)?$/;
@@ -28,6 +39,9 @@ export function deviceSettingControlGroup(
   }
   if (RAIN_CONTROL_SUFFIXES.some((suffix) => entityId.endsWith(suffix))) {
     return "rain";
+  }
+  if (ANTI_THEFT_CONTROL_SUFFIXES.some((suffix) => entityId.endsWith(suffix))) {
+    return "anti_theft";
   }
   return undefined;
 }
@@ -125,6 +139,20 @@ export function deviceSettingsSummary(
     summary.push("Rain protection off");
   } else if (rainDelay) {
     summary.push(`Rain ${rainDelay}`);
+  }
+
+  const antiTheftIds = entityIds.filter(
+    (entityId) => deviceSettingControlGroup(entityId) === "anti_theft",
+  );
+  const antiTheftStates = antiTheftIds
+    .map((entityId) => entities[entityId]?.state.trim().toLowerCase())
+    .filter(
+      (state): state is string =>
+        Boolean(state && !unavailableStates.has(state)),
+    );
+  if (antiTheftStates.length) {
+    const enabled = antiTheftStates.filter((state) => state === "on").length;
+    summary.push(`Anti-theft ${enabled}/${antiTheftStates.length} on`);
   }
 
   return summary.length ? summary.join(" · ") : undefined;

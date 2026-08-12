@@ -24,6 +24,16 @@ test("device setting controls are classified without absorbing mowing preference
     "rain",
   );
   assert.equal(
+    deviceSettingControlGroup("switch.garden_lift_alarm"),
+    "anti_theft",
+  );
+  assert.equal(
+    deviceSettingControlGroup(
+      "switch.garden_pin_check_before_power_off_enabled",
+    ),
+    "anti_theft",
+  );
+  assert.equal(
     isDeviceSettingControlEntity("switch.garden_rain_protection"),
     true,
   );
@@ -50,18 +60,21 @@ test("time controls normalize Home Assistant state and service values", () => {
   assert.equal(timeServiceValue("unavailable"), undefined);
 });
 
-test("device settings summary reports charging window and rain delay", () => {
+test("device settings summary reports charging, rain, and anti-theft", () => {
   const entities = {
     "switch.garden_charging_period": { state: "on" },
     "time.garden_charging_period_start": { state: "18:00:00" },
     "time.garden_charging_period_end": { state: "08:00:00" },
     "switch.garden_rain_protection": { state: "on" },
     "select.garden_rain_delay": { state: "8 hours" },
+    "switch.garden_lift_alarm": { state: "on" },
+    "switch.garden_off_map_alarm": { state: "off" },
+    "switch.garden_real_time_location": { state: "on" },
   };
 
   assert.equal(
     deviceSettingsSummary(entities, Object.keys(entities)),
-    "Charging 18:00–08:00 · Rain 8 hours",
+    "Charging 18:00–08:00 · Rain 8 hours · Anti-theft 2/3 on",
   );
 });
 
