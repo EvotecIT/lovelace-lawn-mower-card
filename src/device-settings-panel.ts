@@ -13,6 +13,7 @@ const groupPresentation: Record<
 > = {
   charging: { label: "Charging", icon: "mdi:battery-clock" },
   rain: { label: "Rain protection", icon: "mdi:weather-rainy" },
+  anti_theft: { label: "Anti-theft", icon: "mdi:shield-lock-outline" },
 };
 
 export const deviceSettingsPanelStyles = css`
@@ -132,7 +133,7 @@ export function renderDeviceSettingsPanel(
     return nothing;
   }
 
-  const groups = (["charging", "rain"] as const)
+  const groups = (["charging", "rain", "anti_theft"] as const)
     .map((group) => ({
       group,
       entityIds: entityIds.filter(

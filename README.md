@@ -419,6 +419,10 @@ especially useful for Dreame and MOVA mower setups that expose entities such as:
 - `time.my_mower_charging_period_end`
 - `switch.my_mower_rain_protection`
 - `select.my_mower_rain_delay`
+- `switch.my_mower_lift_alarm`
+- `switch.my_mower_off_map_alarm`
+- `switch.my_mower_real_time_location`
+- `switch.my_mower_pin_check_before_power_off`
 
 If you do not set `control_entities`, the card will try to auto-detect these
 companions from the mower object id. Home Assistant may add an area or device
@@ -430,10 +434,12 @@ only the target selector relevant to the current action. For example, `All area`
 hides the edge, zone, and spot fields; `Zone` shows the zone field. Cutting,
 direction, turning, edge, and obstacle preferences are grouped into a compact
 expandable panel that follows the integration's current `Global` or `Custom`
-scope. Charging-window and rain-protection entities are grouped in a separate
-Device settings panel, including native time pickers for the charging start and
-end. Time values with precision beyond browser-supported milliseconds remain
-visible but read-only instead of being rounded. In global mode the controls
+scope. Charging-window, rain-protection, and reported anti-theft entities are
+grouped in a separate Device settings panel. The panel includes native time
+pickers for the charging start and end and omits anti-theft controls the mower
+does not expose. Time values with precision beyond browser-supported
+milliseconds remain visible but read-only instead of being rounded. In global
+mode the controls
 update the selected map's global preference;
 in custom mode they update the selected zone. An explicit `control_entities`
 list is left unchanged.
