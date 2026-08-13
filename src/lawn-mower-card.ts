@@ -44,6 +44,13 @@ import {
   type HeroImagePosition,
 } from "./hero-image";
 import {
+  mapPresentationClasses,
+  normalizeMapFit,
+  normalizeMapPosition,
+  type MapFit,
+  type MapPosition,
+} from "./map-presentation";
+import {
   acquireMowerMutation,
   currentMowerMutation,
   releaseMowerMutation,
@@ -174,6 +181,8 @@ type LawnMowerCardConfig = {
   hero_image?: string;
   hero_image_position?: HeroImagePosition;
   map_entity?: string;
+  map_fit?: MapFit;
+  map_position?: MapPosition;
   camera_entity?: string;
   show_map?: boolean;
   show_point_cloud?: boolean;
@@ -446,6 +455,20 @@ export class LawnMowerCard extends LitElement {
       max-height: min(62vh, 560px);
       object-fit: contain;
     }
+
+    .map img.map-fit-cover {
+      height: clamp(240px, 50vh, 560px);
+      object-fit: cover;
+    }
+
+    .map-position-top { object-position: center top; }
+    .map-position-bottom { object-position: center bottom; }
+    .map-position-left { object-position: left center; }
+    .map-position-right { object-position: right center; }
+    .map-position-top-left { object-position: left top; }
+    .map-position-top-right { object-position: right top; }
+    .map-position-bottom-left { object-position: left bottom; }
+    .map-position-bottom-right { object-position: right bottom; }
 
     .map-status {
       position: absolute;
@@ -1150,7 +1173,14 @@ export class LawnMowerCard extends LitElement {
               ? html`
                   <div class="map" @click=${() => this._showMoreInfo(mapEntity?.entity_id)}>
                     ${mapUrl
-                      ? html`<img src=${mapUrl} alt=${title} />`
+                      ? html`<img
+                          class=${mapPresentationClasses(
+                            this._config.map_fit,
+                            this._config.map_position,
+                          )}
+                          src=${mapUrl}
+                          alt=${title}
+                        />`
                       : html`<div class="map-placeholder">No mower map configured yet.</div>`}
                     ${mapEntity ? this._renderMapStatus(mapEntity, mower.state) : nothing}
                   </div>
@@ -1420,6 +1450,8 @@ export class LawnMowerCard extends LitElement {
       heroImagePosition: normalizeHeroImagePosition(this._config.hero_image_position),
       activeView,
       mapUrl,
+      mapFit: normalizeMapFit(this._config.map_fit),
+      mapPosition: normalizeMapPosition(this._config.map_position),
       mapStatus: configuredMapEntity
         ? this._renderMapStatus(configuredMapEntity, mower.state)
         : undefined,
@@ -3995,6 +4027,8 @@ export class LawnMowerCardEditor extends LitElement {
           config.show_map ?? Boolean(config.map_entity),
           "show_map",
         )}
+        ${this._mapFitField(normalizeMapFit(config.map_fit))}
+        ${this._mapPositionField(normalizeMapPosition(config.map_position))}
         ${this._toggle(
           "Show 3D point cloud when supported",
           config.show_point_cloud ??
@@ -4105,6 +4139,41 @@ export class LawnMowerCardEditor extends LitElement {
           normalizeHeroImagePosition(config.hero_image_position),
         )}
       </div>
+    `;
+  }
+
+  private _mapFitField(value: MapFit) {
+    return html`
+      <label>
+        <span>Map fit</span>
+        <select data-key="map_fit" .value=${value} @change=${this._valueChanged}>
+          <option value="contain">Show the complete map</option>
+          <option value="cover">Fill the available space</option>
+        </select>
+        <span class="hint">
+          Complete avoids cropping. Fill crops the map and uses the focus setting below.
+        </span>
+      </label>
+    `;
+  }
+
+  private _mapPositionField(value: MapPosition) {
+    return html`
+      <label>
+        <span>Map focus</span>
+        <select data-key="map_position" .value=${value} @change=${this._valueChanged}>
+          <option value="center">Center</option>
+          <option value="top">Top</option>
+          <option value="bottom">Bottom</option>
+          <option value="left">Left</option>
+          <option value="right">Right</option>
+          <option value="top-left">Top left</option>
+          <option value="top-right">Top right</option>
+          <option value="bottom-left">Bottom left</option>
+          <option value="bottom-right">Bottom right</option>
+        </select>
+        <span class="hint">Choose which area remains visible when the map is cropped.</span>
+      </label>
     `;
   }
 

@@ -1,4 +1,9 @@
 import { css, html, nothing, type TemplateResult } from "lit";
+import {
+  mapPresentationClasses,
+  type MapFit,
+  type MapPosition,
+} from "./map-presentation";
 import { keyed } from "lit/directives/keyed.js";
 
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
@@ -24,6 +29,8 @@ export type HeroLayoutModel = {
   heroImagePosition?: HeroImagePosition;
   activeView: HeroView;
   mapUrl?: string;
+  mapFit: MapFit;
+  mapPosition: MapPosition;
   mapStatus?: TemplateResult;
   pointCloudPath?: string;
   pointCloudMounted: boolean;
@@ -77,7 +84,10 @@ function renderView(model: HeroLayoutModel): TemplateResult {
     ${model.mapUrl
       ? html`
           <img
-            class=${`hero-layer hero-map${
+            class=${`hero-layer hero-map ${mapPresentationClasses(
+              model.mapFit,
+              model.mapPosition,
+            )}${
               model.activeView === "map" ? " active" : ""
             }`}
             src=${model.mapUrl}
@@ -490,6 +500,20 @@ export const heroLayoutStyles = css`
     padding: 72px 12px 12px;
     background: #0b0f0c;
   }
+
+  .hero-map.map-fit-cover {
+    object-fit: cover;
+    padding: 0;
+  }
+
+  .map-position-top { object-position: center top; }
+  .map-position-bottom { object-position: center bottom; }
+  .map-position-left { object-position: left center; }
+  .map-position-right { object-position: right center; }
+  .map-position-top-left { object-position: left top; }
+  .map-position-top-right { object-position: right top; }
+  .map-position-bottom-left { object-position: left bottom; }
+  .map-position-bottom-right { object-position: right bottom; }
 
   .hero-camera-layer {
     overflow: hidden;
