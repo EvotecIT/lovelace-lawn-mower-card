@@ -12,10 +12,13 @@ import {
   normalizeHeroImagePosition,
   type HeroImagePosition,
 } from "./hero-image";
+import type { SupportedLocale, Translator } from "./localization";
 
 export type HeroView = "overview" | "map" | "point-cloud" | "camera";
 
 export type HeroLayoutModel = {
+  t: Translator;
+  locale: SupportedLocale;
   title: string;
   subtitle: string;
   stateLabel: string;
@@ -91,7 +94,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
               model.activeView === "map" ? " active" : ""
             }`}
             src=${model.mapUrl}
-            alt=${`${model.title} map`}
+            alt=${model.t("hero.mapAlt", { name: model.title })}
             aria-hidden=${model.activeView === "map" ? "false" : "true"}
           />
         `
@@ -107,6 +110,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
             .active=${model.activeView === "point-cloud"}
             .autoLoad=${true}
             .compact=${true}
+            .locale=${model.locale}
             aria-hidden=${model.activeView === "point-cloud" ? "false" : "true"}
           ></lawn-mower-point-cloud>
         `
@@ -145,7 +149,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
               ? html`
                   <div class="hero-camera-reconnecting" role="status">
                     <ha-icon icon="mdi:wifi-sync"></ha-icon>
-                    <span>Reconnecting live video…</span>
+                    <span>${model.t("hero.reconnectingVideo")}</span>
                   </div>
                 `
               : nothing}
@@ -157,7 +161,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
       ? html`
           <div class="hero-empty">
             <ha-icon icon="mdi:cube-off-outline"></ha-icon>
-            <span>No 3D point cloud is available.</span>
+            <span>${model.t("hero.noPointCloud")}</span>
           </div>
         `
       : nothing}
@@ -173,7 +177,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
       ? html`
           <div class="hero-empty">
             <ha-icon icon="mdi:map-outline"></ha-icon>
-            <span>No mower map is available.</span>
+            <span>${model.t("hero.noMap")}</span>
           </div>
         `
       : nothing}
@@ -181,7 +185,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
       ? html`
           <div class="hero-empty">
             <ha-icon icon="mdi:video-off-outline"></ha-icon>
-            <span>No live-video camera is available.</span>
+            <span>${model.t("hero.noCamera")}</span>
           </div>
         `
         : nothing}
@@ -254,7 +258,7 @@ function renderAction(
 export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   const overview = model.activeView === "overview";
   return html`
-    <ha-card class="hero-card">
+    <ha-card class="hero-card" lang=${model.locale}>
       <div class="hero-shell">
         <section class=${`hero-stage view-${model.activeView}`}>
           ${renderView(model)}
@@ -263,7 +267,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
 
           <div class="hero-heading">
             <div class="hero-title-block">
-              <span class="hero-eyebrow">Garden mower</span>
+              <span class="hero-eyebrow">${model.t("hero.gardenMower")}</span>
               <h2>${model.title}</h2>
               <span class="hero-subtitle">${model.subtitle}</span>
             </div>
@@ -276,15 +280,15 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
           ${overview
             ? html`
                 <div class="hero-metrics">
-                  ${renderMetric("mdi:battery-high", "Battery", model.battery)}
+                  ${renderMetric("mdi:battery-high", model.t("hero.battery"), model.battery)}
                   ${renderMetric(
                     "mdi:progress-clock",
-                    model.progressLabel || "Mission",
+                    model.progressLabel || model.t("hero.mission"),
                     model.progress,
                   )}
                   ${renderMetric(
                     "mdi:grass",
-                    model.coverageLabel || "Coverage",
+                    model.coverageLabel || model.t("hero.coverage"),
                     model.coverage,
                   )}
                 </div>
@@ -292,20 +296,20 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             : nothing}
         </section>
 
-        <nav class="hero-tabs" role="tablist" aria-label="Mower view">
-          ${renderTab(model, "overview", "Overview", "mdi:view-dashboard-outline")}
-          ${renderTab(model, "map", "Map", "mdi:map-outline", !model.mapUrl)}
+        <nav class="hero-tabs" role="tablist" aria-label=${model.t("hero.viewLabel")}>
+          ${renderTab(model, "overview", model.t("hero.overview"), "mdi:view-dashboard-outline")}
+          ${renderTab(model, "map", model.t("hero.map"), "mdi:map-outline", !model.mapUrl)}
           ${renderTab(
             model,
             "point-cloud",
-            "3D",
+            model.t("action.pointCloud"),
             "mdi:rotate-3d-variant",
             !model.pointCloudPath,
           )}
           ${renderTab(
             model,
             "camera",
-            "Camera",
+            model.t("hero.camera"),
             "mdi:video-wireless-outline",
             !model.cameraEntity,
           )}
@@ -313,7 +317,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
 
         ${model.controls
           ? html`
-              <div class="hero-selectors" aria-label="Mower selections">
+              <div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>
                 ${model.controls}
               </div>
             `
@@ -338,16 +342,16 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             `
           : nothing}
 
-        <div class="hero-actions" aria-label="Mower controls">
+        <div class="hero-actions" aria-label=${model.t("hero.controlsLabel")}>
           ${model.showDefaultActions
             ? html`
-                ${renderAction("Start", "mdi:play", model.onStart, {
+                ${renderAction(model.t("action.start"), "mdi:play", model.onStart, {
                   disabled: !model.canStart,
                 })}
-                ${renderAction("Pause", "mdi:pause", model.onPause, {
+                ${renderAction(model.t("action.pause"), "mdi:pause", model.onPause, {
                   disabled: !model.canPause,
                 })}
-                ${renderAction("Dock", "mdi:home-import-outline", model.onDock, {
+                ${renderAction(model.t("action.dock"), "mdi:home-import-outline", model.onDock, {
                   disabled: !model.canDock,
                 })}
               `
@@ -355,7 +359,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
           ${model.showHelperActions
             ? html`
                 ${renderAction(
-                  "Camera",
+                  model.t("action.camera"),
                   "mdi:video-wireless-outline",
                   () => model.onView("camera"),
                   {
@@ -363,12 +367,12 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
                     active: model.activeView === "camera",
                   },
                 )}
-                ${renderAction("Map", "mdi:map-outline", () => model.onView("map"), {
+                ${renderAction(model.t("action.map"), "mdi:map-outline", () => model.onView("map"), {
                   disabled: !model.mapUrl,
                   active: model.activeView === "map",
                 })}
                 ${renderAction(
-                  "3D",
+                  model.t("action.pointCloud"),
                   "mdi:rotate-3d-variant",
                   () => model.onView("point-cloud"),
                   {
@@ -378,7 +382,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
                 )}
                 ${model.onMaintenancePoint
                   ? renderAction(
-                      "Maintenance",
+                      model.t("action.maintenance"),
                       "mdi:map-marker-wrench",
                       model.onMaintenancePoint,
                       {
@@ -388,7 +392,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
                   : nothing}
               `
             : nothing}
-          ${renderAction("More", "mdi:dots-horizontal", model.onMoreInfo)}
+          ${renderAction(model.t("action.more"), "mdi:dots-horizontal", model.onMoreInfo)}
         </div>
       </div>
     </ha-card>
@@ -914,6 +918,20 @@ export const heroLayoutStyles = css`
 
     .hero-metric-label {
       display: none;
+    }
+
+    .hero-tabs {
+      gap: 2px;
+      padding: 6px;
+    }
+
+    .hero-tab {
+      min-width: 0;
+      flex-direction: column;
+      gap: 3px;
+      padding: 7px 2px;
+      font-size: 0.68rem;
+      line-height: 1.1;
     }
 
     .hero-actions {

@@ -26,6 +26,8 @@ integration exposes companion map, camera, schedule, and telemetry entities:
 - live map badges for current activity, map identity, and withheld invalid positions
 - direct access to live video, calendars, and mower maps when those entities exist
 - an image-led Hero layout with in-card Overview, Map, 3D, and Camera views
+- card and visual-editor localization in English, German, French, Italian,
+  Polish, Russian, and Ukrainian, including native plural rules
 - optional advanced planning and live-session telemetry
 - configurable status tiles
 - room to grow into richer map and zone workflows later
@@ -249,6 +251,9 @@ tiles:
 
 - `entity`: required `lawn_mower` entity id
 - `name`: optional card title override
+- `locale`: optional language override: `auto` (default), `en`, `de`, `fr`,
+  `it`, `pl`, `ru`, or `uk`. Automatic mode follows the Home Assistant user
+  language, then the browser language, and safely falls back to English.
 - `layout`: optional `default`, `compact`, `wide`, or `hero`
 - `hero_image`: optional Hero overview background. Use an HTTPS URL or a
   `/local/...` path for a file stored under Home Assistant's `config/www`.

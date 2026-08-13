@@ -6,14 +6,15 @@ import {
   type DeviceSettingEntity,
   type DeviceSettingControlGroup,
 } from "./device-settings-controls";
+import type { Translator, TranslationKey } from "./localization";
 
 const groupPresentation: Record<
   DeviceSettingControlGroup,
-  { label: string; icon: string }
+  { label: TranslationKey; icon: string }
 > = {
-  charging: { label: "Charging", icon: "mdi:battery-clock" },
-  rain: { label: "Rain protection", icon: "mdi:weather-rainy" },
-  anti_theft: { label: "Anti-theft", icon: "mdi:shield-lock-outline" },
+  charging: { label: "settings.charging", icon: "mdi:battery-clock" },
+  rain: { label: "settings.rainProtection", icon: "mdi:weather-rainy" },
+  anti_theft: { label: "settings.antiTheft", icon: "mdi:shield-lock-outline" },
 };
 
 export const deviceSettingsPanelStyles = css`
@@ -128,6 +129,7 @@ export function renderDeviceSettingsPanel(
   entityIds: readonly string[],
   entities: Record<string, DeviceSettingEntity | undefined>,
   renderControl: (entityId: string) => TemplateResult | typeof nothing,
+  t: Translator,
 ): TemplateResult | typeof nothing {
   if (!entityIds.length) {
     return nothing;
@@ -141,7 +143,7 @@ export function renderDeviceSettingsPanel(
       ),
     }))
     .filter(({ entityIds: groupEntityIds }) => groupEntityIds.length);
-  const summary = deviceSettingsSummary(entities, entityIds);
+  const summary = deviceSettingsSummary(entities, entityIds, t);
 
   return html`
     <details class="device-settings-panel">
@@ -149,7 +151,7 @@ export function renderDeviceSettingsPanel(
         <span class="device-settings-summary">
           <span class="device-settings-title">
             <ha-icon icon="mdi:tune-variant"></ha-icon>
-            Device settings
+            ${t("settings.title")}
           </span>
           ${summary ? html`<small>${summary}</small>` : nothing}
         </span>
@@ -161,7 +163,7 @@ export function renderDeviceSettingsPanel(
             <section class="device-settings-group">
               <div class="device-settings-group-heading">
                 <ha-icon icon=${presentation.icon}></ha-icon>
-                ${presentation.label}
+                ${t(presentation.label)}
               </div>
               <div class="device-settings-controls">
                 ${groupEntityIds.map(renderControl)}

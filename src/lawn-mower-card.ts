@@ -51,6 +51,14 @@ import {
   type MapPosition,
 } from "./map-presentation";
 import {
+  createTranslator,
+  LOCALE_OPTIONS,
+  resolveLocale,
+  type LocalePreference,
+  type SupportedLocale,
+  type TranslationKey,
+} from "./localization";
+import {
   acquireMowerMutation,
   currentMowerMutation,
   releaseMowerMutation,
@@ -142,6 +150,8 @@ type HassEntity = {
 };
 
 type HomeAssistant = {
+  language?: string;
+  locale?: { language?: string };
   states: Record<string, HassEntity>;
   entities?: Record<
     string,
@@ -176,6 +186,7 @@ type LawnMowerActionConfig = {
 type LawnMowerCardConfig = {
   type: string;
   entity: string;
+  locale?: LocalePreference;
   name?: string;
   layout?: "default" | "compact" | "wide" | "hero";
   hero_image?: string;
@@ -263,14 +274,14 @@ declare global {
   }
 }
 
-const FRIENDLY_STATE: Record<string, string> = {
-  mowing: "Mowing",
-  docked: "Docked",
-  paused: "Paused",
-  returning: "Returning",
-  error: "Error",
-  unavailable: "Unavailable",
-  unknown: "Unknown",
+const FRIENDLY_STATE: Record<string, TranslationKey> = {
+  mowing: "state.mowing",
+  docked: "state.docked",
+  paused: "state.paused",
+  returning: "state.returning",
+  error: "common.error",
+  unavailable: "common.unavailable",
+  unknown: "common.unknown",
 };
 
 const VALUE_ALIASES: Record<string, string> = {
@@ -312,6 +323,19 @@ export class LawnMowerCard extends LitElement {
   private _mutationSubscription?: () => void;
   private _traditionalPointCloudGeneration = 0;
   @state() private _zoneSelection?: ZoneSelectionState;
+
+  private get _locale(): SupportedLocale {
+    return resolveLocale(
+      this._config?.locale ?? "auto",
+      this.hass?.locale?.language,
+      this.hass?.language,
+      globalThis.navigator?.language,
+    );
+  }
+
+  private get _t() {
+    return createTranslator(this._locale);
+  }
 
   private get _mutationInFlight(): string | undefined {
     return this._config?.entity
@@ -1088,8 +1112,8 @@ export class LawnMowerCard extends LitElement {
     const mower = this.hass.states[this._config.entity];
     if (!mower) {
       return html`
-        <ha-card>
-          <div class="wrap">Entity not found: ${this._config.entity}</div>
+        <ha-card lang=${this._locale}>
+          <div class="wrap">${this._t("card.entityNotFound", { entity: this._config.entity })}</div>
         </ha-card>
       `;
     }
@@ -1149,7 +1173,7 @@ export class LawnMowerCard extends LitElement {
     }
 
     return html`
-      <ha-card>
+      <ha-card lang=${this._locale}>
         <div class=${`wrap layout-${layout}`}>
           <div class="main">
             <div class="header">
@@ -1181,7 +1205,7 @@ export class LawnMowerCard extends LitElement {
                           src=${mapUrl}
                           alt=${title}
                         />`
-                      : html`<div class="map-placeholder">No mower map configured yet.</div>`}
+                      : html`<div class="map-placeholder">${this._t("card.mapMissing")}</div>`}
                     ${mapEntity ? this._renderMapStatus(mapEntity, mower.state) : nothing}
                   </div>
                 `
@@ -1193,7 +1217,7 @@ export class LawnMowerCard extends LitElement {
                       ? html`
                           <div class="point-cloud-placeholder" role="status">
                             <ha-icon icon="mdi:cube-off-outline"></ha-icon>
-                            <p>3D map is not configured for this mower.</p>
+                            <p>${this._t("pointCloud.notConfigured")}</p>
                           </div>
                         `
                       : this._pointCloudLoadError
@@ -1204,7 +1228,7 @@ export class LawnMowerCard extends LitElement {
                                 type="button"
                                 @click=${this._retryPointCloudModule}
                               >
-                                Retry 3D renderer
+                                ${this._t("pointCloud.rendererRetry")}
                               </button>
                             </div>
                           `
@@ -1216,13 +1240,14 @@ export class LawnMowerCard extends LitElement {
                             .active=${true}
                             .autoLoad=${true}
                             .compact=${layout === "compact"}
+                            .locale=${this._locale}
                           ></lawn-mower-point-cloud>
                         `
                         : html`
                             <div class="point-cloud-placeholder">
                               <ha-icon icon="mdi:cube-scan"></ha-icon>
                               <p>
-                                Load the interactive 3D map when you need it.
+                                ${this._t("pointCloud.lazyDescription")}
                               </p>
                               <button
                                 type="button"
@@ -1230,8 +1255,8 @@ export class LawnMowerCard extends LitElement {
                                 @click=${this._activateTraditionalPointCloud}
                               >
                                 ${this._traditionalPointCloudLoading
-                                  ? "Loading 3D renderer…"
-                                  : "Load 3D map"}
+                                  ? this._t("pointCloud.rendererLoading")
+                                  : this._t("pointCloud.load")}
                               </button>
                             </div>
                           `}
@@ -1257,6 +1282,7 @@ export class LawnMowerCard extends LitElement {
                       control.available && !Boolean(this._mutationInFlight),
                   })),
                   (entityId, enabled) => this._toggleSwitch(entityId, enabled),
+                  this._t,
                 )
               : nothing}
 
@@ -1409,6 +1435,7 @@ export class LawnMowerCard extends LitElement {
                     control.available && !Boolean(this._mutationInFlight),
                 })),
                 (entityId, enabled) => this._toggleSwitch(entityId, enabled),
+                this._t,
               )
             : nothing}
           ${controlEntities
@@ -1437,6 +1464,8 @@ export class LawnMowerCard extends LitElement {
       : undefined;
 
     return renderHeroLayout({
+      t: this._t,
+      locale: this._locale,
       title,
       subtitle,
       stateLabel: this._friendlyMowerState(mower.state),
@@ -1522,8 +1551,7 @@ export class LawnMowerCard extends LitElement {
           return;
         }
         this._pointCloudMounted = false;
-        this._pointCloudLoadError =
-          "The 3D renderer could not be loaded. Refresh or use a current browser.";
+        this._pointCloudLoadError = this._t("pointCloud.rendererFailed");
       });
     }
     if (view === "camera") {
@@ -1568,8 +1596,7 @@ export class LawnMowerCard extends LitElement {
       })
       .catch(() => {
         if (generation === this._traditionalPointCloudGeneration) {
-          this._pointCloudLoadError =
-            "The 3D renderer could not be loaded. Refresh or use a current browser.";
+          this._pointCloudLoadError = this._t("pointCloud.rendererFailed");
         }
       })
       .finally(() => {
@@ -1727,8 +1754,11 @@ export class LawnMowerCard extends LitElement {
     }
 
     return (this._config.tiles || [])
-      .map((tile) => this._tileFromEntity(tile.entity, tile.label, tile.icon))
-      .filter((tile) => tile.value !== "Unavailable");
+      .filter((tile) => {
+        const entity = this.hass.states[tile.entity];
+        return Boolean(entity && !this._isUnavailableEntity(entity));
+      })
+      .map((tile) => this._tileFromEntity(tile.entity, tile.label, tile.icon));
   }
 
   private _buildHeaderSummary(): string[] {
@@ -1747,14 +1777,14 @@ export class LawnMowerCard extends LitElement {
       this._stringAttribute(mower, "error_display") ||
       this._stringAttribute(mower, "error_text");
     if (error && !["none", "no error"].includes(error.toLowerCase())) {
-      automaticSummary.push(`Error ${error}`);
+      automaticSummary.push(`${this._t("common.error")} ${error}`);
     }
 
     const battery =
       this._entityState(this._config.battery_entity) ||
       this._stringAttribute(mower, "battery_level", "%");
     if (battery) {
-      automaticSummary.push(`Battery ${battery}`);
+      automaticSummary.push(`${this._t("hero.battery")} ${battery}`);
     }
 
     const configured = configuredHeaderSummaryEntities(
@@ -1791,17 +1821,17 @@ export class LawnMowerCard extends LitElement {
                 progressEntity,
                 this._preferredEntityLabel(progressEntityId),
               )
-            : "Progress";
+            : this._t("metric.progress");
         automaticSummary.push(`${label} ${progress}`);
       }
       const currentArea = this._companionState("sensor", "runtime_current_area");
       const totalArea = this._companionState("sensor", "runtime_total_area");
       if (currentArea && totalArea) {
-        automaticSummary.push(`Coverage ${currentArea} / ${totalArea}`);
+        automaticSummary.push(`${this._t("metric.coverage")} ${currentArea} / ${totalArea}`);
       }
     }
 
-    const rainDelay = this._companionSummaryFromBinary("rain_delay_active", "Rain Delay");
+    const rainDelay = this._companionSummaryFromBinary("rain_delay_active", this._t("settings.rainDelayLabel"));
     if (rainDelay) {
       automaticSummary.push(rainDelay);
     }
@@ -1863,7 +1893,7 @@ export class LawnMowerCard extends LitElement {
 
     return html`
       <div class="selector-card">
-        <span class="selector-label" id=${labelId}>${label}s</span>
+        <span class="selector-label" id=${labelId}>${label}</span>
         <div class="zone-option-list" role="group" aria-labelledby=${labelId}>
           ${choices.map((choice) => {
             const checked = selected.has(choice.id);
@@ -1883,8 +1913,8 @@ export class LawnMowerCard extends LitElement {
         </div>
         <span class="zone-selection-note" aria-live="polite">
           ${count
-            ? `${count} ${count === 1 ? "zone" : "zones"} selected. Start will mow the selected ${count === 1 ? "zone" : "zones"}.`
-            : "Select at least one zone before starting."}
+            ? this._t("card.zoneSelection", { count })
+            : this._t("card.selectZone")}
         </span>
       </div>
     `;
@@ -1906,7 +1936,7 @@ export class LawnMowerCard extends LitElement {
         <div class="selector-card">
           <span class="selector-label">${label}</span>
           <div class="selector-switch-body">
-            <span>Unavailable</span>
+            <span>${this._t("common.unavailable")}</span>
           </div>
         </div>
       `;
@@ -1915,11 +1945,11 @@ export class LawnMowerCard extends LitElement {
       <div class="selector-card">
         <span class="selector-label">${label}</span>
         <div class="selector-switch-body">
-          <span>${enabled ? "On" : "Off"}</span>
+          <span>${this._t(enabled ? "common.on" : "common.off")}</span>
           <button
             class="schedule-toggle"
             role="switch"
-            aria-label=${`${label}: ${enabled ? "on" : "off"}`}
+            aria-label=${`${label}: ${this._t(enabled ? "common.on" : "common.off")}`}
             aria-checked=${String(enabled)}
             ?disabled=${Boolean(this._mutationInFlight)}
             @click=${() => this._toggleSwitch(entityId, enabled)}
@@ -1940,9 +1970,9 @@ export class LawnMowerCard extends LitElement {
     return html`
       <div class="map-status">
         ${mapName ? html`<span class="map-badge">${mapName}</span>` : nothing}
-        ${live ? html`<span class="map-badge live">Live</span>` : nothing}
+        ${live ? html`<span class="map-badge live">${this._t("card.live")}</span>` : nothing}
         ${invalidPosition
-          ? html`<span class="map-badge warning">Position withheld</span>`
+          ? html`<span class="map-badge warning">${this._t("card.positionWithheld")}</span>`
           : nothing}
       </div>
     `;
@@ -1975,7 +2005,7 @@ export class LawnMowerCard extends LitElement {
           @change=${(event: Event) => this._selectOption(entityId, event)}
         >
           ${unavailable
-            ? html`<option selected disabled>Unavailable</option>`
+            ? html`<option selected disabled>${this._t("common.unavailable")}</option>`
             : nothing}
           ${options.map(
             (option) => html`
@@ -2005,7 +2035,7 @@ export class LawnMowerCard extends LitElement {
     );
     const valueLabel = settings
       ? `${settings.value}${settings.unit ? ` ${settings.unit}` : ""}`
-      : "Unavailable";
+      : this._t("common.unavailable");
 
     return html`
       <label class="selector-card">
@@ -2039,8 +2069,8 @@ export class LawnMowerCard extends LitElement {
       this._entityName(entityId);
     if (!available || !value) {
       const status = available
-        ? `${timeServiceValue(entity.state) || "Unsupported value"} · Read-only`
-        : "Unavailable";
+        ? `${timeServiceValue(entity.state) || this._t("common.unsupportedValue")} · ${this._t("common.readOnly")}`
+        : this._t("common.unavailable");
       return html`
         <div class="selector-card">
           <span class="selector-label">${label}</span>
@@ -2069,6 +2099,7 @@ export class LawnMowerCard extends LitElement {
       entityIds,
       this.hass.states,
       (entityId) => this._renderEntityControl(entityId),
+      this._t,
     );
   }
 
@@ -2091,7 +2122,7 @@ export class LawnMowerCard extends LitElement {
       <details class="preference-panel">
         <summary>
           <span class="preference-summary">
-            <span>Mowing preferences</span>
+            <span>${this._t("card.preferences")}</span>
             ${summary ? html`<small>${summary}</small>` : nothing}
           </span>
         </summary>
@@ -2127,7 +2158,7 @@ export class LawnMowerCard extends LitElement {
     if (this._config.show_default_actions ?? true) {
       defaultActions.push(
         {
-          label: "Start",
+          label: this._t("action.start"),
           icon: "mdi:play",
           disabled:
             Boolean(this._mutationInFlight) ||
@@ -2136,14 +2167,14 @@ export class LawnMowerCard extends LitElement {
           handler: () => this._startMowing(),
         },
         {
-          label: "Pause",
+          label: this._t("action.pause"),
           icon: "mdi:pause",
           disabled:
             Boolean(this._mutationInFlight) || !this._canPause(mowerState),
           handler: () => this._pauseMowing(),
         },
         {
-          label: "Dock",
+          label: this._t("action.dock"),
           icon: "mdi:home-import-outline",
           disabled:
             Boolean(this._mutationInFlight) || !this._canDock(mowerState),
@@ -2176,9 +2207,9 @@ export class LawnMowerCard extends LitElement {
     }
 
     return [
-      { title: "Controls", actions: defaultActions },
-      { title: "Helpers", actions: helperActions },
-      { title: "Custom", actions: customActions },
+      { title: this._t("action.controls"), actions: defaultActions },
+      { title: this._t("action.helpers"), actions: helperActions },
+      { title: this._t("action.custom"), actions: customActions },
     ].filter((group) => group.actions.length);
   }
 
@@ -2197,7 +2228,7 @@ export class LawnMowerCard extends LitElement {
 
     if (type === "start") {
       return {
-        label: action.label || "Start",
+        label: action.label || this._t("action.start"),
         icon: action.icon || "mdi:play",
         disabled:
           Boolean(this._mutationInFlight) ||
@@ -2208,7 +2239,7 @@ export class LawnMowerCard extends LitElement {
 
     if (type === "pause") {
       return {
-        label: action.label || "Pause",
+        label: action.label || this._t("action.pause"),
         icon: action.icon || "mdi:pause",
         disabled:
           Boolean(this._mutationInFlight) || !this._canPause(mowerState),
@@ -2218,7 +2249,7 @@ export class LawnMowerCard extends LitElement {
 
     if (type === "dock") {
       return {
-        label: action.label || "Dock",
+        label: action.label || this._t("action.dock"),
         icon: action.icon || "mdi:home-import-outline",
         disabled:
           Boolean(this._mutationInFlight) || !this._canDock(mowerState),
@@ -2228,7 +2259,7 @@ export class LawnMowerCard extends LitElement {
 
     if (type === "more-info") {
       return {
-        label: action.label || "Details",
+        label: action.label || this._t("action.moreInfo"),
         icon: action.icon || "mdi:information-outline",
         disabled: false,
         handler: () => this._showMoreInfo(action.entity),
@@ -2261,7 +2292,13 @@ export class LawnMowerCard extends LitElement {
       this._config.entity,
       this.hass.entities,
     ).map((helper) => ({
-      label: helper.label,
+      label: this._t(({
+        "Live Video": "action.liveVideo",
+        Schedule: "action.schedule",
+        "Live Map": "action.liveMap",
+        "All Maps": "action.allMaps",
+        "Maintenance Point": "action.maintenancePoint",
+      } as Record<string, TranslationKey>)[helper.label] || "action.moreInfo"),
       icon: helper.icon,
       disabled:
         helper.action === "press" &&
@@ -2279,7 +2316,7 @@ export class LawnMowerCard extends LitElement {
     if (!entity || this._isUnavailableEntity(entity)) {
       return {
         label: fallbackLabel || this._preferredEntityLabel(entityId),
-        value: "Unavailable",
+        value: this._t("common.unavailable"),
       };
     }
 
@@ -2336,7 +2373,7 @@ export class LawnMowerCard extends LitElement {
 
     const direct = FRIENDLY_STATE[trimmed];
     if (direct) {
-      return direct;
+      return this._t(direct);
     }
 
     const normalized = trimmed.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
@@ -2354,16 +2391,16 @@ export class LawnMowerCard extends LitElement {
 
     if (entityId.endsWith("_weather_protection_status")) {
       if (normalized === "rain protection enabled" || normalized === "enabled") {
-        return "Enabled";
+        return this._t("common.enabled");
       }
       if (normalized === "rain protection disabled" || normalized === "disabled") {
-        return "Disabled";
+        return this._t("common.disabled");
       }
     }
 
     if (entityId.endsWith("_task_status") || entityId.endsWith("_task_status_name")) {
       if (this._isUnknownLike(value)) {
-        return "Unknown";
+        return this._t("common.unknown");
       }
     }
 
@@ -2377,80 +2414,80 @@ export class LawnMowerCard extends LitElement {
 
   private _preferredEntityLabel(entityId: string, fallback?: string): string {
     if (entityId.endsWith("_weather_protection_status")) {
-      return "Rain protection";
+      return this._t("settings.rainProtection");
     }
     if (entityId.endsWith("_state_name")) {
-      return "State";
+      return this._t("common.state");
     }
     if (entityId.endsWith("_task_status") || entityId.endsWith("_task_status_name")) {
-      return "Task";
+      return this._t("common.task");
     }
     if (entityId.endsWith("_battery")) {
-      return "Battery";
+      return this._t("hero.battery");
     }
     if (entityId.endsWith("_selected_mowing_action")) {
-      return "Selected Action";
+      return this._t("planner.selectedAction");
     }
     if (entityId.endsWith("_selected_target")) {
-      return "Selected Target";
+      return this._t("planner.selectedTarget");
     }
     if (entityId.endsWith("_selected_map")) {
-      return "Selected Map";
+      return this._t("planner.selectedMap");
     }
     if (entityId.endsWith("_selected_zone_mowing_height")) {
-      return "Mowing Height";
+      return this._t("planner.mowingHeight");
     }
     if (entityId.endsWith("_selected_map_mowing_height")) {
-      return "Global Mowing Height";
+      return this._t("planner.globalMowingHeight");
     }
     if (entityId.endsWith("_selected_map_preference_mode")) {
-      return "Preference Mode";
+      return this._t("planner.preferenceMode");
     }
     if (
       entityId.endsWith("_selected_mowing_efficiency") ||
       entityId.endsWith("_selected_efficient_mode")
     ) {
-      return "Mowing Efficiency";
+      return this._t("planner.mowingEfficiency");
     }
     if (entityId.endsWith("_selected_mowing_direction_mode")) {
-      return "Mowing Direction Mode";
+      return this._t("planner.directionMode");
     }
     if (
       entityId.endsWith("_selected_mowing_direction") ||
       entityId.endsWith("_selected_mowing_direction_degrees")
     ) {
-      return "Mowing Direction";
+      return this._t("planner.direction");
     }
     if (
       entityId.endsWith("_selected_turning_method") ||
       entityId.endsWith("_selected_edge_cutting_style") ||
       entityId.endsWith("_selected_edge_mowing_walk_mode")
     ) {
-      return "Turning Method";
+      return this._t("planner.turningMethod");
     }
     if (
       entityId.endsWith("_selected_obstacle_height") ||
       entityId.endsWith("_selected_obstacle_avoidance_height_cm")
     ) {
-      return "Obstacle Height";
+      return this._t("planner.obstacleHeight");
     }
     if (
       entityId.endsWith("_selected_obstacle_distance") ||
       entityId.endsWith("_selected_obstacle_avoidance_distance_cm")
     ) {
-      return "Obstacle Distance";
+      return this._t("planner.obstacleDistance");
     }
     if (
       entityId.endsWith("_selected_automatic_edge_cutting") ||
       entityId.endsWith("_selected_edge_mowing_auto")
     ) {
-      return "Automatic Edge Cutting";
+      return this._t("planner.automaticEdge");
     }
     if (
       entityId.endsWith("_selected_safe_edge_cutting") ||
       entityId.endsWith("_selected_edge_mowing_safe")
     ) {
-      return "Safe Edge Cutting";
+      return this._t("planner.safeEdge");
     }
     if (
       entityId.endsWith("_selected_edgemaster") ||
@@ -2462,130 +2499,130 @@ export class LawnMowerCard extends LitElement {
       entityId.endsWith("_selected_edge_obstacle_avoidance") ||
       entityId.endsWith("_selected_edge_mowing_obstacle_avoidance")
     ) {
-      return "Edge Obstacle Avoidance";
+      return this._t("planner.edgeAvoidance");
     }
     if (
       entityId.endsWith("_selected_lidar_obstacle_recognition") ||
       entityId.endsWith("_selected_obstacle_avoidance_enabled")
     ) {
-      return "Lidar Obstacle Recognition";
+      return this._t("planner.lidar");
     }
     if (
       entityId.endsWith("_selected_avoid_people") ||
       entityId.endsWith("_selected_people")
     ) {
-      return "Avoid People";
+      return this._t("planner.avoidPeople");
     }
     if (
       entityId.endsWith("_selected_avoid_animals") ||
       entityId.endsWith("_selected_animals")
     ) {
-      return "Avoid Animals";
+      return this._t("planner.avoidAnimals");
     }
     if (
       entityId.endsWith("_selected_avoid_objects") ||
       entityId.endsWith("_selected_objects")
     ) {
-      return "Avoid Objects";
+      return this._t("planner.avoidObjects");
     }
     if (entityId.endsWith("_maintenance_point")) {
-      return "Maintenance Point";
+      return this._t("action.maintenancePoint");
     }
     if (entityId.endsWith("_selected_zone_efficiency_mode")) {
-      return "Efficiency";
+      return this._t("planner.efficiency");
     }
     if (entityId.endsWith("_selected_zone_direction_mode")) {
-      return "Direction";
+      return this._t("planner.directionShort");
     }
     if (entityId.endsWith("_selected_zone_obstacle_avoidance")) {
-      return "Obstacle Avoidance";
+      return this._t("planner.obstacleAvoidance");
     }
     if (entityId.endsWith("_selected_zone_obstacle_distance")) {
-      return "Obstacle Distance";
+      return this._t("planner.obstacleDistance");
     }
     if (entityId.endsWith("_selected_zone_obstacle_height")) {
-      return "Obstacle Height";
+      return this._t("planner.obstacleHeight");
     }
     if (entityId.endsWith("_selected_zone_obstacle_classes")) {
-      return "Obstacle Classes";
+      return this._t("planner.obstacleClasses");
     }
     if (entityId.endsWith("_mowing_action")) {
-      return "Mowing Action";
+      return this._t("planner.mowingAction");
     }
     if (entityId.endsWith("_zone")) {
-      return "Zone";
+      return this._t("common.zone");
     }
     if (entityId.endsWith("_spot")) {
-      return "Spot";
+      return this._t("common.spot");
     }
     if (entityId.endsWith("_map")) {
-      return "Map";
+      return this._t("action.map");
     }
     if (entityId.endsWith("_mowing_progress")) {
-      return "Progress";
+      return this._t("metric.progress");
     }
     if (entityId.endsWith("_runtime_mission_progress")) {
-      return "Mission Progress";
+      return this._t("runtime.missionProgress");
     }
     if (entityId.endsWith("_runtime_current_area")) {
-      return "Current Area";
+      return this._t("runtime.currentArea");
     }
     if (entityId.endsWith("_runtime_total_area")) {
-      return "Total Area";
+      return this._t("runtime.totalArea");
     }
     if (entityId.endsWith("_runtime_position_x")) {
-      return "Position X";
+      return this._t("runtime.positionX");
     }
     if (entityId.endsWith("_runtime_position_y")) {
-      return "Position Y";
+      return this._t("runtime.positionY");
     }
     if (entityId.endsWith("_runtime_heading")) {
-      return "Heading";
+      return this._t("runtime.heading");
     }
     if (entityId.endsWith("_runtime_live_track_length")) {
-      return "Live Trail";
+      return this._t("runtime.liveTrail");
     }
     if (entityId.endsWith("_runtime_live_track_point_count")) {
-      return "Live Points";
+      return this._t("runtime.livePoints");
     }
     if (entityId.endsWith("_runtime_live_track_segment_count")) {
-      return "Live Segments";
+      return this._t("runtime.liveSegments");
     }
     if (entityId.endsWith("_current_cleaned_area")) {
-      return "Cut Area";
+      return this._t("runtime.cutArea");
     }
     if (entityId.endsWith("_current_cleaning_time")) {
-      return "Time";
+      return this._t("common.time");
     }
     if (entityId.endsWith("_current_zone")) {
-      return "Current Zone";
+      return this._t("runtime.currentZone");
     }
     if (entityId.endsWith("_active_segment_count")) {
-      return "Active Segments";
+      return this._t("runtime.activeSegments");
     }
     if (entityId.endsWith("_current_app_map_area")) {
-      return "Map Area";
+      return this._t("runtime.mapArea");
     }
     if (entityId.endsWith("_current_app_map_zone_count")) {
-      return "Zones";
+      return this._t("common.zones");
     }
     if (entityId.endsWith("_current_app_map_spot_count")) {
-      return "Spots";
+      return this._t("common.spots");
     }
     if (entityId.endsWith("_current_app_map_trajectory_point_count")) {
-      return "Path Points";
+      return this._t("runtime.pathPoints");
     }
     if (entityId.endsWith("_current_app_map_trajectory_length")) {
-      return "Path Length";
+      return this._t("runtime.pathLength");
     }
     if (entityId.endsWith("_current_app_map_mow_path_length")) {
-      return "Trail Length";
+      return this._t("runtime.trailLength");
     }
     if (entityId.endsWith("_current_app_map_cut_relation_count")) {
-      return "Cut Links";
+      return this._t("runtime.cutLinks");
     }
     if (entityId.endsWith("_error")) {
-      return "Error";
+      return this._t("common.error");
     }
     return fallback || this._entityName(entityId);
   }
@@ -2624,7 +2661,7 @@ export class LawnMowerCard extends LitElement {
           this._companionEntity("sensor", "mowing_progress"),
         ]);
     return {
-      label: entity?.attributes.cached === true ? "Last mission" : "Mission",
+      label: this._t(entity?.attributes.cached === true ? "metric.lastMission" : "hero.mission"),
       value: entity ? this._friendlyState(entity) : undefined,
     };
   }
@@ -2661,8 +2698,8 @@ export class LawnMowerCard extends LitElement {
     return {
       label:
         current?.attributes.cached === true || total?.attributes.cached === true
-          ? "Last coverage"
-          : "Coverage",
+          ? this._t("metric.lastCoverage")
+          : this._t("metric.coverage"),
       value: combinedValue,
     };
   }
@@ -2764,7 +2801,7 @@ export class LawnMowerCard extends LitElement {
     if (value === undefined) {
       return undefined;
     }
-    return value ? "Enabled" : "Disabled";
+    return this._t(value ? "common.enabled" : "common.disabled");
   }
 
   private _humanizedOptionalList(values: string[] | undefined): string | undefined {
@@ -2847,7 +2884,7 @@ export class LawnMowerCard extends LitElement {
       );
     const zoneLabel =
       this._recordString(preference, "label") ||
-      (selectedZoneId !== undefined ? `Zone #${selectedZoneId}` : undefined);
+      (selectedZoneId !== undefined ? `${this._t("common.zone")} #${selectedZoneId}` : undefined);
 
     if (
       !zoneLabel &&
@@ -2923,13 +2960,13 @@ export class LawnMowerCard extends LitElement {
       if (selectedActionKey === "edge" && selectedContourLabel) {
         target = selectedContourLabel;
       } else if (selectedActionKey === "spot" && selectedSpotId !== undefined) {
-        target = `Spot #${selectedSpotId}`;
+        target = `${this._t("common.spot")} #${selectedSpotId}`;
       } else if (selectedZoneId !== undefined) {
-        target = `Zone #${selectedZoneId}`;
+        target = `${this._t("planner.zone")} #${selectedZoneId}`;
       } else if (selectedContourLabel) {
         target = selectedContourLabel;
       } else if (selectedSpotId !== undefined) {
-        target = `Spot #${selectedSpotId}`;
+        target = `${this._t("common.spot")} #${selectedSpotId}`;
       }
     }
 
@@ -2941,7 +2978,7 @@ export class LawnMowerCard extends LitElement {
       );
       target = selectedLabels.length
         ? selectedLabels.join(", ")
-        : "No zones selected";
+        : this._t("card.noZones");
     }
 
     const selectedMapPreferences = this._selectedMapPreferenceDetails(mower);
@@ -2974,7 +3011,11 @@ export class LawnMowerCard extends LitElement {
     const totalArea = this._companionState("sensor", "runtime_total_area");
     const currentZone = this._companionState("sensor", "current_zone");
     const bluetoothState =
-      this._companionBinaryStateLabel("bluetooth_connected", "Connected", "Disconnected") ||
+      this._companionBinaryStateLabel(
+        "bluetooth_connected",
+        this._t("common.connected"),
+        this._t("common.disconnected"),
+      ) ||
       undefined;
 
     const trailLengthM = mapEntity
@@ -3033,28 +3074,28 @@ export class LawnMowerCard extends LitElement {
 
     if (plannedRun.action) {
       metrics.push({
-        label: "Action",
+        label: this._t("planner.action"),
         value: plannedRun.action,
       });
     }
 
     if (plannedRun.selectedMap) {
       metrics.push({
-        label: "Selected Map",
+        label: this._t("planner.selectedMap"),
         value: plannedRun.selectedMap,
       });
     }
 
     if (plannedRun.activeMap && plannedRun.activeMap !== plannedRun.selectedMap) {
       metrics.push({
-        label: "Active Map",
+        label: this._t("planner.activeMap"),
         value: plannedRun.activeMap,
       });
     }
 
     if (plannedRun.target) {
       metrics.push({
-        label: "Target",
+        label: this._t("planner.target"),
         value: plannedRun.target,
       });
     }
@@ -3062,19 +3103,19 @@ export class LawnMowerCard extends LitElement {
     const mapPreferences = plannedRun.selectedMapPreferences;
     if (mapPreferences?.modeLabel) {
       metrics.push({
-        label: "Preference Mode",
+        label: this._t("planner.preferenceMode"),
         value: mapPreferences.modeLabel,
       });
     }
     if (mapPreferences?.areaCount) {
       metrics.push({
-        label: "Preference Areas",
+        label: this._t("planner.preferenceAreas"),
         value: mapPreferences.areaCount,
       });
     }
     if (mapPreferences?.preferenceCount) {
       metrics.push({
-        label: "Stored Preferences",
+        label: this._t("planner.storedPreferences"),
         value: mapPreferences.preferenceCount,
       });
     }
@@ -3082,49 +3123,49 @@ export class LawnMowerCard extends LitElement {
     const zonePreferences = plannedRun.selectedZonePreferences;
     if (zonePreferences?.zoneLabel && zonePreferences.zoneLabel !== plannedRun.target) {
       metrics.push({
-        label: "Zone",
+        label: this._t("planner.zone"),
         value: zonePreferences.zoneLabel,
       });
     }
     if (zonePreferences?.mowingHeight) {
       metrics.push({
-        label: "Mowing Height",
+        label: this._t("planner.mowingHeight"),
         value: zonePreferences.mowingHeight,
       });
     }
     if (zonePreferences?.efficiencyMode) {
       metrics.push({
-        label: "Efficiency",
+        label: this._t("planner.efficiency"),
         value: zonePreferences.efficiencyMode,
       });
     }
     if (zonePreferences?.directionMode) {
       metrics.push({
-        label: "Direction",
+        label: this._t("planner.directionShort"),
         value: zonePreferences.directionMode,
       });
     }
     if (zonePreferences?.obstacleAvoidance) {
       metrics.push({
-        label: "Obstacle Avoidance",
+        label: this._t("planner.obstacleAvoidance"),
         value: zonePreferences.obstacleAvoidance,
       });
     }
     if (zonePreferences?.obstacleDistance) {
       metrics.push({
-        label: "Obstacle Distance",
+        label: this._t("planner.obstacleDistance"),
         value: zonePreferences.obstacleDistance,
       });
     }
     if (zonePreferences?.obstacleHeight) {
       metrics.push({
-        label: "Obstacle Height",
+        label: this._t("planner.obstacleHeight"),
         value: zonePreferences.obstacleHeight,
       });
     }
     if (zonePreferences?.obstacleClasses) {
       metrics.push({
-        label: "Obstacle AI",
+        label: this._t("planner.obstacleAi"),
         value: zonePreferences.obstacleClasses,
       });
     }
@@ -3136,8 +3177,8 @@ export class LawnMowerCard extends LitElement {
     return html`
       <div class="target-panel">
         <div class="target-header">
-          <div class="target-title">Planned Run</div>
-          <div class="target-badge">Start Preview</div>
+          <div class="target-title">${this._t("card.plannedRun")}</div>
+          <div class="target-badge">${this._t("card.startPreview")}</div>
         </div>
         <div class="target-grid">
           ${metrics.map(
@@ -3152,16 +3193,14 @@ export class LawnMowerCard extends LitElement {
         ${mapPreferences?.modeKey === "global" && zonePreferences
           ? html`
               <div class="target-note">
-                The selected map is still using global preferences, so zone-specific mowing
-                settings may not apply until custom mode is enabled.
+                ${this._t("planner.globalModeNote")}
               </div>
             `
           : nothing}
         ${plannedRun.needsMapSwitch
           ? html`
               <div class="target-note">
-                The selected map does not match the mower's active app map yet. Switch maps before
-                starting a scoped run.
+                ${this._t("planner.mapMismatchNote")}
               </div>
             `
           : nothing}
@@ -3174,75 +3213,75 @@ export class LawnMowerCard extends LitElement {
 
     if (runtimeSession.missionProgress) {
       metrics.push({
-        label: "Progress",
+        label: this._t("metric.progress"),
         value: runtimeSession.missionProgress,
       });
     }
 
     if (runtimeSession.currentArea && runtimeSession.totalArea) {
       metrics.push({
-        label: "Coverage",
+        label: this._t("metric.coverage"),
         value: `${runtimeSession.currentArea} / ${runtimeSession.totalArea}`,
       });
     } else if (runtimeSession.currentArea) {
       metrics.push({
-        label: "Current Area",
+        label: this._t("runtime.currentArea"),
         value: runtimeSession.currentArea,
       });
     }
 
     if (runtimeSession.currentZone) {
       metrics.push({
-        label: "Current Zone",
+        label: this._t("runtime.currentZone"),
         value: runtimeSession.currentZone,
       });
     }
 
     if (runtimeSession.bluetoothState) {
       metrics.push({
-        label: "Bluetooth",
+        label: this._t("runtime.bluetooth"),
         value: runtimeSession.bluetoothState,
       });
     }
 
     if (runtimeSession.trailLengthM !== undefined && runtimeSession.trailLengthM > 0) {
       metrics.push({
-        label: "Live Trail",
+        label: this._t("runtime.liveTrail"),
         value: this._formatMeters(runtimeSession.trailLengthM),
       });
     }
 
     if (runtimeSession.pointCount !== undefined && runtimeSession.pointCount > 1) {
       metrics.push({
-        label: "Points",
+        label: this._t("runtime.points"),
         value: `${Math.round(runtimeSession.pointCount)}`,
       });
     }
 
     if (runtimeSession.segmentCount !== undefined && runtimeSession.segmentCount > 0) {
       metrics.push({
-        label: "Segments",
+        label: this._t("runtime.segments"),
         value: `${Math.round(runtimeSession.segmentCount)}`,
       });
     }
 
     if (runtimeSession.headingDeg !== undefined) {
       metrics.push({
-        label: "Heading",
+        label: this._t("runtime.heading"),
         value: `${Math.round(runtimeSession.headingDeg)}°`,
       });
     }
 
     if (runtimeSession.positionX !== undefined && runtimeSession.positionY !== undefined) {
       metrics.push({
-        label: "Position",
+        label: this._t("runtime.position"),
         value: `${this._formatCoordinate(runtimeSession.positionX)}, ${this._formatCoordinate(runtimeSession.positionY)}`,
       });
     }
 
     if (runtimeSession.source) {
       metrics.push({
-        label: "Source",
+        label: this._t("runtime.source"),
         value: this._humanizeValue(runtimeSession.source),
       });
     }
@@ -3254,11 +3293,11 @@ export class LawnMowerCard extends LitElement {
     return html`
       <div class="session-panel">
         <div class="session-header">
-          <div class="session-title">Live Session</div>
-          <div class="session-badge">Runtime Overlay</div>
+          <div class="session-title">${this._t("card.liveSession")}</div>
+          <div class="session-badge">${this._t("card.runtimeOverlay")}</div>
         </div>
         <div class="session-subtitle">
-          Current mowing telemetry from the live runtime map stream.
+          ${this._t("runtime.subtitle")}
         </div>
         <div class="session-grid">
           ${metrics.map(
@@ -3307,7 +3346,7 @@ export class LawnMowerCard extends LitElement {
     const generation = this._actionGeneration;
     this._clearActionFeedbackTimer();
     this._actionFeedback = {
-      message: `${label}: waiting for mower confirmation…`,
+      message: this._t("card.waitingConfirmation", { action: label }),
       error: false,
     };
     try {
@@ -3316,7 +3355,7 @@ export class LawnMowerCard extends LitElement {
         return;
       }
       this._actionFeedback = {
-        message: `${label}: confirmed.`,
+        message: this._t("card.confirmed", { action: label }),
         error: false,
       };
       this._actionFeedbackTimer = window.setTimeout(() => {
@@ -3332,9 +3371,9 @@ export class LawnMowerCard extends LitElement {
       const detail =
         error instanceof Error && error.message
           ? error.message.replace(/[\r\n\t]+/g, " ").slice(0, 240)
-          : "Home Assistant could not confirm the mower action.";
+          : this._t("card.actionUnconfirmed");
       this._actionFeedback = {
-        message: `${label} was not confirmed. ${detail}`,
+        message: this._t("card.notConfirmed", { action: label, detail }),
         error: true,
       };
     } finally {
@@ -3348,15 +3387,15 @@ export class LawnMowerCard extends LitElement {
   ) {
     const [domain, name] = service.split(".", 2);
     if (!domain || !name) {
-      await this._runMowerAction(`service:${service}`, `Run ${service}`, async () => {
-        throw new Error(`Invalid service '${service}'. Use domain.service format.`);
+      await this._runMowerAction(`service:${service}`, this._t("card.runService", { service }), async () => {
+        throw new Error(this._t("card.invalidService", { service }));
       });
       return;
     }
 
     await this._runMowerAction(
       `service:${service}`,
-      `Run ${service}`,
+      this._t("card.runService", { service }),
       () => this.hass.callService(domain, name, serviceData || {}),
     );
   }
@@ -3374,7 +3413,7 @@ export class LawnMowerCard extends LitElement {
   private async _selectOptionValue(entityId: string, option: string) {
     await this._runMowerAction(
       `select:${entityId}`,
-      `Set ${this._entityName(entityId)}`,
+      this._t("action.set", { name: this._entityName(entityId) }),
       () =>
         this.hass.callService("select", "select_option", {
           entity_id: entityId,
@@ -3615,7 +3654,7 @@ export class LawnMowerCard extends LitElement {
     }
     await this._runMowerAction(
       `number:${entityId}`,
-      `Set ${this._entityName(entityId)}`,
+      this._t("action.set", { name: this._entityName(entityId) }),
       () =>
         this.hass.callService("number", "set_value", {
           entity_id: entityId,
@@ -3632,7 +3671,7 @@ export class LawnMowerCard extends LitElement {
     }
     await this._runMowerAction(
       `time:${entityId}`,
-      `Set ${this._entityName(entityId)}`,
+      this._t("action.set", { name: this._entityName(entityId) }),
       () =>
         this.hass.callService("time", "set_value", {
           entity_id: entityId,
@@ -3644,7 +3683,9 @@ export class LawnMowerCard extends LitElement {
   private async _toggleSwitch(entityId: string, enabled: boolean) {
     await this._runMowerAction(
       `switch:${entityId}`,
-      `${enabled ? "Disable" : "Enable"} ${this._entityName(entityId)}`,
+      this._t(enabled ? "action.disable" : "action.enable", {
+        name: this._entityName(entityId),
+      }),
       () =>
         this.hass.callService("switch", enabled ? "turn_off" : "turn_on", {
           entity_id: entityId,
@@ -3719,11 +3760,11 @@ export class LawnMowerCard extends LitElement {
     );
     const retryText =
       Number.isFinite(retryAfter) && retryAfter > 0
-        ? ` Retrying in ${retryAfter}s.`
+        ? ` ${this._t("card.retrying", { seconds: retryAfter })}`
         : "";
     return {
       message:
-        `Mower connection interrupted. Showing the last confirmed state.` +
+        this._t("card.connectionInterrupted") +
         retryText,
       error: false,
     };
@@ -3774,7 +3815,7 @@ export class LawnMowerCard extends LitElement {
     ) {
       return;
     }
-    await this._runMowerAction("start", "Start mowing", async () => {
+    await this._runMowerAction("start", this._t("action.startMowing"), async () => {
       const zoneContext = this._zoneStartContext();
       if (zoneContext && this._config) {
         const serviceData = zoneMowingServiceData(
@@ -3782,7 +3823,7 @@ export class LawnMowerCard extends LitElement {
           zoneContext.zoneIds,
         );
         if (!serviceData) {
-          throw new Error("The selected zones are no longer available.");
+          throw new Error(this._t("card.zonesChanged"));
         }
         await this.hass.callService(
           "dreame_lawn_mower",
@@ -3798,7 +3839,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   private async _pauseMowing() {
-    await this._runMowerAction("pause", "Pause mowing", () =>
+    await this._runMowerAction("pause", this._t("action.pauseMowing"), () =>
       this.hass.callService("lawn_mower", "pause", {
         entity_id: this._config?.entity,
       }),
@@ -3806,7 +3847,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   private async _dockMower() {
-    await this._runMowerAction("dock", "Return to dock", () =>
+    await this._runMowerAction("dock", this._t("action.returnToDock"), () =>
       this.hass.callService("lawn_mower", "dock", {
         entity_id: this._config?.entity,
       }),
@@ -3820,6 +3861,19 @@ export class LawnMowerCardEditor extends LitElement {
 
   @state() private _config?: LawnMowerCardConfig;
   @state() private _serviceDataDrafts: Record<number, string> = {};
+
+  private get _locale(): SupportedLocale {
+    return resolveLocale(
+      this._config?.locale ?? "auto",
+      this.hass?.locale?.language,
+      this.hass?.language,
+      globalThis.navigator?.language,
+    );
+  }
+
+  private get _t() {
+    return createTranslator(this._locale);
+  }
 
   public static styles = css`
     :host {
@@ -3984,53 +4038,53 @@ export class LawnMowerCardEditor extends LitElement {
     const config = this._config || LawnMowerCard.getStubConfig();
 
     return html`
-      <div class="editor">
+      <div class="editor" lang=${this._locale}>
         <div class="hint">
-          Select a mower first. The editor will prefill common companion entities such as map, state,
-          battery, and status tiles when they can be derived safely.
+          ${this._t("editor.intro")}
         </div>
+        ${this._localeField(config.locale || "auto")}
         ${this._field(
-          "Mower entity",
+          this._t("editor.mowerEntity"),
           config.entity,
           "entity",
           "lawn_mower.my_mower",
-          "Required lawn_mower entity.",
+          this._t("editor.mowerEntityHint"),
           ["lawn_mower"],
         )}
         ${this._field(
-          "Title",
+          this._t("editor.title"),
           config.name,
           "name",
-          "Backyard mower",
-          "Optional card title override.",
+          this._t("editor.titlePlaceholder"),
+          this._t("editor.titleHint"),
         )}
         ${this._layoutField(config.layout || "default")}
         ${config.layout === "hero" ? this._heroAppearanceSection(config) : nothing}
         ${this._field(
-          "Map camera",
+          this._t("editor.mapCamera"),
           config.map_entity,
           "map_entity",
           "camera.my_mower_live_path_map",
-          "Optional camera entity used for the map preview. Live path cameras work best when available.",
+          this._t("editor.mapCameraHint"),
           ["camera"],
         )}
         ${this._field(
-          "Live video camera",
+          this._t("editor.videoCamera"),
           config.camera_entity,
           "camera_entity",
           "camera.my_mower_live_video",
-          "Optional camera entity used by the Hero layout. The integration camera is detected automatically when available.",
+          this._t("editor.videoCameraHint"),
           ["camera"],
         )}
         ${this._toggle(
-          "Show map section",
+          this._t("editor.showMap"),
           config.show_map ?? Boolean(config.map_entity),
           "show_map",
         )}
         ${this._mapFitField(normalizeMapFit(config.map_fit))}
         ${this._mapPositionField(normalizeMapPosition(config.map_position))}
         ${this._toggle(
-          "Show 3D point cloud when supported",
+          this._t("editor.showPointCloud"),
           config.show_point_cloud ??
             Boolean(
               pointCloudPathFromEntity(
@@ -4042,57 +4096,57 @@ export class LawnMowerCardEditor extends LitElement {
           "show_point_cloud",
         )}
         ${this._field(
-          "Status entity",
+          this._t("editor.statusEntity"),
           config.status_entity,
           "status_entity",
           "sensor.my_mower_state_name",
-          "Optional entity shown under the title.",
+          this._t("editor.statusEntityHint"),
           ["sensor", "binary_sensor", "calendar", "camera", "lawn_mower"],
         )}
         ${this._field(
-          "Battery entity",
+          this._t("editor.batteryEntity"),
           config.battery_entity,
           "battery_entity",
           "sensor.my_mower_battery",
-          "Optional entity shown as a stat tile.",
+          this._t("editor.batteryEntityHint"),
           ["sensor", "number", "input_number", "binary_sensor"],
         )}
         ${this._field(
-          "Progress or status tile",
+          this._t("editor.progressEntity"),
           config.progress_entity,
           "progress_entity",
           "sensor.my_mower_progress",
-          "Optional entity shown as a second stat tile.",
+          this._t("editor.progressEntityHint"),
           ["sensor", "binary_sensor", "calendar", "camera", "lawn_mower"],
         )}
         ${this._field(
-          "Coverage entity",
+          this._t("editor.coverageEntity"),
           config.coverage_entity,
           "coverage_entity",
           "sensor.my_mower_current_cleaned_area",
-          "Optional current or completed mowed-area sensor used by the Hero coverage metric.",
+          this._t("editor.coverageEntityHint"),
           ["sensor", "number", "input_number"],
         )}
         ${this._field(
-          "Total coverage entity",
+          this._t("editor.totalCoverageEntity"),
           config.coverage_total_entity,
           "coverage_total_entity",
           "sensor.my_mower_runtime_total_area",
-          "Optional total or target-area sensor combined with the current coverage value.",
+          this._t("editor.totalCoverageEntityHint"),
           ["sensor", "number", "input_number"],
         )}
         ${this._toggle(
-          "Show default actions",
+          this._t("editor.showDefaultActions"),
           config.show_default_actions ?? true,
           "show_default_actions",
         )}
         ${this._toggle(
-          "Show helper actions",
+          this._t("editor.showHelperActions"),
           config.show_helper_actions ?? true,
           "show_helper_actions",
         )}
         ${this._toggle(
-          "Show advanced planning and live telemetry",
+          this._t("editor.showAdvanced"),
           config.show_advanced_details ?? false,
           "show_advanced_details",
         )}
@@ -4104,17 +4158,33 @@ export class LawnMowerCardEditor extends LitElement {
     `;
   }
 
+  private _localeField(value: LocalePreference) {
+    return html`
+      <label>
+        <span>${this._t("editor.language")}</span>
+        <select data-key="locale" @change=${this._valueChanged}>
+          ${LOCALE_OPTIONS.map(
+            (option) => html`<option value=${option.value} ?selected=${option.value === value}>${
+              option.value === "auto" ? this._t("common.automatic") : option.label
+            }</option>`,
+          )}
+        </select>
+        <span class="hint">${this._t("editor.languageHint")}</span>
+      </label>
+    `;
+  }
+
   private _layoutField(value: "default" | "compact" | "wide" | "hero") {
     return html`
       <label>
-        <span>Layout</span>
+        <span>${this._t("editor.layout")}</span>
         <select .value=${value} @change=${this._layoutChanged}>
-          <option value="default">Default</option>
-          <option value="compact">Compact</option>
-          <option value="wide">Wide</option>
-          <option value="hero">Hero</option>
+          <option value="default">${this._t("editor.layoutDefault")}</option>
+          <option value="compact">${this._t("editor.layoutCompact")}</option>
+          <option value="wide">${this._t("editor.layoutWide")}</option>
+          <option value="hero">${this._t("editor.layoutHero")}</option>
         </select>
-        <span class="hint">Choose how the card balances map, actions, and stats.</span>
+        <span class="hint">${this._t("editor.layoutHint")}</span>
       </label>
     `;
   }
@@ -4123,17 +4193,15 @@ export class LawnMowerCardEditor extends LitElement {
     return html`
       <div class="section">
         <div class="section-title">
-          <strong>Hero appearance</strong>
-          <span class="hint">
-            Personalize the overview without replacing files installed by HACS.
-          </span>
+          <strong>${this._t("editor.heroAppearance")}</strong>
+          <span class="hint">${this._t("editor.heroAppearanceHint")}</span>
         </div>
         ${this._field(
-          "Background image",
+          this._t("editor.backgroundImage"),
           config.hero_image,
           "hero_image",
           "/local/mower/my-mower.jpg",
-          "Use a /local/... path for a file in Home Assistant's config/www folder, or an HTTPS URL. Clear the field to restore the built-in image.",
+          this._t("editor.backgroundImageHint"),
         )}
         ${this._heroImagePositionField(
           normalizeHeroImagePosition(config.hero_image_position),
@@ -4145,13 +4213,13 @@ export class LawnMowerCardEditor extends LitElement {
   private _mapFitField(value: MapFit) {
     return html`
       <label>
-        <span>Map fit</span>
+        <span>${this._t("editor.mapFit")}</span>
         <select data-key="map_fit" .value=${value} @change=${this._valueChanged}>
-          <option value="contain">Show the complete map</option>
-          <option value="cover">Fill the available space</option>
+          <option value="contain">${this._t("editor.mapFitContain")}</option>
+          <option value="cover">${this._t("editor.mapFitCover")}</option>
         </select>
         <span class="hint">
-          Complete avoids cropping. Fill crops the map and uses the focus setting below.
+          ${this._t("editor.mapFitHint")}
         </span>
       </label>
     `;
@@ -4160,19 +4228,19 @@ export class LawnMowerCardEditor extends LitElement {
   private _mapPositionField(value: MapPosition) {
     return html`
       <label>
-        <span>Map focus</span>
+        <span>${this._t("editor.mapFocus")}</span>
         <select data-key="map_position" .value=${value} @change=${this._valueChanged}>
-          <option value="center">Center</option>
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
-          <option value="left">Left</option>
-          <option value="right">Right</option>
-          <option value="top-left">Top left</option>
-          <option value="top-right">Top right</option>
-          <option value="bottom-left">Bottom left</option>
-          <option value="bottom-right">Bottom right</option>
+          <option value="center">${this._t("common.center")}</option>
+          <option value="top">${this._t("common.top")}</option>
+          <option value="bottom">${this._t("common.bottom")}</option>
+          <option value="left">${this._t("common.left")}</option>
+          <option value="right">${this._t("common.right")}</option>
+          <option value="top-left">${this._t("common.topLeft")}</option>
+          <option value="top-right">${this._t("common.topRight")}</option>
+          <option value="bottom-left">${this._t("common.bottomLeft")}</option>
+          <option value="bottom-right">${this._t("common.bottomRight")}</option>
         </select>
-        <span class="hint">Choose which area remains visible when the map is cropped.</span>
+        <span class="hint">${this._t("editor.mapFocusHint")}</span>
       </label>
     `;
   }
@@ -4180,19 +4248,19 @@ export class LawnMowerCardEditor extends LitElement {
   private _heroImagePositionField(value: HeroImagePosition) {
     return html`
       <label>
-        <span>Image focus</span>
+        <span>${this._t("editor.imageFocus")}</span>
         <select
           data-key="hero_image_position"
           .value=${value}
           @change=${this._valueChanged}
         >
-          <option value="center">Center</option>
-          <option value="left">Left</option>
-          <option value="right">Right</option>
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
+          <option value="center">${this._t("common.center")}</option>
+          <option value="left">${this._t("common.left")}</option>
+          <option value="right">${this._t("common.right")}</option>
+          <option value="top">${this._t("common.top")}</option>
+          <option value="bottom">${this._t("common.bottom")}</option>
         </select>
-        <span class="hint">Choose which part of a wide or tall image stays visible.</span>
+        <span class="hint">${this._t("editor.imageFocusHint")}</span>
       </label>
     `;
   }
@@ -4250,12 +4318,10 @@ export class LawnMowerCardEditor extends LitElement {
       <div class="section">
         <div class="section-header">
           <div class="section-title">
-            <strong>Controls</strong>
-            <span class="hint">
-              Add Home Assistant select, number, switch, or time entities for mower controls.
-            </span>
+            <strong>${this._t("editor.controls")}</strong>
+            <span class="hint">${this._t("editor.controlsHint")}</span>
           </div>
-          <button type="button" @click=${this._addControlEntity}>Add control</button>
+          <button type="button" @click=${this._addControlEntity}>${this._t("editor.addControl")}</button>
         </div>
         ${controlEntities.length
           ? html`
@@ -4265,7 +4331,7 @@ export class LawnMowerCardEditor extends LitElement {
                     <div class="row">
                       <div class="row-grid single">
                         <label>
-                          <span>Control entity</span>
+                          <span>${this._t("editor.controlEntity")}</span>
                           <input
                             .value=${entityId || ""}
                             data-index=${String(index)}
@@ -4282,7 +4348,7 @@ export class LawnMowerCardEditor extends LitElement {
                           data-index=${String(index)}
                           @click=${this._removeControlEntity}
                         >
-                          Remove control
+                          ${this._t("editor.removeControl")}
                         </button>
                       </div>
                     </div>
@@ -4292,8 +4358,7 @@ export class LawnMowerCardEditor extends LitElement {
             `
           : html`
               <div class="hint">
-                No explicit controls yet. The card auto-detects map and task selectors,
-                maintenance points, and the active global or zone mowing preferences.
+                ${this._t("editor.noControls")}
               </div>
             `}
         ${this._entityDatalist("lawn-mower-card-editor-control-entities", [
@@ -4311,10 +4376,10 @@ export class LawnMowerCardEditor extends LitElement {
       <div class="section">
         <div class="section-header">
           <div class="section-title">
-            <strong>Header summary chips</strong>
-            <span class="hint">Add specific entities when you want tighter control over the header summary.</span>
+            <strong>${this._t("editor.summaries")}</strong>
+            <span class="hint">${this._t("editor.summariesHint")}</span>
           </div>
-          <button type="button" @click=${this._addSummaryEntity}>Add summary entity</button>
+          <button type="button" @click=${this._addSummaryEntity}>${this._t("editor.addSummary")}</button>
         </div>
         ${summaryEntities.length
           ? html`
@@ -4324,7 +4389,7 @@ export class LawnMowerCardEditor extends LitElement {
                     <div class="row">
                       <div class="row-grid single">
                         <label>
-                          <span>Entity</span>
+                          <span>${this._t("common.entity")}</span>
                           <input
                             .value=${entityId || ""}
                             data-index=${String(index)}
@@ -4341,7 +4406,7 @@ export class LawnMowerCardEditor extends LitElement {
                           data-index=${String(index)}
                           @click=${this._removeSummaryEntity}
                         >
-                          Remove summary entity
+                          ${this._t("editor.removeSummary")}
                         </button>
                       </div>
                     </div>
@@ -4351,8 +4416,7 @@ export class LawnMowerCardEditor extends LitElement {
             `
           : html`
               <div class="hint">
-                No explicit summary entities yet. The card will continue to build summary chips from battery,
-                activity, task, weather, and common companion sensors automatically.
+                ${this._t("editor.noSummaries")}
               </div>
             `}
         ${this._entityDatalist("lawn-mower-card-editor-summary-entities", [
@@ -4371,10 +4435,10 @@ export class LawnMowerCardEditor extends LitElement {
       <div class="section">
         <div class="section-header">
           <div class="section-title">
-            <strong>Extra tiles</strong>
-            <span class="hint">Add companion entities as extra stat tiles.</span>
+            <strong>${this._t("editor.tiles")}</strong>
+            <span class="hint">${this._t("editor.tilesHint")}</span>
           </div>
-          <button type="button" @click=${this._addTile}>Add tile</button>
+          <button type="button" @click=${this._addTile}>${this._t("editor.addTile")}</button>
         </div>
         ${tiles.length
           ? html`
@@ -4384,7 +4448,7 @@ export class LawnMowerCardEditor extends LitElement {
                     <div class="row">
                       <div class="row-grid">
                         <label>
-                          <span>Entity</span>
+                          <span>${this._t("common.entity")}</span>
                           <input
                             .value=${tile.entity || ""}
                             data-index=${String(index)}
@@ -4395,19 +4459,19 @@ export class LawnMowerCardEditor extends LitElement {
                           />
                         </label>
                         <label>
-                          <span>Label</span>
+                          <span>${this._t("common.label")}</span>
                           <input
                             .value=${tile.label || ""}
                             data-index=${String(index)}
                             data-key="label"
-                            placeholder="Error"
+                            placeholder=${this._t("common.error")}
                             @input=${this._tileChanged}
                           />
                         </label>
                       </div>
                       <div class="row-grid">
                         <label>
-                          <span>Icon</span>
+                          <span>${this._t("common.icon")}</span>
                           <input
                             .value=${tile.icon || ""}
                             data-index=${String(index)}
@@ -4415,7 +4479,7 @@ export class LawnMowerCardEditor extends LitElement {
                             placeholder="mdi:alert-circle-outline"
                             @input=${this._tileChanged}
                           />
-                          <span class="hint">Optional MDI icon for future richer tile rendering.</span>
+                          <span class="hint">${this._t("editor.iconHint")}</span>
                         </label>
                       </div>
                       <div class="row-actions">
@@ -4425,7 +4489,7 @@ export class LawnMowerCardEditor extends LitElement {
                           data-index=${String(index)}
                           @click=${this._removeTile}
                         >
-                          Remove tile
+                          ${this._t("editor.removeTile")}
                         </button>
                       </div>
                     </div>
@@ -4433,7 +4497,7 @@ export class LawnMowerCardEditor extends LitElement {
                 )}
               </div>
             `
-          : html`<div class="hint">No extra tiles yet.</div>`}
+          : html`<div class="hint">${this._t("editor.noTiles")}</div>`}
         ${this._entityDatalist("lawn-mower-card-editor-tile-entities")}
       </div>
     `;
@@ -4444,10 +4508,10 @@ export class LawnMowerCardEditor extends LitElement {
       <div class="section">
         <div class="section-header">
           <div class="section-title">
-            <strong>Custom actions</strong>
-            <span class="hint">Add extra control chips beyond the built-in mower and helper actions.</span>
+            <strong>${this._t("editor.actions")}</strong>
+            <span class="hint">${this._t("editor.actionsHint")}</span>
           </div>
-          <button type="button" @click=${this._addAction}>Add action</button>
+          <button type="button" @click=${this._addAction}>${this._t("editor.addAction")}</button>
         </div>
         ${actions.length
           ? html`
@@ -4459,33 +4523,33 @@ export class LawnMowerCardEditor extends LitElement {
                     <div class="row">
                       <div class="row-grid">
                         <label>
-                          <span>Type</span>
+                          <span>${this._t("common.type")}</span>
                           <select
                             .value=${type}
                             data-index=${String(index)}
                             @change=${this._actionTypeChanged}
                           >
-                            <option value="more-info">More info</option>
-                            <option value="service">Service</option>
-                            <option value="start">Start</option>
-                            <option value="pause">Pause</option>
-                            <option value="dock">Dock</option>
+                            <option value="more-info">${this._t("action.moreInfo")}</option>
+                            <option value="service">${this._t("common.service")}</option>
+                            <option value="start">${this._t("action.start")}</option>
+                            <option value="pause">${this._t("action.pause")}</option>
+                            <option value="dock">${this._t("action.dock")}</option>
                           </select>
                         </label>
                         <label>
-                          <span>Label</span>
+                          <span>${this._t("common.label")}</span>
                           <input
                             .value=${action.label || ""}
                             data-index=${String(index)}
                             data-key="label"
-                            placeholder="Details"
+                            placeholder=${this._t("action.moreInfo")}
                             @input=${this._actionChanged}
                           />
                         </label>
                       </div>
                       <div class="row-grid">
                         <label>
-                          <span>Icon</span>
+                          <span>${this._t("common.icon")}</span>
                           <input
                             .value=${action.icon || ""}
                             data-index=${String(index)}
@@ -4497,7 +4561,7 @@ export class LawnMowerCardEditor extends LitElement {
                         ${type === "more-info"
                           ? html`
                               <label>
-                                <span>Target entity</span>
+                                <span>${this._t("editor.targetEntity")}</span>
                                 <input
                                   .value=${action.entity || ""}
                                   data-index=${String(index)}
@@ -4506,13 +4570,13 @@ export class LawnMowerCardEditor extends LitElement {
                                   list="lawn-mower-card-editor-action-targets"
                                   @input=${this._actionChanged}
                                 />
-                                <span class="hint">Optional. Defaults to the mower entity.</span>
+                                <span class="hint">${this._t("editor.targetEntityHint")}</span>
                               </label>
                             `
                           : type === "service"
                             ? html`
                                 <label>
-                                  <span>Service</span>
+                                  <span>${this._t("common.service")}</span>
                                   <input
                                     .value=${action.service || ""}
                                     data-index=${String(index)}
@@ -4528,7 +4592,7 @@ export class LawnMowerCardEditor extends LitElement {
                         ? html`
                             <div class="row-grid single">
                               <label>
-                                <span>Service data</span>
+                                <span>${this._t("editor.serviceData")}</span>
                                 <textarea
                                   data-index=${String(index)}
                                   placeholder='{"entity_id":"button.my_probe"}'
@@ -4536,8 +4600,8 @@ export class LawnMowerCardEditor extends LitElement {
                                 >${this._serviceDataValue(index, action)}</textarea>
                                 <span class=${`hint ${serviceDataError ? "error" : ""}`}>
                                   ${serviceDataError
-                                    ? "Enter valid JSON before this service data can be saved."
-                                    : "Optional JSON object passed to the service call."}
+                                    ? this._t("editor.serviceDataInvalid")
+                                    : this._t("editor.serviceDataHint")}
                                 </span>
                               </label>
                             </div>
@@ -4550,7 +4614,7 @@ export class LawnMowerCardEditor extends LitElement {
                           data-index=${String(index)}
                           @click=${this._removeAction}
                         >
-                          Remove action
+                          ${this._t("editor.removeAction")}
                         </button>
                       </div>
                     </div>
@@ -4558,7 +4622,7 @@ export class LawnMowerCardEditor extends LitElement {
                 })}
               </div>
             `
-          : html`<div class="hint">No custom actions yet.</div>`}
+          : html`<div class="hint">${this._t("editor.noActions")}</div>`}
         ${this._entityDatalist("lawn-mower-card-editor-action-targets")}
       </div>
     `;
@@ -5073,9 +5137,17 @@ export class LawnMowerCardEditor extends LitElement {
   }
 }
 
+const cardPickerTranslator = createTranslator(
+  resolveLocale(
+    "auto",
+    typeof document === "undefined" ? undefined : document.documentElement.lang,
+    typeof navigator === "undefined" ? undefined : navigator.language,
+  ),
+);
+
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "lawn-mower-card",
-  name: "Lawn Mower Card",
-  description: "A mower-native Home Assistant card with image-led, map, camera, and control layouts.",
+  name: cardPickerTranslator("cardPicker.name"),
+  description: cardPickerTranslator("cardPicker.description"),
 });

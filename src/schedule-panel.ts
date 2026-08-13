@@ -1,6 +1,7 @@
 import { css, html, type TemplateResult } from "lit";
 
 import type { ScheduleControl } from "./schedule-controls";
+import type { Translator } from "./localization";
 
 export const schedulePanelStyles = css`
   .schedule-panel {
@@ -107,6 +108,7 @@ export const schedulePanelStyles = css`
 export function renderSchedulePanel(
   controls: ScheduleControl[],
   onToggle: (entityId: string, enabled: boolean) => void | Promise<void>,
+  t: Translator,
 ): TemplateResult {
   const showMapLabels = new Set(
     controls.map((control) => control.mapLabel).filter(Boolean),
@@ -114,8 +116,8 @@ export function renderSchedulePanel(
   return html`
     <section class="schedule-panel">
       <div class="schedule-heading">
-        <span><ha-icon icon="mdi:calendar-clock"></ha-icon> Schedules</span>
-        <span class="schedule-count">${controls.length} plan${controls.length === 1 ? "" : "s"}</span>
+        <span><ha-icon icon="mdi:calendar-clock"></ha-icon> ${t("schedule.title")}</span>
+        <span class="schedule-count">${t("schedule.count", { count: controls.length })}</span>
       </div>
       <div class="schedule-list">
         ${controls.map((control) => {
@@ -135,7 +137,10 @@ export function renderSchedulePanel(
               <button
                 class="schedule-toggle"
                 role="switch"
-                aria-label=${`${control.label}: ${control.enabled ? "enabled" : "disabled"}`}
+                aria-label=${t("schedule.toggleLabel", {
+                  name: control.label,
+                  state: t(control.enabled ? "common.enabled" : "common.disabled"),
+                })}
                 aria-checked=${String(control.enabled)}
                 ?disabled=${!control.available}
                 @click=${() => onToggle(control.entityId, control.enabled)}
