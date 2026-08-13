@@ -102,7 +102,9 @@ You do not need to write YAML to use the card:
 2. Select **Add card**, then search for **Lawn Mower Card**.
 3. Choose the mower entity and a layout. The editor safely fills compatible
    map, live-video, state, battery, progress, and control entities when it can.
-4. Review the live preview and save the card.
+4. Choose whether the map should remain fully visible or crop to fill the card.
+   When cropping, select the part of the garden that should stay in view.
+5. Review the live preview and save the card.
 
 When schedule switches are available, the card discovers the switches belonging
 to the selected mower and shows them in a separate schedule panel. It calls the
@@ -195,6 +197,8 @@ entity: lawn_mower.dreame_a2_bodzio
 name: Backyard mower
 layout: hero
 map_entity: camera.dreame_a2_bodzio_live_path_map
+map_fit: cover
+map_position: right
 show_point_cloud: true
 camera_entity: camera.ogrod_dreame_a2_bodzio_live_video
 status_entity: sensor.dreame_a2_bodzio_state_name
@@ -254,6 +258,11 @@ tiles:
   exposes a live-path or runtime-overlay camera, prefer that over a static map
   camera so the card can show the current cut path. A local
   `point_cloud_api_path` attribute enables the 3D viewer.
+- `map_fit`: optional `contain` (default) to show the complete map or `cover` to
+  fill the map viewport by cropping it
+- `map_position`: optional crop focus: `center` (default), `top`, `bottom`,
+  `left`, `right`, `top-left`, `top-right`, `bottom-left`, or `bottom-right`;
+  it is most noticeable with `map_fit: cover`
 - `camera_entity`: optional live-video camera used by the Hero Camera view. A
   compatible companion camera is detected automatically when this is omitted.
 - `show_map`: optional boolean override for the map section
