@@ -1,3 +1,5 @@
+import { createTranslator, type Translator } from "./localization.ts";
+
 export type DeviceSettingControlGroup = "charging" | "rain" | "anti_theft";
 
 export type DeviceSettingEntity = {
@@ -106,6 +108,7 @@ function entityState(
 export function deviceSettingsSummary(
   entities: Record<string, DeviceSettingEntity | undefined>,
   entityIds: readonly string[],
+  t: Translator = createTranslator("en"),
 ): string | undefined {
   const summary: string[] = [];
   const chargingEnabled = entityState(
@@ -122,23 +125,23 @@ export function deviceSettingsSummary(
   if (chargingEnabled === "on") {
     summary.push(
       chargingStart && chargingEnd
-        ? `Charging ${chargingStart}–${chargingEnd}`
-        : "Charging on",
+        ? t("settings.chargingPeriod", { start: chargingStart, end: chargingEnd })
+        : t("settings.chargingOn"),
     );
   } else if (chargingEnabled === "off") {
-    summary.push("Charging off");
+    summary.push(t("settings.chargingOff"));
   } else if (chargingStart && chargingEnd) {
-    summary.push(`Charging ${chargingStart}–${chargingEnd}`);
+    summary.push(t("settings.chargingPeriod", { start: chargingStart, end: chargingEnd }));
   }
 
   const rainEnabled = entityState(entities, entityIds, "_rain_protection");
   const rainDelay = entityState(entities, entityIds, "_rain_delay");
   if (rainEnabled === "on") {
-    summary.push(rainDelay ? `Rain ${rainDelay}` : "Rain protection on");
+    summary.push(rainDelay ? t("settings.rainDelay", { delay: rainDelay }) : t("settings.rainOn"));
   } else if (rainEnabled === "off") {
-    summary.push("Rain protection off");
+    summary.push(t("settings.rainOff"));
   } else if (rainDelay) {
-    summary.push(`Rain ${rainDelay}`);
+    summary.push(t("settings.rainDelay", { delay: rainDelay }));
   }
 
   const antiTheftIds = entityIds.filter(
@@ -152,7 +155,7 @@ export function deviceSettingsSummary(
     );
   if (antiTheftStates.length) {
     const enabled = antiTheftStates.filter((state) => state === "on").length;
-    summary.push(`Anti-theft ${enabled}/${antiTheftStates.length} on`);
+    summary.push(t("settings.antiTheftSummary", { enabled, total: antiTheftStates.length }));
   }
 
   return summary.length ? summary.join(" · ") : undefined;

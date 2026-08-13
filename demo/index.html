@@ -1146,7 +1146,10 @@
         },
       };
 
+      const previewLocale = new URLSearchParams(window.location.search).get("locale") || "en";
       const hass = {
+        language: previewLocale,
+        locale: { language: previewLocale },
         states: stateStore,
         entities: {
           "lawn_mower.backyard_mower": {
@@ -1279,6 +1282,7 @@
         type: "custom:lawn-mower-card",
         entity: "lawn_mower.backyard_mower",
         name: "Backyard mower",
+        locale: previewLocale,
         map_entity: "camera.backyard_mower_map",
         show_map: true,
         show_point_cloud: true,

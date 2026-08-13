@@ -20,7 +20,6 @@ import {
   pointCloudClientFailure,
   type PointCloudClientFailureStage,
   type PointCloudProblem,
-  pointCloudProblemHint,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
   pointCloudRetryDelayMs,
@@ -28,6 +27,7 @@ import {
 } from "./point-cloud-logic";
 import { POINT_CLOUD_WORKER_SOURCE } from "./point-cloud-assets";
 import type { PointCloudWorkerResult } from "./point-cloud-worker";
+import { createTranslator, type SupportedLocale, type TranslationKey } from "./localization";
 
 export type PointCloudHomeAssistant = {
   callWS<T>(message: Record<string, unknown>): Promise<T>;
@@ -48,6 +48,7 @@ export class LawnMowerPointCloud extends LitElement {
   @property({ type: Boolean }) public active = false;
   @property({ type: Boolean }) public autoLoad = false;
   @property({ type: Boolean, reflect: true }) public compact = false;
+  @property({ attribute: false }) public locale: SupportedLocale = "en";
 
   @query(".viewport") private _viewport?: HTMLDivElement;
 
@@ -78,6 +79,45 @@ export class LawnMowerPointCloud extends LitElement {
   private _downloadGeneration = 0;
   private _loadRequested = false;
   private _reloadOnConnect = false;
+
+  private get _t() {
+    return createTranslator(this.locale);
+  }
+
+  private _problemTitle(problem: PointCloudProblem): string {
+    const keys: Record<string, TranslationKey> = {
+      point_cloud_browser_timeout: "pointCloud.timeoutTitle",
+      point_cloud_parse_failed: "pointCloud.formatTitle",
+      point_cloud_renderer_failed: "pointCloud.clientRendererTitle",
+      point_cloud_card_failed: "pointCloud.clientLoadTitle",
+    };
+    return problem.code && keys[problem.code]
+      ? this._t(keys[problem.code])
+      : problem.title;
+  }
+
+  private _problemDetail(problem: PointCloudProblem): string {
+    const keys: Record<string, TranslationKey> = {
+      point_cloud_browser_timeout: "pointCloud.timeoutDetail",
+      point_cloud_parse_failed: "pointCloud.formatDetail",
+      point_cloud_renderer_failed: "pointCloud.clientRendererDetail",
+      point_cloud_card_failed: "pointCloud.clientLoadDetail",
+    };
+    return problem.code && keys[problem.code]
+      ? this._t(keys[problem.code])
+      : problem.detail;
+  }
+
+  private _problemHint(problem: PointCloudProblem): string {
+    if (
+      problem.code === "point_cloud_admin_required" ||
+      problem.status === 401 ||
+      problem.status === 403
+    ) {
+      return this._t("pointCloud.hintAdmin");
+    }
+    return this._t(problem.retryable ? "pointCloud.hintRetry" : "pointCloud.hintReport");
+  }
 
   public static styles = css`
     :host {
@@ -390,7 +430,7 @@ export class LawnMowerPointCloud extends LitElement {
       (this._loadingElapsedSeconds / EXPECTED_GENERATION_SECONDS) * 100,
     );
     return html`
-      <div class="shell" aria-label="Mower 3D point cloud">
+      <div class="shell" lang=${this.locale} aria-label=${this._t("pointCloud.label")}>
         <div class="viewport"></div>
         ${this._status === "idle"
           ? html`
@@ -398,8 +438,8 @@ export class LawnMowerPointCloud extends LitElement {
                 <ha-icon icon="mdi:rotate-3d-variant"></ha-icon>
                 <p>
                   ${path
-                    ? "Load the mower point cloud when you want to explore the lawn in 3D."
-                    : "This map entity does not provide a 3D point-cloud endpoint."}
+                    ? this._t("pointCloud.loadDescription")
+                    : this._t("pointCloud.unsupportedDescription")}
                 </p>
                 ${path
                   ? html`
@@ -409,7 +449,7 @@ export class LawnMowerPointCloud extends LitElement {
                         @click=${this._requestInitialLoad}
                       >
                         <ha-icon icon="mdi:cube-scan"></ha-icon>
-                        <span>Load 3D map</span>
+                        <span>${this._t("pointCloud.load")}</span>
                       </button>
                     `
                   : nothing}
@@ -421,12 +461,12 @@ export class LawnMowerPointCloud extends LitElement {
               <div class="loading" role="status" aria-live="polite">
                 <span class="loading-indicator" aria-hidden="true"></span>
                 <span class="loading-copy">
-                  <strong>Preparing a fresh 3D map…</strong>
+                  <strong>${this._t("pointCloud.loading")}</strong>
                   <small>
-                    ${this._loadingElapsedSeconds}s elapsed.
+                    ${this._t("pointCloud.elapsed", { seconds: this._loadingElapsedSeconds })}
                     ${this._loadingElapsedSeconds <= EXPECTED_GENERATION_SECONDS
-                      ? `The mower normally has up to ${EXPECTED_GENERATION_SECONDS} seconds to generate and publish it.`
-                      : "Home Assistant is still finishing the request."}
+                      ? this._t("pointCloud.generationTime", { seconds: EXPECTED_GENERATION_SECONDS })
+                      : this._t("pointCloud.requestPending")}
                   </small>
                 </span>
                 <span
@@ -443,20 +483,24 @@ export class LawnMowerPointCloud extends LitElement {
                 <ha-icon icon="mdi:cube-off-outline"></ha-icon>
                 <div class="problem">
                   <p class="problem-title">
-                    ${this._problem?.title || "3D map unavailable"}
+                    ${this._problem
+                      ? this._problemTitle(this._problem)
+                      : this._t("pointCloud.unavailable")}
                   </p>
                   <p class="problem-detail">
-                    ${this._problem?.detail ||
-                    "The 3D point cloud could not be loaded."}
+                    ${this._problem
+                      ? this._problemDetail(this._problem)
+                      :
+                    this._t("pointCloud.loadFailed")}
                   </p>
                   ${this._problem
                     ? html`
-                        <div class="problem-meta" aria-label="Diagnostic reference">
+                        <div class="problem-meta" aria-label=${this._t("pointCloud.diagnostic")}>
                           ${this._problem.code
                             ? html`<span>${this._problem.code}</span>`
                             : nothing}
                           ${this._problem.stage
-                            ? html`<span>stage: ${this._problem.stage}</span>`
+                            ? html`<span>${this._t("pointCloud.stage", { stage: this._problem.stage })}</span>`
                             : nothing}
                           ${this._problem.elapsedMs !== undefined
                             ? html`<span
@@ -465,7 +509,7 @@ export class LawnMowerPointCloud extends LitElement {
                             : nothing}
                         </div>
                         <p class="problem-hint">
-                          ${pointCloudProblemHint(this._problem)}
+                          ${this._problemHint(this._problem)}
                         </p>
                       `
                     : nothing}
@@ -475,11 +519,11 @@ export class LawnMowerPointCloud extends LitElement {
                       <button
                         type="button"
                         class="primary retry-button"
-                        aria-label="Try again"
+                        aria-label=${this._t("pointCloud.tryAgain")}
                         @click=${() => this._load(true)}
                       >
                         <ha-icon icon="mdi:refresh"></ha-icon>
-                        <span>Try again</span>
+                        <span>${this._t("pointCloud.tryAgain")}</span>
                       </button>
                     `
                   : nothing}
@@ -488,18 +532,21 @@ export class LawnMowerPointCloud extends LitElement {
           : nothing}
         ${this._status === "ready"
           ? html`
-              <div class="toolbar" aria-label="3D map controls">
+              <div class="toolbar" aria-label=${this._t("pointCloud.controls")}>
                 <span class="point-count">
-                  ${this._renderedPointCount?.toLocaleString() || "0"}
                   ${this._renderedPointCount !== this._pointCount
-                    ? `of ${this._pointCount?.toLocaleString() || "0"}`
-                    : ""}
-                  points
+                    ? this._t("pointCloud.visiblePoints", {
+                        visible: this._renderedPointCount?.toLocaleString(this.locale) || "0",
+                        total: this._pointCount?.toLocaleString(this.locale) || "0",
+                      })
+                    : this._t("pointCloud.points", {
+                        count: this._renderedPointCount?.toLocaleString(this.locale) || "0",
+                      })}
                 </span>
                 <label>
-                  <span>Point size</span>
+                  <span>${this._t("pointCloud.pointSize")}</span>
                   <input
-                    aria-label="Point size"
+                    aria-label=${this._t("pointCloud.pointSize")}
                     type="range"
                     min="0.4"
                     max="3"
@@ -510,33 +557,33 @@ export class LawnMowerPointCloud extends LitElement {
                 </label>
                 <button
                   type="button"
-                  aria-label="Reset 3D map view"
-                  title="Reset 3D map view"
+                  aria-label=${this._t("pointCloud.resetView")}
+                  title=${this._t("pointCloud.resetView")}
                   @click=${this._resetView}
                 >
                   <ha-icon icon="mdi:camera-retake-outline"></ha-icon>
-                  <span>Reset</span>
+                  <span>${this._t("pointCloud.reset")}</span>
                 </button>
                 <button
                   type="button"
-                  aria-label="Refresh 3D map"
-                  title="Refresh 3D map"
+                  aria-label=${this._t("pointCloud.refreshMap")}
+                  title=${this._t("pointCloud.refreshMap")}
                   ?disabled=${this._refreshing}
                   @click=${() => this._load(true)}
                 >
                   <ha-icon icon="mdi:refresh"></ha-icon>
-                  <span>Refresh</span>
+                  <span>${this._t("pointCloud.refresh")}</span>
                 </button>
                 <button
                   type="button"
-                  aria-label="Download original PCD"
-                  title="Download original PCD"
+                  aria-label=${this._t("pointCloud.downloadOriginal")}
+                  title=${this._t("pointCloud.downloadOriginal")}
                   aria-busy=${this._downloadPending ? "true" : "false"}
                   ?disabled=${this._downloadPending}
                   @click=${this._download}
                 >
                   <ha-icon icon="mdi:download"></ha-icon>
-                  <span>${this._downloadPending ? "Downloading…" : "PCD"}</span>
+                  <span>${this._downloadPending ? this._t("pointCloud.downloading") : "PCD"}</span>
                 </button>
               </div>
             `
@@ -547,11 +594,11 @@ export class LawnMowerPointCloud extends LitElement {
                 <ha-icon icon="mdi:wifi-sync"></ha-icon>
                 <span>
                   ${this._refreshing
-                    ? "Refreshing the 3D map…"
-                    : `${this._problem?.title || "3D map connection interrupted"}. ${
+                    ? this._t("pointCloud.refreshing")
+                    : `${this._problem ? this._problemTitle(this._problem) : this._t("pointCloud.interrupted")}. ${
                         this._retryDelaySeconds !== undefined
-                          ? `Retrying in ${this._retryDelaySeconds}s.`
-                          : "The last good 3D map remains available."
+                          ? this._t("pointCloud.retrying", { seconds: this._retryDelaySeconds })
+                          : this._t("pointCloud.lastGood")
                       }`}
                 </span>
               </div>
@@ -562,7 +609,7 @@ export class LawnMowerPointCloud extends LitElement {
               <div class="download-error" role="alert">
                 <ha-icon icon="mdi:download-off-outline"></ha-icon>
                 <span>
-                  ${this._downloadProblem.title}: ${this._downloadProblem.detail}
+                  ${this._problemTitle(this._downloadProblem)}: ${this._problemDetail(this._downloadProblem)}
                   ${this._downloadProblem.code
                     ? ` (${this._downloadProblem.code})`
                     : ""}
@@ -669,10 +716,10 @@ export class LawnMowerPointCloud extends LitElement {
     if (!path || !this.hass) {
       this._status = "error";
       this._problem = {
-        title: path ? "Home Assistant is not ready" : "3D map is not configured",
+        title: path ? this._t("pointCloud.hassNotReady") : this._t("pointCloud.notConfigured"),
         detail: path
-          ? "Home Assistant is not ready to load this point cloud."
-          : "This map entity does not provide a supported 3D point-cloud endpoint.",
+          ? this._t("pointCloud.hassNotReadyDetail")
+          : this._t("pointCloud.notConfiguredDetail"),
         retryable: Boolean(path),
       };
       return;
@@ -719,7 +766,7 @@ export class LawnMowerPointCloud extends LitElement {
       }
       const signedPath = signedPathFromResponse(signed);
       if (!signedPath) {
-        throw new Error("Home Assistant returned an invalid signed path.");
+        throw new Error(this._t("pointCloud.invalidSignedPath"));
       }
       const response = await Promise.race([
         fetch(this.hass.hassUrl(signedPath), {
@@ -842,8 +889,8 @@ export class LawnMowerPointCloud extends LitElement {
       this._disposeMaterial(points.material);
       this._status = "error";
       this._problem = {
-        title: "3D renderer unavailable",
-        detail: "The 3D renderer could not be initialized.",
+        title: this._t("pointCloud.rendererUnavailable"),
+        detail: this._t("pointCloud.rendererInitFailed"),
         code: "point_cloud_renderer_unavailable",
         stage: "renderer",
         retryable: false,
@@ -977,7 +1024,7 @@ export class LawnMowerPointCloud extends LitElement {
       }
       const signedPath = signedPathFromResponse(signed);
       if (!signedPath) {
-        throw new Error("Home Assistant returned an invalid signed path.");
+        throw new Error(this._t("pointCloud.invalidSignedPath"));
       }
       const response = await fetch(this.hass.hassUrl(signedPath), {
         credentials: "same-origin",
@@ -1005,9 +1052,8 @@ export class LawnMowerPointCloud extends LitElement {
     } catch {
       if (isCurrentDownload()) {
         this._downloadProblem = {
-          title: "PCD download failed",
-          detail:
-            "Home Assistant could not sign or download the original point-cloud file.",
+          title: this._t("pointCloud.downloadFailed"),
+          detail: this._t("pointCloud.downloadDetail"),
           code: "point_cloud_download_failed",
           stage: "download",
           retryable: true,
