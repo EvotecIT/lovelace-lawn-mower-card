@@ -22,16 +22,16 @@ a mower-only setup does not show empty tabs or controls it cannot use.
 
 ## What the card includes
 
-| Area | Included today |
-| --- | --- |
-| Mower basics | State and activity, battery, and capability-aware Start, Pause, and Dock controls |
-| Dashboard layouts | Image-led Hero plus compact, default, and wide layouts for different dashboard densities |
-| Maps and media | Optional 2D map, live-path overlays, on-demand 3D point clouds, and Home Assistant camera playback |
-| Direct controls | Auto-discovered or explicitly configured selects, numbers, switches, time inputs, target selectors, and schedule switches |
-| Mowing context | Mission progress, area coverage, summary chips, map identity, rain delay, errors, and configurable status tiles |
-| Advanced workflows | Multi-zone selection when supported, Planned Run confirmation, device settings, and Live Session telemetry |
-| Customization | Visual editor, custom Hero image and focus, map fit and crop focus, extra tiles, helper actions, and custom services |
-| Localization | Card and editor translations in English, German, French, Italian, Polish, Russian, and Ukrainian, including native plural rules |
+| Area | Included today                                                                                                                           |
+| --- |------------------------------------------------------------------------------------------------------------------------------------------|
+| Mower basics | State and activity, battery, and capability-aware Start, Pause, and Dock controls                                                        |
+| Dashboard layouts | Image-led Hero plus compact, default, and wide layouts for different dashboard densities                                                 |
+| Maps and media | Optional 2D map, live-path overlays, on-demand 3D point clouds, and Home Assistant camera playback                                       |
+| Direct controls | Auto-discovered or explicitly configured selects, numbers, switches, time inputs, target selectors, and schedule switches                |
+| Mowing context | Mission progress, area coverage, summary chips, map identity, rain delay, errors, and configurable status tiles                          |
+| Advanced workflows | Multi-zone selection when supported, Planned Run confirmation, device settings, and Live Session telemetry                               |
+| Customization | Visual editor, custom Hero image and focus, map fit and crop focus, extra tiles, helper actions, and custom services                     |
+| Localization | Card and editor translations in English, German, French, Italian, Polish, Russian, Ukrainian, and Spanish, including native plural rules |
 
 Start with only the mower entity. The card automatically adds compatible
 companions it can identify, while every important companion can also be chosen
@@ -281,7 +281,7 @@ tiles:
 - `entity`: required `lawn_mower` entity id
 - `name`: optional card title override
 - `locale`: optional language override: `auto` (default), `en`, `de`, `fr`,
-  `it`, `pl`, `ru`, or `uk`. Automatic mode follows the Home Assistant user
+  `it`, `pl`, `ru`, `uk`, or `es`. Automatic mode follows the Home Assistant user
   language, then the browser language, and safely falls back to English.
 - `layout`: optional `default`, `compact`, `wide`, or `hero`
 - `hero_image`: optional Hero overview background. Use an HTTPS URL or a

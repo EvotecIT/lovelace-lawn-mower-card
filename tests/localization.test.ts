@@ -22,9 +22,14 @@ test("locale resolution accepts Home Assistant BCP-47 languages and falls back s
   assert.equal(normalizeLocale("uk_UA"), "uk");
   assert.equal(resolveLocale("auto", "de-DE"), "de");
   assert.equal(resolveLocale("fr", "pl-PL"), "fr");
-  assert.equal(resolveLocale("auto", "es-ES", "pl-PL"), "pl");
-  assert.equal(resolveLocale("auto", "es-ES"), "en");
+  assert.equal(resolveLocale("auto", "es-ES", "pl-PL"), "es");
+  assert.equal(resolveLocale("auto", "es-ES"), "es");
+  assert.equal(normalizeLocale("pt-BR"), undefined);
+  assert.equal(resolveLocale("pt", "pt-BR"), "en");
+  assert.equal(resolveLocale("auto", "pt-BR", "ja-JP"), "en");
+  assert.equal(resolveLocale("auto", "pt-BR", "pl-PL"), "pl");
 });
+
 
 test("every supported catalog is complete, non-empty, and preserves placeholders", () => {
   const keys = catalogKeys();
@@ -58,6 +63,22 @@ test("French elapsed-time wording is correct for any numeric duration", () => {
   const t = createTranslator("fr");
   assert.equal(t("pointCloud.elapsed", { seconds: 1 }), "Temps écoulé : 1 s.");
   assert.equal(t("pointCloud.elapsed", { seconds: 12 }), "Temps écoulé : 12 s.");
+});
+
+test("Spanish translations and plurals", () => {
+  const t = createTranslator("es");
+  assert.equal(t("action.startMowing"), "Iniciar corte");
+  assert.equal(t("editor.mapFitContain"), "Mostrar el mapa completo");
+  assert.equal(t("editor.layoutHero"), "Hero");
+  assert.equal(t("editor.titlePlaceholder"), "Cortacésped del jardín");
+  assert.equal(t("cardPicker.name"), "Tarjeta de cortacésped");
+  assert.equal(t("schedule.count", { count: 1 }), "1 horario");
+  assert.equal(t("schedule.count", { count: 2 }), "2 horarios");
+  assert.equal(t("pointCloud.points", { count: 1 }), "Puntos: 1" );
+  assert.equal(t("pointCloud.points", { count: 2 }), "Puntos: 2" );
+  assert.equal(t("pointCloud.visiblePoints", { total: 1, visible: 1}), "Puntos visibles: 1 de 1" );
+  assert.equal(t("pointCloud.visiblePoints", { total: 3, visible: 2}), "Puntos visibles: 2 de 3" );
+  assert.match(t("card.zoneSelection", { count: 3 }), /3 zonas/);
 });
 
 test("Russian and Ukrainian use their few and many plural forms", () => {
