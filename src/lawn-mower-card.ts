@@ -759,7 +759,8 @@ export class LawnMowerCard extends LitElement {
           )}
         `
       : undefined;
-    const scenePath = mowingMapPath(configuredMapEntity?.attributes.mowing_map_api_path);
+    const scenePath = this._config.show_map === false ? undefined
+      : mowingMapPath(configuredMapEntity?.attributes.mowing_map_api_path);
     const availableViews = availableHeroViews({
       map: Boolean(mapUrl || scenePath),
       pointCloud: Boolean(pointCloudPath),

@@ -39,6 +39,7 @@ export class LawnMowerMowingMap extends LitElement {
   private _resize?: ResizeObserver;
   private _abort?: AbortController;
   private _timer?: number;
+  private _expiryTimer?: number;
   private _pointers = new Map<number, MapPoint>();
 
   private get _t() { return createTranslator(this.locale); }
@@ -89,7 +90,24 @@ export class LawnMowerMowingMap extends LitElement {
     this._abort = undefined;
     if (this._timer !== undefined) window.clearTimeout(this._timer);
     this._timer = undefined;
+    this._clearExpiry();
     this._pointers.clear();
+  }
+
+  private _clearExpiry(): void {
+    if (this._expiryTimer !== undefined) window.clearTimeout(this._expiryTimer);
+    this._expiryTimer = undefined;
+  }
+
+  private _expireOverlay(scene: MowingMapScene): void {
+    this._clearExpiry();
+    if (!overlayIsFresh(scene)) return;
+    const remaining = Date.parse(scene.overlay.updated_at || "") +
+      scene.overlay.max_age_seconds * 1000 - Date.now();
+    this._expiryTimer = window.setTimeout(() => {
+      this._expiryTimer = undefined;
+      this.requestUpdate();
+    }, Math.max(1, remaining + 1));
   }
 
   private _releaseImage(): void {
@@ -148,9 +166,13 @@ export class LawnMowerMowingMap extends LitElement {
         this._view = fitMap(scene.width, scene.height);
       }
       this._scene = scene;
+      this._expireOverlay(scene);
       this._error = false;
     } catch {
-      if (this._abort === controller) this._error = true;
+      if (this._abort === controller) {
+        this._clearExpiry();
+        this._error = true;
+      }
     } finally {
       window.clearTimeout(timeout);
       if (image) URL.revokeObjectURL(image);

@@ -202,7 +202,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
           </div>
         `
       : nothing}
-    ${model.activeView === "map" && !model.mapUrl
+    ${model.activeView === "map" && !model.mapUrl && !model.mowingMapPath
       ? html`
           <div class="hero-empty">
             <ha-icon icon="mdi:map-outline"></ha-icon>
@@ -479,6 +479,7 @@ export const heroLayoutStyles = css`
   .mowing-metrics { display:grid; grid-template-columns:minmax(0,.7fr) minmax(0,1.4fr) minmax(0,1fr); gap:8px; }
   .mowing-metrics .hero-metric { padding:9px; box-shadow:none; background:#17251d; }
   .mowing-metrics .hero-metric strong { font-size:clamp(.8rem,2.5vw,1.05rem); }
+  .mowing-metrics .hero-metric-label { display:block; font-size:.62rem; }
   .mowing-mission progress { width:100%; height:7px; margin-top:12px; display:block;
     border:0; border-radius:5px; overflow:hidden; accent-color:#8dcc99; }
   .mowing-mission progress::-webkit-progress-bar { background:#2d4034; }
