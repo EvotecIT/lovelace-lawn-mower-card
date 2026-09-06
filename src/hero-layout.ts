@@ -9,7 +9,7 @@ import type { MowingAreaProgress } from "./mowing-progress";
 import type { HeroImagePosition } from "./hero-image";
 import { renderHeroMedia } from "./hero-media";
 import { dashboardMainView, renderDashboardAside, renderDashboardHeader } from "./dashboard-layout";
-import { renderHeroActions } from "./hero-actions";
+import { renderHeroActions, renderHeroActionFeedback } from "./hero-actions";
 export { heroLayoutStyles } from "./hero-layout-styles";
 import type { SupportedLocale, Translator } from "./localization";
 import {
@@ -138,7 +138,8 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   return html`
     <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}`} lang=${model.locale}>
       <div class="hero-shell">
-        ${model.dashboard ? html`${renderDashboardHeader(model)}${renderHeroActions(model)}` : nothing}
+        ${model.dashboard ? html`${renderDashboardHeader(model)}
+          <div class="dashboard-command-panel">${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>` : nothing}
         <section class=${`hero-stage view-${mainView}${model.mowingMapPath ? " interactive-map" : ""}`}>
           ${renderHeroMedia(mainModel, model.dashboard ? ["overview", "map", "point-cloud"] : undefined)}
           ${mainView === "map" && !model.mowingMapPath ? model.mapStatus : nothing}
@@ -202,25 +203,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             `
           : nothing}
 
-        ${model.actionFeedback
-          ? html`
-              <div
-                class=${`hero-action-feedback${
-                  model.actionFeedback.error ? " error" : ""
-                }`}
-                role=${model.actionFeedback.error ? "alert" : "status"}
-                aria-live=${model.actionFeedback.error ? "assertive" : "polite"}
-              >
-                <ha-icon
-                  icon=${model.actionFeedback.error
-                    ? "mdi:alert-circle-outline"
-                    : "mdi:wifi-sync"}
-                ></ha-icon>
-                <span>${model.actionFeedback.message}</span>
-              </div>
-            `
-          : nothing}
-
+        ${!model.dashboard ? renderHeroActionFeedback(model) : nothing}
         ${!model.dashboard ? renderHeroActions(model) : nothing}
       </div>
     </ha-card>

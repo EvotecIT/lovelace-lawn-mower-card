@@ -50,7 +50,10 @@ const hass = {
     }
     return route;
   },
-  async callService(domain, service) { document.getElementById("events").textContent = `Simulated ${domain}.${service}; no device connection.`; },
+  async callService(domain, service) {
+    if (query.get("action") === "error") throw new Error("Simulated connection failure");
+    document.getElementById("events").textContent = `Simulated ${domain}.${service}; no device connection.`;
+  },
 };
 const entity = (id,state,attributes) => {
   hass.states[id]={entity_id:id,state,attributes,last_updated:new Date().toISOString()};

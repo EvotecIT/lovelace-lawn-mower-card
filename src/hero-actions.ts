@@ -2,6 +2,28 @@ import { html, nothing, type TemplateResult } from "lit";
 import type { HeroLayoutModel } from "./hero-layout";
 import { isHeroViewAvailable } from "./hero-views";
 
+/** The command result follows its controls in each composition. */
+export function renderHeroActionFeedback(model: HeroLayoutModel) {
+  return html`${model.actionFeedback
+          ? html`
+              <div
+                class=${`hero-action-feedback${
+                  model.actionFeedback.error ? " error" : ""
+                }`}
+                role=${model.actionFeedback.error ? "alert" : "status"}
+                aria-live=${model.actionFeedback.error ? "assertive" : "polite"}
+              >
+                <ha-icon
+                  icon=${model.actionFeedback.error
+                    ? "mdi:alert-circle-outline"
+                    : "mdi:wifi-sync"}
+                ></ha-icon>
+                <span>${model.actionFeedback.message}</span>
+              </div>
+            `
+          : nothing}`;
+}
+
 function renderAction(
   label: string,
   icon: string,
@@ -90,4 +112,3 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
         </div>
   `;
 }
-

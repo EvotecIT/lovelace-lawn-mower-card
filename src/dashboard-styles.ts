@@ -42,6 +42,7 @@ export const dashboardStyles = css`
   .dashboard-card .hero-tab ha-icon { --mdc-icon-size:20px; }
   .dashboard-card .hero-selectors { border:1px solid var(--mower-border); border-radius:12px; background:var(--mower-surface); }
   .dashboard-card .hero-actions { grid-template-columns:repeat(auto-fit,minmax(54px,1fr)); border:0; padding:0; gap:10px; align-content:start; background:transparent; }
+  .dashboard-command-panel { display:grid; align-content:start; gap:10px; min-width:0; }
   .dashboard-card .hero-actions:has(.hero-action:nth-child(5)) { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .dashboard-card .hero-actions:has(.hero-action:nth-child(7)) { grid-template-columns:repeat(4,minmax(0,1fr)); }
   .dashboard-card .hero-action { min-height:82px; gap:8px; padding:12px 8px; border:1px solid #2a6683; border-radius:12px; background:linear-gradient(155deg,#153b50,#0c293b); color:#d9effb; font-size:13px; font-weight:550; line-height:1.2; cursor:pointer; box-shadow:inset 0 1px 0 #8bdfff0d; }
@@ -76,7 +77,7 @@ export const dashboardStyles = css`
   @container (min-width:720px) {
     .dashboard-card .hero-shell { grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr); grid-template-rows:auto max-content minmax(340px,1fr); padding:22px; gap:16px; }
     .dashboard-header { grid-column:1/-1; grid-row:1; margin-bottom:2px; }
-    .dashboard-card .hero-actions { grid-column:1; grid-row:2; }
+    .dashboard-command-panel { grid-column:1; grid-row:2; }
     .dashboard-card .hero-stage { grid-column:1; grid-row:3; align-self:stretch; }
     .dashboard-aside { grid-column:2; grid-row:2/span 2; }
     .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-action-feedback { grid-column:1/-1; }
