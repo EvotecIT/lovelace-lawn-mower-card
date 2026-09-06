@@ -22,6 +22,11 @@ entities are available. The card works with standard mower integrations; the
 provides the most extensively exercised pairing. See
 [integration compatibility](docs/integration-compatibility.md) for details.
 
+![Dashboard layout running in Home Assistant with a real Dreame A2](assets/lawn-mower-card-dashboard-live.png)
+
+See the [layout gallery](docs/gallery.md) for Hero, Compact, mobile, and 3D
+screenshots with configuration examples.
+
 ## Sponsor
 
 Support development and maintenance through
@@ -101,6 +106,7 @@ For narrow desktop dashboard columns, prefer **Hero**, **Default**, or
 
 | I want to… | Guide |
 | --- | --- |
+| See the layouts running in Home Assistant | [Screenshot gallery](docs/gallery.md) |
 | Choose a layout, image, or companion entity | [Configuration](docs/configuration.md) |
 | Look up a YAML field | [Card options](docs/options.md) |
 | Use schedules, settings, zone selection, or advanced panels | [Controls and mowing context](docs/controls.md) |
@@ -114,9 +120,23 @@ by the integration; the card does not edit garden geometry or no-go areas.
 
 ## Screenshots
 
-![Hero layout](assets/lawn-mower-card-hero.png)
+### Cinematic Hero
 
-![Interactive mowing map](assets/lawn-mower-card-map.png)
+![Cinematic Hero layout with real mower state and controls](assets/lawn-mower-card-hero-live.png)
+
+### Real 3D map
+
+![Dreame A2 point cloud in the on-demand 3D viewer](assets/lawn-mower-card-3d-live.png)
+
+### Default and Compact
+
+| Default with map | Compact controls |
+| --- | --- |
+| ![Default card with a real garden map](assets/lawn-mower-card-default-live.png) | ![Compact card with schedules and mower actions](assets/lawn-mower-card-compact-live.png) |
+
+These captures use a docked mower. The Hero background is customizable; maps,
+3D, and optional controls depend on the integration. See the
+[gallery](docs/gallery.md) for mobile screenshots and matching YAML.
 
 ## Support
 

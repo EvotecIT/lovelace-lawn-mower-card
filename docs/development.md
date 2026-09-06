@@ -54,9 +54,9 @@ the increment on `auto` unless the original label decision must be overridden.
 
 ## Scope
 
-This card still does not try to solve every mower workflow on day one. Interactive
-map editing, no-go editing, and deeper integration-specific write paths should be
-added only after the backend contracts are stable.
+The integration owns mower commands and safety checks. Interactive map and
+no-go editing are outside the card's current scope; any future editing UI needs
+a verified backend write and readback contract first.
 
 ## Media implementation and diagnostics
 
