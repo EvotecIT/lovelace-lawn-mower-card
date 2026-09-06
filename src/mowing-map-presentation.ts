@@ -52,7 +52,8 @@ export const mowingMapStyles = css`
   .map-canvas:active { cursor:grabbing; }
   .map-canvas:focus-visible { outline:2px solid var(--map-accent); }
   .toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px;
-    padding:10px 14px; border-bottom:1px solid var(--map-border); }
+    padding:10px 14px; border-bottom:1px solid var(--map-border);
+    background:var(--mower-map-toolbar,var(--map-surface)); }
   .map-name { min-width:0; flex:1 1 100px; font-size:12px; font-weight:600;
     color:var(--map-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .tool-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
@@ -69,7 +70,7 @@ export const mowingMapStyles = css`
     stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
   .zoom { font-size:19px; font-weight:400; padding:4px; }
   .trail-outline { stroke:var(--map-surface); stroke-opacity:.75; }
-  .trail { stroke:var(--map-trail); stroke-opacity:.85; }
+  .trail { stroke:var(--map-trail); stroke-opacity:var(--mower-map-trail-opacity,.85); }
   .position-halo { fill:var(--map-trail); fill-opacity:.16;
     stroke:var(--map-trail); stroke-opacity:.7; stroke-width:.055; }
   .heading-cone { fill:var(--map-trail); }

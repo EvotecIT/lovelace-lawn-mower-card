@@ -1,19 +1,11 @@
 import "../lawn-mower-card.js";
+import "./ha-icon.mjs";
 
 // Deliberately local fixture: no authentication, device connection or live video.
 const query = new URLSearchParams(location.search);
 document.documentElement.style.setProperty("--preview-width", `${Math.max(280, Math.min(1200, Number(query.get("width")) || 1080))}px`);
 customElements.define("ha-card", class extends HTMLElement {
   connectedCallback() { this.style.display="block"; }
-});
-customElements.define("ha-icon", class extends HTMLElement {
-  set icon(value) { this.setAttribute("icon", value); }
-  connectedCallback() {
-    this.setAttribute("aria-hidden", "true");
-    this.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:var(--mdc-icon-size,20px);height:var(--mdc-icon-size,20px);flex:none";
-    const icons = { "mdi:play":"▶", "mdi:pause":"Ⅱ", "mdi:close":"×", "mdi:home-import-outline":"⌂", "mdi:dots-horizontal":"•••", "mdi:grass":"♧", "mdi:video-wireless-outline":"▣", "mdi:play-circle-outline":"▷" };
-    this.textContent = icons[this.getAttribute("icon")] || "◇";
-  }
 });
 customElements.define("ha-camera-stream", class extends HTMLElement {
   connectedCallback() {
@@ -64,15 +56,17 @@ const entity = (id,state,attributes) => {
   hass.states[id]={entity_id:id,state,attributes,last_updated:new Date().toISOString()};
   hass.entities[id]={platform:"dreame_lawn_mower",device_id:"dashboard-demo"};
 };
-entity("lawn_mower.demo",query.get("state") || "mowing",{friendly_name:"Garden mower",supported_features:7,battery_level:87});
+entity("lawn_mower.demo",query.get("state") || "mowing",{friendly_name:"Garden mower",supported_features:7,...(query.get("battery")==="none"?{}:{battery_level:query.get("battery") || 87})});
 entity("sensor.demo_progress","62",{friendly_name:"Mission progress",unit_of_measurement:"%"});
 entity("sensor.demo_area","329",{unit_of_measurement:"m²"});
 entity("sensor.demo_total","531",{unit_of_measurement:"m²"});
+if (query.get("status")) entity("sensor.demo_status",query.get("status"),{});
 entity("image.demo_map","ready",{friendly_name:"Garden",mowing_map_api_path:path});
 entity("camera.demo","idle",{friendly_name:"Mower camera",supported_features:2,...(query.get("camera")==="blocked"?{video_block_reason:"Demo privacy lock"}:{})});
 const card=document.getElementById("mower");
 card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",name:"Garden mower",locale:query.get("locale") || "en",
+  status_entity:query.get("status")?"sensor.demo_status":undefined,
   map_entity:query.get("map")==="none"?undefined:"image.demo_map",show_map:query.get("map")!=="none",show_point_cloud:false,
-  camera_entity:query.get("camera")==="none"?undefined:"camera.demo",progress_entity:"sensor.demo_progress",coverage_entity:"sensor.demo_area",coverage_total_entity:"sensor.demo_total",control_entities:[],show_helper_actions:false});
+  camera_entity:query.get("camera")==="none"?undefined:"camera.demo",progress_entity:"sensor.demo_progress",coverage_entity:"sensor.demo_area",coverage_total_entity:"sensor.demo_total",control_entities:[],show_helper_actions:query.get("helpers")==="true"});
 if (query.get("camera")==="none") {delete hass.states["camera.demo"];delete hass.entities["camera.demo"];}
 card.hass=hass;

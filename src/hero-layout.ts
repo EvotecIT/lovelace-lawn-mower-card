@@ -8,11 +8,11 @@ import type { MowingAreaProgress } from "./mowing-progress";
 
 import type { HeroImagePosition } from "./hero-image";
 import { renderHeroMedia } from "./hero-media";
-import { dashboardMainView, renderDashboardAside } from "./dashboard-layout";
+import { dashboardMainView, renderDashboardAside, renderDashboardHeader } from "./dashboard-layout";
+import { renderHeroActions } from "./hero-actions";
 export { heroLayoutStyles } from "./hero-layout-styles";
 import type { SupportedLocale, Translator } from "./localization";
 import {
-  isHeroViewAvailable,
   showHeroViewTabs,
   type HeroView,
 } from "./hero-views";
@@ -109,26 +109,6 @@ function renderTab(
   `;
 }
 
-function renderAction(
-  label: string,
-  icon: string,
-  handler: () => void | Promise<void>,
-  options: { disabled?: boolean; active?: boolean } = {},
-): TemplateResult {
-  return html`
-    <button
-      class=${`hero-action${options.active ? " active" : ""}`}
-      aria-label=${label}
-      title=${label}
-      ?disabled=${options.disabled}
-      @click=${handler}
-    >
-      <ha-icon .icon=${icon}></ha-icon>
-      <span>${label}</span>
-    </button>
-  `;
-}
-
 export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   const mainView = model.dashboard ? dashboardMainView(model) : model.activeView;
   const mainModel = { ...model, activeView: mainView };
@@ -158,12 +138,13 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   return html`
     <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}`} lang=${model.locale}>
       <div class="hero-shell">
+        ${model.dashboard ? html`${renderDashboardHeader(model)}${renderHeroActions(model)}` : nothing}
         <section class=${`hero-stage view-${mainView}${model.mowingMapPath ? " interactive-map" : ""}`}>
           ${renderHeroMedia(mainModel, model.dashboard ? ["overview", "map", "point-cloud"] : undefined)}
           ${mainView === "map" && !model.mowingMapPath ? model.mapStatus : nothing}
           <div class="hero-scrim" aria-hidden="true"></div>
 
-          <div class="hero-heading">
+          ${!model.dashboard ? html`<div class="hero-heading">
             <div class="hero-title-block">
               <span class="hero-eyebrow">${model.t("hero.gardenMower")}</span>
               <h2>${model.title}</h2>
@@ -174,7 +155,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
               <span class="hero-state-dot" aria-hidden="true"></span>
               <span>${model.stateLabel}</span>
             </div>
-          </div>
+          </div>` : nothing}
 
           ${overview
             ? html`
@@ -240,69 +221,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             `
           : nothing}
 
-        <div class="hero-actions" aria-label=${model.t("hero.controlsLabel")}>
-          ${model.showDefaultActions
-            ? html`
-                ${model.supportsStart
-                  ? renderAction(model.t("action.start"), "mdi:play", model.onStart, {
-                      disabled: !model.canStart,
-                    })
-                  : nothing}
-                ${model.supportsPause
-                  ? renderAction(model.t("action.pause"), "mdi:pause", model.onPause, {
-                      disabled: !model.canPause,
-                    })
-                  : nothing}
-                ${model.supportsDock
-                  ? renderAction(
-                      model.t("action.dock"),
-                      "mdi:home-import-outline",
-                      model.onDock,
-                      { disabled: !model.canDock },
-                    )
-                  : nothing}
-              `
-            : nothing}
-          ${model.showHelperActions
-            ? html`
-                ${isHeroViewAvailable("camera", model.availableViews)
-                  ? renderAction(
-                      model.t("action.camera"),
-                      "mdi:video-wireless-outline",
-                      () => model.onView("camera"),
-                      { active: model.activeView === "camera" },
-                    )
-                  : nothing}
-                ${isHeroViewAvailable("map", model.availableViews)
-                  ? renderAction(
-                      model.t("action.map"),
-                      "mdi:map-outline",
-                      () => model.onView("map"),
-                      { active: model.activeView === "map" },
-                    )
-                  : nothing}
-                ${isHeroViewAvailable("point-cloud", model.availableViews)
-                  ? renderAction(
-                      model.t("action.pointCloud"),
-                      "mdi:rotate-3d-variant",
-                      () => model.onView("point-cloud"),
-                      { active: model.activeView === "point-cloud" },
-                    )
-                  : nothing}
-                ${model.onMaintenancePoint
-                  ? renderAction(
-                      model.t("action.maintenance"),
-                      "mdi:map-marker-wrench",
-                      model.onMaintenancePoint,
-                      {
-                        disabled: !model.maintenancePointAvailable,
-                      },
-                    )
-                  : nothing}
-              `
-            : nothing}
-          ${renderAction(model.t("action.more"), "mdi:dots-horizontal", model.onMoreInfo)}
-        </div>
+        ${!model.dashboard ? renderHeroActions(model) : nothing}
       </div>
     </ha-card>
   `;

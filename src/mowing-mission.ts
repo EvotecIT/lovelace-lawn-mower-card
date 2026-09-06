@@ -6,7 +6,7 @@ import type { MowingAreaProgress } from "./mowing-progress";
 export function renderMowingMission(model: {
   t: Translator; locale: SupportedLocale; battery?: string; progress?: string;
   progressLabel?: string; coverage?: string; coverageLabel?: string;
-  area?: MowingAreaProgress;
+  area?: MowingAreaProgress; showBattery?: boolean;
 }) {
   const { t, area } = model;
   const format = new Intl.NumberFormat(model.locale, { maximumFractionDigits: 1 });
@@ -14,7 +14,7 @@ export function renderMowingMission(model: {
   return html`
     <section class="mowing-mission" aria-label=${t("hero.mission")}>
       <div class="mowing-metrics">
-        <div class="mowing-stat battery"><span>${t("hero.battery")}</span><strong>${model.battery || "—"}</strong></div>
+        ${model.showBattery !== false ? html`<div class="mowing-stat battery"><span>${t("hero.battery")}</span><strong>${model.battery || "—"}</strong></div>` : nothing}
         ${area ? html`
           <div class="mowing-stat completed"><span>${t("mowingMap.completed")}</span><strong>${areaValue(area.completed)}</strong></div>
           <div class="mowing-stat remaining"><span>${t("mowingMap.remaining")}</span><strong>${areaValue(area.remaining)}</strong></div>` : html`
