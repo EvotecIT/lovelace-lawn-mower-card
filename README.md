@@ -49,6 +49,24 @@ period before suspending, so a brief scroll does not restart video. Media resume
 when the card is visible again. Integration-provided restart map images are
 labelled **Saved preview**, not **Live**.
 
+### Interactive mowing map
+
+When the selected map camera exposes `mowing_map_api_path`, the Map view supports
+dragging, wheel or pinch zoom, **Fit garden**, and **Centre on mower**. Keyboard
+users can use the arrow keys, plus/minus, and Home. The garden background stays
+loaded while fresh position and current-run movement update separately.
+
+In Hero layout, a mowing session initially opens Map. Choosing another view
+overrides that default. Battery, reported current/target area, progress, and mower
+controls remain available below the map. Stale positions are hidden, and the
+trail is labelled **Observed movement · not cut-area coverage**; it does not
+claim that every enclosed patch has been cut.
+
+The visual editor prefers a compatible primary map camera for new automatic
+selections. Existing explicit `map_entity` choices are preserved. With the Dreame
+integration, choose the primary Map camera to enable this view; an older
+integration or a camera without the attribute continues to show its map image.
+
 ![Live-path map inside the Lawn Mower Card Hero layout](assets/lawn-mower-card-map.png)
 
 ## 🧩 More from Evotec
@@ -295,9 +313,10 @@ tiles:
 - `hero_image_position`: optional image focus: `center` (default), `left`,
   `right`, `top`, or `bottom`
 - `map_entity`: optional camera entity for the mower map. If your integration
-  exposes a live-path or runtime-overlay camera, prefer that over a static map
-  camera so the card can show the current cut path. A local
-  `point_cloud_api_path` attribute enables the 3D viewer.
+  exposes `mowing_map_api_path`, choose that camera for the interactive mowing
+  view. Otherwise, a live-path or runtime-overlay camera can show observed
+  movement in its image. A local `point_cloud_api_path` attribute enables the
+  3D viewer.
 - `map_fit`: optional `contain` (default) to show the complete map or `cover` to
   fill the map viewport by cropping it
 - `map_position`: optional crop focus: `center` (default), `top`, `bottom`,

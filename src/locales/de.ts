@@ -1,6 +1,16 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const de = {
+  "mowingMap.mapLabel": "Interaktive Mähkarte. Pfeiltasten verschieben, Plus und Minus zoomen, Pos1 zeigt den Garten.",
+  "mowingMap.tools": "Kartensteuerung",
+  "mowingMap.zoomIn": "Vergrößern",
+  "mowingMap.zoomOut": "Verkleinern",
+  "mowingMap.fit": "Ganzer Garten",
+  "mowingMap.centre": "Mäher zentrieren",
+  "mowingMap.loading": "Karte wird geladen…",
+  "mowingMap.unavailable": "Live-Karte nicht verfügbar",
+  "mowingMap.observedTrail": "Beobachtete Bewegung · keine Schnittabdeckung",
+  "mowingMap.noPosition": "Live-Position nicht verfügbar",
   "card.savedPreview": "Gespeicherte Vorschau",
   "cardPicker.name":"Rasenmäher-Karte","cardPicker.description":"Eine speziell für Mähroboter entwickelte Home-Assistant-Karte mit Bild-, Karten-, Kamera- und Steuerungslayouts.","editor.titlePlaceholder":"Mäher im Garten",
   "common.automatic":"Automatisch","common.on":"Ein","common.off":"Aus","common.enabled":"aktiviert","common.disabled":"deaktiviert","common.unavailable":"Nicht verfügbar","common.unknown":"Unbekannt","common.error":"Fehler","common.entity":"Entität","common.label":"Bezeichnung","common.icon":"Symbol","common.type":"Typ","common.service":"Dienst","common.center":"Mitte","common.top":"Oben","common.bottom":"Unten","common.left":"Links","common.right":"Rechts","common.topLeft":"Oben links","common.topRight":"Oben rechts","common.bottomLeft":"Unten links","common.bottomRight":"Unten rechts",

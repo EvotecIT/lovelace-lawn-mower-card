@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import "./lawn-mower-card-editor";
 import { mowerHassChanged } from "./card-update-scope";
 import { MediaVisibility } from "./media-visibility";
+import { mowingMapPath } from "./mowing-map-logic";
 
 import {
   getStubConfig,
@@ -162,6 +163,7 @@ type RuntimeSessionDetails = {
 type HeroMetric = {
   label: string;
   value?: string;
+  areaProgress?: number;
 };
 
 type PlannedRunDetails = {
@@ -229,6 +231,7 @@ export class LawnMowerCard extends LitElement {
 
   @state() private _config?: LawnMowerCardConfig;
   @state() private _heroView: HeroView = "overview";
+  @state() private _heroViewChosen = false;
   @state() private _pointCloudMounted = false;
   @state() private _traditionalPointCloudActive = false;
   @state() private _traditionalPointCloudLoading = false;
@@ -490,8 +493,14 @@ export class LawnMowerCard extends LitElement {
 
             ${showMap
               ? html`
-                  <div class="map" @click=${() => this._showMoreInfo(mapEntity?.entity_id)}>
-                    ${mapUrl
+                  <div class="map">
+                    ${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)
+                      ? html`<lawn-mower-mowing-map style="height:320px"
+                          .hass=${this.hass} .locale=${this._locale}
+                          .path=${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)}
+                          .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
+                          .active=${this._mediaVisible}></lawn-mower-mowing-map>`
+                      : mapUrl
                       ? html`<img
                           class=${mapPresentationClasses(
                             this._config.map_fit,
@@ -499,9 +508,11 @@ export class LawnMowerCard extends LitElement {
                           )}
                           src=${mapUrl}
                           alt=${title}
+                          @click=${() => this._showMoreInfo(mapEntity?.entity_id)}
                         />`
                       : html`<div class="map-placeholder">${this._t("card.mapMissing")}</div>`}
-                    ${mapEntity ? this._renderMapStatus(mapEntity, mower.state) : nothing}
+                    ${mapEntity && !mowingMapPath(mapEntity.attributes.mowing_map_api_path)
+                      ? this._renderMapStatus(mapEntity, mower.state) : nothing}
                   </div>
                 `
               : nothing}
@@ -748,12 +759,17 @@ export class LawnMowerCard extends LitElement {
           )}
         `
       : undefined;
+    const scenePath = mowingMapPath(configuredMapEntity?.attributes.mowing_map_api_path);
     const availableViews = availableHeroViews({
-      map: Boolean(mapUrl),
+      map: Boolean(mapUrl || scenePath),
       pointCloud: Boolean(pointCloudPath),
       camera: Boolean(cameraEntity),
     });
-    const activeView = resolveHeroView(this._heroView, availableViews);
+    const activeView = resolveHeroView(
+      !this._heroViewChosen && this._heroView === "overview" && mower.state === "mowing" && scenePath
+        ? "map" : this._heroView,
+      availableViews,
+    );
     const cameraBlockedReason = cameraEntity
       ? cameraBlockReason(cameraEntity)
       : undefined;
@@ -770,6 +786,9 @@ export class LawnMowerCard extends LitElement {
       progressLabel: progress.label,
       coverage: coverage.value,
       coverageLabel: coverage.label,
+      areaProgress: coverage.areaProgress,
+      mowingMapPath: scenePath,
+      mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,
       heroImage: normalizeHeroImage(this._config.hero_image),
       heroImagePosition: normalizeHeroImagePosition(this._config.hero_image_position),
       activeView,
@@ -827,6 +846,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _selectHeroView(view: HeroView): void {
+    this._heroViewChosen = true;
     this._deleteRetainedHeroView();
     const previous = this._heroView;
     const pointCloudGeneration = ++this._heroPointCloudGeneration;
@@ -929,6 +949,7 @@ export class LawnMowerCard extends LitElement {
   };
 
   private _resetHeroMediaState(): void {
+    this._heroViewChosen = false;
     this._deleteRetainedHeroView();
     this._heroPointCloudGeneration += 1;
     this._heroView = "overview";
@@ -2033,6 +2054,12 @@ export class LawnMowerCard extends LitElement {
           ? this._t("metric.lastCoverage")
           : this._t("metric.coverage"),
       value: combinedValue,
+      areaProgress: currentValue && totalValue && currentUnit && currentUnit === totalUnit &&
+        current?.attributes.cached !== true && total?.attributes.cached !== true &&
+        Number.isFinite(Number(current?.state)) && Number(current?.state) >= 0 &&
+        Number.isFinite(Number(total?.state)) && Number(total?.state) > 0 &&
+        Number(current?.state) <= Number(total?.state)
+          ? Number(current?.state) / Number(total?.state) * 100 : undefined,
     };
   }
 

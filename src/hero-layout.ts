@@ -5,6 +5,7 @@ import {
   type MapPosition,
 } from "./map-presentation";
 import { keyed } from "lit/directives/keyed.js";
+import "./mowing-map";
 
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
 import {
@@ -33,6 +34,9 @@ export type HeroLayoutModel = {
   progressLabel?: string;
   coverage?: string;
   coverageLabel?: string;
+  areaProgress?: number;
+  mowingMapPath?: string;
+  mapSavedPreview?: boolean;
   heroImage?: string;
   heroImagePosition?: HeroImagePosition;
   activeView: HeroView;
@@ -94,7 +98,13 @@ function renderView(model: HeroLayoutModel): TemplateResult {
       aria-hidden="true"
       @error=${useBuiltInHeroArtwork}
     />
-    ${model.mapUrl
+    ${model.mowingMapPath ? html`
+      <lawn-mower-mowing-map
+        class=${`hero-layer hero-mowing-map${model.activeView === "map" ? " active" : ""}`}
+        .hass=${model.hass} .path=${model.mowingMapPath} .locale=${model.locale}
+        .fallbackUrl=${model.mapUrl} .fallbackSaved=${Boolean(model.mapSavedPreview)}
+        .active=${model.activeView === "map" && model.mediaVisible !== false}
+      ></lawn-mower-mowing-map>` : model.mapUrl
       ? html`
           <img
             class=${`hero-layer hero-map ${mapPresentationClasses(
@@ -299,9 +309,9 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   return html`
     <ha-card class="hero-card" lang=${model.locale}>
       <div class="hero-shell">
-        <section class=${`hero-stage view-${model.activeView}`}>
+        <section class=${`hero-stage view-${model.activeView}${model.mowingMapPath ? " interactive-map" : ""}`}>
           ${renderView(model)}
-          ${model.activeView === "map" ? model.mapStatus : nothing}
+          ${model.activeView === "map" && !model.mowingMapPath ? model.mapStatus : nothing}
           <div class="hero-scrim" aria-hidden="true"></div>
 
           <div class="hero-heading">
@@ -334,6 +344,18 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
               `
             : nothing}
         </section>
+
+        ${model.activeView === "map" ? html`
+          <section class="mowing-mission" aria-label=${model.t("hero.mission")}>
+            <div class="mowing-metrics">
+              ${renderMetric("mdi:battery-high", model.t("hero.battery"), model.battery)}
+              ${renderMetric("mdi:grass", model.coverageLabel || model.t("hero.coverage"), model.coverage)}
+              ${renderMetric("mdi:progress-clock", model.progressLabel || model.t("hero.mission"), model.progress)}
+            </div>
+            ${model.areaProgress !== undefined ? html`
+              <progress max="100" .value=${model.areaProgress}
+                aria-label=${model.coverageLabel || model.t("hero.coverage")}></progress>` : nothing}
+          </section>` : nothing}
 
         ${showHeroViewTabs(model.availableViews)
           ? html`
@@ -447,6 +469,25 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
 }
 
 export const heroLayoutStyles = css`
+  .view-map.interactive-map { display:flex; flex-direction:column; aspect-ratio:auto; height:auto; }
+  .view-map.interactive-map .hero-heading { position:relative; order:1; padding:16px; }
+  .view-map.interactive-map .hero-scrim { display:none; }
+  .hero-mowing-map { position:absolute; inset:0; width:100%; height:100%; }
+  .view-map.interactive-map .hero-mowing-map { position:relative; order:2;
+    height:clamp(280px,45vh,460px); flex:none; }
+  .mowing-mission { padding:12px 14px; background:#101b15; }
+  .mowing-metrics { display:grid; grid-template-columns:minmax(0,.7fr) minmax(0,1.4fr) minmax(0,1fr); gap:8px; }
+  .mowing-metrics .hero-metric { padding:9px; box-shadow:none; background:#17251d; }
+  .mowing-metrics .hero-metric strong { font-size:clamp(.8rem,2.5vw,1.05rem); }
+  .mowing-mission progress { width:100%; height:7px; margin-top:12px; display:block;
+    border:0; border-radius:5px; overflow:hidden; accent-color:#8dcc99; }
+  .mowing-mission progress::-webkit-progress-bar { background:#2d4034; }
+  .mowing-mission progress::-webkit-progress-value { background:#8dcc99; }
+  @media(max-width:420px) {
+    .mowing-metrics { gap:5px; }
+    .mowing-metrics .hero-metric { padding:7px; gap:5px; }
+    .mowing-metrics .hero-metric ha-icon { display:none; }
+  }
   ha-card.hero-card {
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--divider-color) 80%, #7ea36e 20%);

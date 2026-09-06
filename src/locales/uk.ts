@@ -1,6 +1,16 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const uk = {
+  "mowingMap.mapLabel": "Інтерактивна карта косіння. Стрілки переміщують карту, плюс і мінус змінюють масштаб, Home показує весь сад.",
+  "mowingMap.tools": "Керування картою",
+  "mowingMap.zoomIn": "Збільшити",
+  "mowingMap.zoomOut": "Зменшити",
+  "mowingMap.fit": "Увесь сад",
+  "mowingMap.centre": "Центрувати косарку",
+  "mowingMap.loading": "Завантаження карти…",
+  "mowingMap.unavailable": "Карта наживо недоступна",
+  "mowingMap.observedTrail": "Спостережений маршрут · не скошена площа",
+  "mowingMap.noPosition": "Поточна позиція недоступна",
   "card.savedPreview": "Збережений перегляд",
   "cardPicker.name":"Картка газонокосарки","cardPicker.description":"Картка Home Assistant для газонокосарок із варіантами відображення зображення, карти, камери та елементів керування.","editor.titlePlaceholder":"Газонокосарка в саду",
   "common.automatic":"Автоматично","common.on":"Увімк.","common.off":"Вимк.","common.enabled":"увімкнено","common.disabled":"вимкнено","common.unavailable":"Недоступно","common.unknown":"Невідомо","common.error":"Помилка","common.entity":"Сутність","common.label":"Назва","common.icon":"Піктограма","common.type":"Тип","common.service":"Служба","common.center":"По центру","common.top":"Зверху","common.bottom":"Знизу","common.left":"Ліворуч","common.right":"Праворуч","common.topLeft":"Зверху ліворуч","common.topRight":"Зверху праворуч","common.bottomLeft":"Знизу ліворуч","common.bottomRight":"Знизу праворуч",

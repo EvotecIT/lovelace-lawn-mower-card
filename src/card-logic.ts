@@ -1,4 +1,5 @@
 import { entityIndex } from "./entity-index.ts";
+import { mowingMapPath } from "./mowing-map-logic.ts";
 
 export type MinimalHassEntity = {
   state: string;
@@ -845,6 +846,17 @@ export function resolvedMowerLiveVideoEntity(
     : undefined;
 }
 
+/** Prefer the mower's primary map when it advertises interactive scene delivery. */
+export function resolvedMowerInteractiveMapEntity(
+  states: HassStates,
+  mowerEntityId: string,
+  entities?: EntityRegistryEntries,
+): string | undefined {
+  const primary = resolvedMowerCompanionEntity(states, mowerEntityId, entities, "camera", "map");
+  return primary && mowingMapPath(states[primary]?.attributes?.mowing_map_api_path)
+    ? primary : undefined;
+}
+
 export function defaultHelperEntities(
   states: HassStates,
   mowerEntityId: string,
@@ -885,7 +897,8 @@ export function defaultHelperEntities(
       icon: "mdi:calendar",
     },
     {
-      entityId: resolveCompanion("camera", "live_path_map", "map"),
+      entityId: resolvedMowerInteractiveMapEntity(states, mowerEntityId, entities) ||
+        resolveCompanion("camera", "live_path_map", "map"),
       label: "Live Map",
       icon: "mdi:map-marker-path",
     },

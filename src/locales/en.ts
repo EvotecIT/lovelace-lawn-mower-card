@@ -12,6 +12,16 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "mowingMap.mapLabel": "Interactive mowing map. Use arrow keys to pan, plus or minus to zoom, and Home to fit the garden.",
+  "mowingMap.tools": "Map controls",
+  "mowingMap.zoomIn": "Zoom in",
+  "mowingMap.zoomOut": "Zoom out",
+  "mowingMap.fit": "Fit garden",
+  "mowingMap.centre": "Centre on mower",
+  "mowingMap.loading": "Loading map…",
+  "mowingMap.unavailable": "Live map unavailable",
+  "mowingMap.observedTrail": "Observed movement · not cut-area coverage",
+  "mowingMap.noPosition": "Live position unavailable",
   "card.savedPreview": "Saved preview",
   "common.automatic": "Automatic",
   "common.on": "On",

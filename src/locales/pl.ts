@@ -1,6 +1,16 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const pl = {
+  "mowingMap.mapLabel": "Interaktywna mapa koszenia. Strzałki przesuwają mapę, plus i minus zmieniają skalę, Home pokazuje cały ogród.",
+  "mowingMap.tools": "Sterowanie mapą",
+  "mowingMap.zoomIn": "Powiększ",
+  "mowingMap.zoomOut": "Pomniejsz",
+  "mowingMap.fit": "Cały ogród",
+  "mowingMap.centre": "Wyśrodkuj kosiarkę",
+  "mowingMap.loading": "Ładowanie mapy…",
+  "mowingMap.unavailable": "Mapa na żywo niedostępna",
+  "mowingMap.observedTrail": "Zarejestrowana trasa · nie obszar skoszony",
+  "mowingMap.noPosition": "Pozycja na żywo niedostępna",
   "card.savedPreview": "Zapisany podgląd",
   "cardPicker.name": "Karta kosiarki",
   "cardPicker.description": "Karta Home Assistant zaprojektowana dla kosiarek, z układami obrazu, mapy, kamery i elementów sterujących.",
