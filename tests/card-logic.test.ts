@@ -24,12 +24,28 @@ import {
   resolvedControlEntities,
   resolvedCoverageEntityIds,
   resolvedMowerCompanionEntity,
+  resolvedMowerInteractiveMapEntity,
   resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
 const entity = (state: string): MinimalHassEntity => ({ state });
+
+test("interactive map detection prefers advertised primary scenes without replacing legacy discovery", () => {
+  const states = {
+    "lawn_mower.garden": entity("mowing"),
+    "camera.garden_map": { state: "idle", attributes: {
+      mowing_map_api_path: "/api/dreame_lawn_mower/mowing-map/garden-entry",
+    } },
+    "camera.garden_live_path_map": entity("idle"),
+  };
+  assert.equal(resolvedMowerInteractiveMapEntity(states, "lawn_mower.garden"), "camera.garden_map");
+  assert.equal(defaultHelperEntities(states, "lawn_mower.garden").find(x => x.label === "Live Map")?.entityId, "camera.garden_map");
+  states["camera.garden_map"].attributes.mowing_map_api_path = "https://example.com/map";
+  assert.equal(resolvedMowerInteractiveMapEntity(states, "lawn_mower.garden"), undefined);
+  assert.equal(defaultHelperEntities(states, "lawn_mower.garden").find(x => x.label === "Live Map")?.entityId, "camera.garden_live_path_map");
+});
 
 test("Hero reconnect state restores only into the Hero layout", () => {
   assert.equal(heroViewRestorationAllowed("hero"), true);

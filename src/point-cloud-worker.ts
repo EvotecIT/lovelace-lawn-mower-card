@@ -1,3 +1,5 @@
+import { spatialPreviewIndices } from "./point-cloud-preview.ts";
+
 type ParseRequest = {
   id: number;
   content: ArrayBuffer;
@@ -11,6 +13,9 @@ export type PointCloudWorkerResult = {
   sourcePoints: number;
   renderedPoints: number;
   hasColors: boolean;
+  stage?: "preview" | "detail";
+  center?: [number, number, number];
+  parseMs?: number;
 };
 
 export type ParsedPointCloud = {
@@ -501,10 +506,31 @@ export function parsePointCloudBuffer(
 }
 
 if (typeof self !== "undefined" && typeof self.postMessage === "function") {
-  self.onmessage = (event: MessageEvent<ParseRequest>): void => {
+  let pending: PointCloudWorkerResult | undefined;
+  const send = (result: PointCloudWorkerResult): void => {
+    const transfer: Transferable[] = [result.positions];
+    if (result.colors) transfer.push(result.colors);
+    self.postMessage(result, { transfer });
+  };
+  self.onmessage = (event: MessageEvent<ParseRequest | { id: number; type: "detail" }>): void => {
+    if ("type" in event.data) {
+      if (pending?.id === event.data.id) send(pending);
+      pending = undefined;
+      return;
+    }
     const { id, content, maxPoints } = event.data;
     try {
+      const started = performance.now();
       const parsed = parsePointCloudBuffer(content, maxPoints);
+      const min = [Infinity, Infinity, Infinity];
+      const max = [-Infinity, -Infinity, -Infinity];
+      for (let index = 0; index < parsed.positions.length; index += 1) {
+        const axis = index % 3;
+        min[axis] = Math.min(min[axis], parsed.positions[index]);
+        max[axis] = Math.max(max[axis], parsed.positions[index]);
+      }
+      const center = min.map((value, axis) =>
+        Number.isFinite(value) ? (value + max[axis]) / 2 : 0) as [number, number, number];
       const result: PointCloudWorkerResult = {
         id,
         positions: parsed.positions.buffer as ArrayBuffer,
@@ -512,12 +538,26 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function") {
         sourcePoints: parsed.sourcePoints,
         renderedPoints: parsed.renderedPoints,
         hasColors: Boolean(parsed.colors),
+        stage: "detail",
+        center,
+        parseMs: performance.now() - started,
       };
-      const transfer: Transferable[] = [result.positions];
-      if (result.colors) {
-        transfer.push(result.colors);
+      if (parsed.renderedPoints > 50_000) {
+        const indices = spatialPreviewIndices(parsed.positions, 40_000);
+        const positions = new Float32Array(indices.length * 3);
+        const colors = parsed.colors ? new Uint8Array(indices.length * 3) : undefined;
+        indices.forEach((source, target) => {
+          positions.set(parsed.positions.subarray(source * 3, source * 3 + 3), target * 3);
+          if (colors && parsed.colors) {
+            colors.set(parsed.colors.subarray(source * 3, source * 3 + 3), target * 3);
+          }
+        });
+        pending = result;
+        send({ ...result, stage: "preview", positions: positions.buffer,
+          colors: colors?.buffer, renderedPoints: indices.length });
+      } else {
+        send(result);
       }
-      self.postMessage(result, { transfer });
     } catch (error) {
       self.postMessage({
         id,

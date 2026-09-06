@@ -71,6 +71,15 @@ export function pointCloudRequestPath(
   return refresh ? `${path}?refresh=1` : path;
 }
 
+/** Reserve the eventual cloud's GPU budget before mounting its small preview. */
+export function pointCloudRenderBudget(sourcePoints: number, devicePixelRatio: number) {
+  const large = sourcePoints >= 300_000;
+  return {
+    antialias: !large,
+    pixelRatio: Math.min(devicePixelRatio || 1, large ? 1.5 : 2),
+  };
+}
+
 export function pointCloudActivationErrorIsCurrent(
   requestGeneration: number,
   currentGeneration: number,

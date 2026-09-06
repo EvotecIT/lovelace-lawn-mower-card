@@ -300,6 +300,7 @@ export const lawnMowerCardStyles = [css`
     }
 
     .selector-card select {
+      color-scheme:inherit;
       width: 100%;
       box-sizing: border-box;
       border: 1px solid var(--divider-color);
@@ -308,6 +309,11 @@ export const lawnMowerCardStyles = [css`
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font: inherit;
+    }
+
+    .selector-card select:focus-visible {
+      outline:2px solid var(--primary-color);
+      outline-offset:2px;
     }
 
     .selector-number-header {

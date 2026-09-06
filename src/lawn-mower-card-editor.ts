@@ -11,6 +11,7 @@ import {
 } from "./card-config";
 import {
   resolvedMowerCompanionEntity,
+  resolvedMowerInteractiveMapEntity,
   resolvedMowerLiveVideoEntity,
 } from "./card-logic";
 import {
@@ -795,6 +796,7 @@ export class LawnMowerCardEditor extends LitElement {
       values.find((value) => Boolean(value));
 
     const mapEntity = first(
+      resolvedMowerInteractiveMapEntity(this.hass.states, entityId, this.hass.entities),
       companion("camera", "live_path_map"),
       companion("camera", "map"),
       companion("camera", "all_maps"),

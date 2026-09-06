@@ -3,9 +3,17 @@ import assert from "node:assert/strict";
 
 import {
   mapPresentationClasses,
+  mapIsLive,
   normalizeMapFit,
   normalizeMapPosition,
 } from "../src/map-presentation.ts";
+
+test("saved restart previews cannot claim live position while mower is active", () => {
+  assert.equal(mapIsLive({ restart_preview: true, map_has_live_path: true }, "mowing"), false);
+  assert.equal(mapIsLive({ map_placeholder: true }, "mowing"), false);
+  assert.equal(mapIsLive({}, "mowing"), true);
+  assert.equal(mapIsLive({}, "docked"), false);
+});
 
 test("map presentation defaults preserve the complete centered map", () => {
   assert.equal(normalizeMapFit(), "contain");

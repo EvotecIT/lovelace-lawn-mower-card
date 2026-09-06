@@ -5,6 +5,9 @@ import {
   type MapPosition,
 } from "./map-presentation";
 import { keyed } from "lit/directives/keyed.js";
+import "./mowing-map";
+import { renderMowingMission, mowingMissionStyles } from "./mowing-mission";
+import type { MowingAreaProgress } from "./mowing-progress";
 
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
 import {
@@ -33,6 +36,9 @@ export type HeroLayoutModel = {
   progressLabel?: string;
   coverage?: string;
   coverageLabel?: string;
+  area?: MowingAreaProgress;
+  mowingMapPath?: string;
+  mapSavedPreview?: boolean;
   heroImage?: string;
   heroImagePosition?: HeroImagePosition;
   activeView: HeroView;
@@ -43,6 +49,7 @@ export type HeroLayoutModel = {
   mapStatus?: TemplateResult;
   pointCloudPath?: string;
   pointCloudMounted: boolean;
+  mediaVisible?: boolean;
   pointCloudLoadError?: string;
   cameraEntity?: object;
   cameraMounted: boolean;
@@ -93,7 +100,13 @@ function renderView(model: HeroLayoutModel): TemplateResult {
       aria-hidden="true"
       @error=${useBuiltInHeroArtwork}
     />
-    ${model.mapUrl
+    ${model.mowingMapPath ? html`
+      <lawn-mower-mowing-map
+        class=${`hero-layer hero-mowing-map${model.activeView === "map" ? " active" : ""}`}
+        .hass=${model.hass} .path=${model.mowingMapPath} .locale=${model.locale}
+        .fallbackUrl=${model.mapUrl} .fallbackSaved=${Boolean(model.mapSavedPreview)}
+        .active=${model.activeView === "map" && model.mediaVisible !== false}
+      ></lawn-mower-mowing-map>` : model.mapUrl
       ? html`
           <img
             class=${`hero-layer hero-map ${mapPresentationClasses(
@@ -116,7 +129,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
             }`}
             .hass=${model.hass}
             .path=${model.pointCloudPath}
-            .active=${model.activeView === "point-cloud"}
+            .active=${model.activeView === "point-cloud" && model.mediaVisible !== false}
             .autoLoad=${true}
             .compact=${true}
             .locale=${model.locale}
@@ -174,6 +187,15 @@ function renderView(model: HeroLayoutModel): TemplateResult {
           </div>
         `
       : nothing}
+    ${model.activeView === "point-cloud" && model.pointCloudPath &&
+    !model.pointCloudMounted && !model.pointCloudLoadError
+      ? html`
+          <div class="hero-empty" role="status">
+            <ha-icon icon="mdi:cube-scan"></ha-icon>
+            <span>${model.t("pointCloud.rendererLoading")}</span>
+          </div>
+        `
+      : nothing}
     ${model.activeView === "point-cloud" && model.pointCloudLoadError
       ? html`
           <div class="hero-empty">
@@ -182,7 +204,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
           </div>
         `
       : nothing}
-    ${model.activeView === "map" && !model.mapUrl
+    ${model.activeView === "map" && !model.mapUrl && !model.mowingMapPath
       ? html`
           <div class="hero-empty">
             <ha-icon icon="mdi:map-outline"></ha-icon>
@@ -289,16 +311,17 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   return html`
     <ha-card class="hero-card" lang=${model.locale}>
       <div class="hero-shell">
-        <section class=${`hero-stage view-${model.activeView}`}>
+        <section class=${`hero-stage view-${model.activeView}${model.mowingMapPath ? " interactive-map" : ""}`}>
           ${renderView(model)}
-          ${model.activeView === "map" ? model.mapStatus : nothing}
+          ${model.activeView === "map" && !model.mowingMapPath ? model.mapStatus : nothing}
           <div class="hero-scrim" aria-hidden="true"></div>
 
           <div class="hero-heading">
             <div class="hero-title-block">
               <span class="hero-eyebrow">${model.t("hero.gardenMower")}</span>
               <h2>${model.title}</h2>
-              <span class="hero-subtitle">${model.subtitle}</span>
+              ${model.activeView !== "map" || model.subtitle.toLowerCase() !== model.stateLabel.toLowerCase()
+                ? html`<span class="hero-subtitle">${model.subtitle}</span>` : nothing}
             </div>
             <div class=${`hero-state state-${model.stateKey}`}>
               <span class="hero-state-dot" aria-hidden="true"></span>
@@ -324,6 +347,8 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
               `
             : nothing}
         </section>
+
+        ${model.activeView === "map" ? renderMowingMission(model) : nothing}
 
         ${showHeroViewTabs(model.availableViews)
           ? html`
@@ -437,8 +462,26 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
 }
 
 export const heroLayoutStyles = css`
+  ${mowingMissionStyles}
+  .view-map.interactive-map { display:flex; flex-direction:column; aspect-ratio:auto; height:auto; }
+  .view-map.interactive-map .hero-heading { position:relative; order:1; padding:18px; align-items:center; }
+  .view-map.interactive-map .hero-eyebrow { display:none; }
+  .view-map.interactive-map .hero-title-block { text-shadow:none; }
+  .view-map.interactive-map .hero-title-block h2 { font-size:clamp(1.1rem,2.4vw,1.4rem); }
+  .view-map.interactive-map .hero-scrim { display:none; }
+  .hero-mowing-map { position:absolute; inset:0; width:100%; height:100%; }
+  .view-map.interactive-map .hero-mowing-map { position:relative; order:2;
+    height:clamp(360px,50vh,500px); flex:none; }
   ha-card.hero-card {
+    --mower-surface:#111a15;
+    --mower-text:#eef3ed;
+    --mower-muted:#a4b3a8;
+    --mower-border:#2b3b30;
+    --mower-accent:#aed098;
+    --mower-route:#71b9cf;
+    --mower-map-ground:#18291e;
     overflow: hidden;
+    border-radius:var(--ha-card-border-radius,18px);
     border: 1px solid color-mix(in srgb, var(--divider-color) 80%, #7ea36e 20%);
     background: #0a0d0b;
   }
@@ -484,6 +527,10 @@ export const heroLayoutStyles = css`
     overflow: hidden;
     isolation: isolate;
     background: #080b09;
+  }
+
+  .hero-stage .map-status {
+    inset: auto 12px 12px;
   }
 
   .hero-art,
@@ -784,7 +831,8 @@ export const heroLayoutStyles = css`
 
   .hero-tabs {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow:column;
+    grid-auto-columns:minmax(0, 1fr);
     gap: 6px;
     padding: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -793,11 +841,11 @@ export const heroLayoutStyles = css`
   }
 
   .hero-selectors {
-    --card-background-color: #151b16;
-    --primary-text-color: #f7faf7;
-    --secondary-text-color: rgba(232, 240, 228, 0.68);
-    --divider-color: rgba(255, 255, 255, 0.12);
-    --primary-color: #9fca8b;
+    --card-background-color: var(--mower-surface);
+    --primary-text-color: var(--mower-text);
+    --secondary-text-color: var(--mower-muted);
+    --divider-color: var(--mower-border);
+    --primary-color: var(--mower-accent);
     color-scheme: dark;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -818,9 +866,9 @@ export const heroLayoutStyles = css`
   }
 
   .hero-selectors .selector-card select {
-    border-color: rgba(255, 255, 255, 0.16);
-    color: #f7faf7;
-    background: #151b16;
+    border-color: var(--mower-border);
+    color: var(--mower-text);
+    background-color: var(--mower-surface);
   }
 
   .hero-selectors .schedule-panel {

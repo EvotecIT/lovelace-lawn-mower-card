@@ -9,6 +9,7 @@ import {
   pointCloudProblemHint,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
+  pointCloudRenderBudget,
   pointCloudRetryDelayMs,
   signedPathFromResponse,
 } from "../src/point-cloud-logic.ts";
@@ -81,6 +82,14 @@ test("obsolete Hero renderer failures cannot leak into a new card state", () => 
     ),
     false,
   );
+});
+
+test("large-cloud graphics budget applies before preview refinement", () => {
+  assert.deepEqual(pointCloudRenderBudget(299_999, 3), {antialias: true, pixelRatio: 2});
+  for (const count of [300_000, 500_000, 2_000_000]) {
+    assert.deepEqual(pointCloudRenderBudget(count, 3), {antialias: false, pixelRatio: 1.5});
+    assert.deepEqual(pointCloudRenderBudget(count, 1), {antialias: false, pixelRatio: 1});
+  }
 });
 
 test("signed path responses remain local", () => {

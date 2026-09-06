@@ -43,6 +43,30 @@ The first fully exercised pairing is
 [Dreame Lawn Mower](https://github.com/EvotecIT/homeassistant-dreamelawnmower),
 but the card remains integration-agnostic at its core.
 
+Unrelated Home Assistant state changes do not redraw the card. Hidden pages
+suspend media immediately; a card scrolled off screen gets a 15-second grace
+period before suspending, so a brief scroll does not restart video. Media resumes
+when the card is visible again. Integration-provided restart map images are
+labelled **Saved preview**, not **Live**.
+
+### Interactive mowing map
+
+When the selected map camera exposes `mowing_map_api_path`, the Map view supports
+dragging, wheel or pinch zoom, **Fit garden**, and **Centre on mower**. Keyboard
+users can use the arrow keys, plus/minus, and Home. The garden background stays
+loaded while fresh position and current-run movement update separately.
+
+In Hero layout, a mowing session initially opens Map. Choosing another view
+overrides that default. Battery, reported current/target area, progress, and mower
+controls remain available below the map. Stale positions are hidden, and the
+trail is labelled **Observed movement · not cut-area coverage**; it does not
+claim that every enclosed patch has been cut.
+
+The visual editor prefers a compatible primary map camera for new automatic
+selections. Existing explicit `map_entity` choices are preserved. With the Dreame
+integration, choose the primary Map camera to enable this view; an older
+integration or a camera without the attribute continues to show its map image.
+
 ![Live-path map inside the Lawn Mower Card Hero layout](assets/lawn-mower-card-map.png)
 
 ## 🧩 More from Evotec
@@ -289,9 +313,10 @@ tiles:
 - `hero_image_position`: optional image focus: `center` (default), `left`,
   `right`, `top`, or `bottom`
 - `map_entity`: optional camera entity for the mower map. If your integration
-  exposes a live-path or runtime-overlay camera, prefer that over a static map
-  camera so the card can show the current cut path. A local
-  `point_cloud_api_path` attribute enables the 3D viewer.
+  exposes `mowing_map_api_path`, choose that camera for the interactive mowing
+  view. Otherwise, a live-path or runtime-overlay camera can show observed
+  movement in its image. A local `point_cloud_api_path` attribute enables the
+  3D viewer.
 - `map_fit`: optional `contain` (default) to show the complete map or `cover` to
   fill the map viewport by cropping it
 - `map_position`: optional crop focus: `center` (default), `top`, `bottom`,
@@ -371,9 +396,17 @@ access message instead of the point cloud.
 The browser renders at most 750,000 points on ordinary devices and 300,000 on
 devices that report 4 GB of memory or less. Larger supported PCDs are
 deterministically sampled in the worker, keeping parsing away from the main
-thread. Returning to the Hero 3D tab reuses the same scene and camera view
+thread. For larger clouds, a spatially sampled preview appears first, then full
+detail replaces it without resetting the camera. Returning to the Hero 3D tab
+reuses the same scene and camera view
 without downloading or parsing it again. Compatible integration versions also
 serve the private response with an ETag and a five-minute revalidation window.
+
+For performance troubleshooting, the viewer exposes `data-load-stage` and
+`data-load-timings` on its element and emits a `lawn-mower-media-timing` event.
+Timings cover authorization, response headers, download, preview rendering,
+full-detail rendering, and parsing. Render milestones mean submission to the
+graphics renderer, not a measurement of when pixels reached the display.
 
 While the mower prepares a fresh file, the viewer shows elapsed time and the
 integration's normal 45-second generation window. The browser stops a request

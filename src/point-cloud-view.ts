@@ -22,10 +22,12 @@ import {
   type PointCloudProblem,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
+  pointCloudRenderBudget,
   pointCloudRetryDelayMs,
   signedPathFromResponse,
 } from "./point-cloud-logic";
 import { POINT_CLOUD_WORKER_SOURCE } from "./point-cloud-assets";
+import { MediaLoadTiming } from "./media-load-timing";
 import type { PointCloudWorkerResult } from "./point-cloud-worker";
 import { createTranslator, type SupportedLocale, type TranslationKey } from "./localization";
 
@@ -79,6 +81,7 @@ export class LawnMowerPointCloud extends LitElement {
   private _downloadGeneration = 0;
   private _loadRequested = false;
   private _reloadOnConnect = false;
+  private _detailPending = false;
 
   private get _t() {
     return createTranslator(this.locale);
@@ -639,6 +642,7 @@ export class LawnMowerPointCloud extends LitElement {
       this._retryDelaySeconds = undefined;
       this._loadRequested = this.autoLoad;
       this._reloadOnConnect = false;
+      this._detailPending = false;
       this._stopLoadingTimer();
     }
     if (changedProperties.has("active") && !this.active) {
@@ -651,12 +655,13 @@ export class LawnMowerPointCloud extends LitElement {
         this._stopLoadingTimer();
       }
     }
+    if (changedProperties.has("active") && this.active) this._resize();
     if (
       this.active &&
       (this.autoLoad || this._loadRequested) &&
       (this._status === "idle" ||
         (this._status === "error" && this._problem?.retryable !== false) ||
-        (this._status === "ready" && this._problem?.retryable === true)) &&
+        (this._status === "ready" && (this._problem?.retryable === true || this._detailPending))) &&
       (changedProperties.has("active") || changedProperties.has("path"))
     ) {
       void this._load(false);
@@ -748,6 +753,10 @@ export class LawnMowerPointCloud extends LitElement {
       abortController.abort();
     }, BROWSER_REQUEST_TIMEOUT_MS);
     let failureStage: PointCloudClientFailureStage = "delivery";
+    const timing = new MediaLoadTiming();
+    let timingOutcome: "ready" | "error" | "cancelled" = "error";
+    let parseMs: number | undefined;
+    this.dataset.loadStage = "authorization";
 
     try {
       const signed = await Promise.race([
@@ -765,6 +774,8 @@ export class LawnMowerPointCloud extends LitElement {
         return;
       }
       const signedPath = signedPathFromResponse(signed);
+      timing.mark("authorization");
+      this.dataset.loadStage = "download";
       if (!signedPath) {
         throw new Error(this._t("pointCloud.invalidSignedPath"));
       }
@@ -789,7 +800,10 @@ export class LawnMowerPointCloud extends LitElement {
         this._handleLoadFailure(problem);
         return;
       }
+      timing.mark("headers");
       const content = await Promise.race([response.arrayBuffer(), aborted]);
+      timing.mark("download");
+      this.dataset.loadStage = "parse";
       if (
         this._abortController !== abortController ||
         abortController.signal.aborted
@@ -798,7 +812,23 @@ export class LawnMowerPointCloud extends LitElement {
       }
 
       failureStage = "parser";
-      const parsed = await this._parsePointCloud(content, abortController.signal);
+      const parsed = await this._parsePointCloud(
+        content, abortController.signal, async (preview) => {
+          if (abortController.signal.aborted || this._abortController !== abortController) return;
+          this._pointCount = preview.sourcePoints;
+          this._renderedPointCount = preview.renderedPoints;
+          this._status = "ready";
+          this._refreshing = true;
+          this._detailPending = true;
+          await this.updateComplete;
+          if (abortController.signal.aborted || this._abortController !== abortController) return;
+          failureStage = "renderer";
+          this._mountPointCloud(this._pointsFromWorker(preview));
+          timing.mark("preview_render");
+          this.dataset.loadStage = "detail";
+          failureStage = "parser";
+        },
+      );
       if (
         this._abortController !== abortController ||
         abortController.signal.aborted
@@ -806,8 +836,10 @@ export class LawnMowerPointCloud extends LitElement {
         return;
       }
       const points = this._pointsFromWorker(parsed);
+      parseMs = parsed.parseMs;
       this._pointCount = parsed.sourcePoints;
       this._renderedPointCount = parsed.renderedPoints;
+      this._detailPending = false;
       this._status = "ready";
       this._problem = undefined;
       this._refreshing = false;
@@ -823,7 +855,10 @@ export class LawnMowerPointCloud extends LitElement {
         return;
       }
       failureStage = "renderer";
-      this._mountPointCloud(points);
+      this._mountPointCloud(points, true);
+      timing.mark("detail_render");
+      timingOutcome = "ready";
+      this.dataset.loadStage = "ready";
     } catch {
       if (this._abortController !== abortController) {
         return;
@@ -839,6 +874,13 @@ export class LawnMowerPointCloud extends LitElement {
       if (this._abortController === abortController) {
         this._refreshing = false;
         this._stopLoadingTimer();
+        if (abortController.signal.aborted && !browserTimedOut) timingOutcome = "cancelled";
+        if (timingOutcome !== "ready") this.dataset.loadStage = timingOutcome;
+        const detail = timing.snapshot(timingOutcome, parseMs);
+        this.dataset.loadTimings = JSON.stringify(detail);
+        this.dispatchEvent(new CustomEvent("lawn-mower-media-timing", {
+          detail, bubbles: true, composed: true,
+        }));
       }
     }
   }
@@ -882,7 +924,17 @@ export class LawnMowerPointCloud extends LitElement {
     this._retryDelaySeconds = undefined;
   }
 
-  private _mountPointCloud(points: Points): void {
+  private _mountPointCloud(points: Points, refine = false): void {
+    if (refine && this._scene && this._points && this._renderer) {
+      this._scene.remove(this._points);
+      this._points.geometry.dispose();
+      this._disposeMaterial(this._points.material);
+      (points.material as PointsMaterial).size = this._basePointSize * this._pointSize;
+      this._scene.add(points);
+      this._points = points;
+      this._renderScene();
+      return;
+    }
     const viewport = this._viewport;
     if (!viewport) {
       points.geometry.dispose();
@@ -901,7 +953,6 @@ export class LawnMowerPointCloud extends LitElement {
     this._disposeScene();
     points.geometry.computeBoundingBox();
     points.geometry.computeBoundingSphere();
-    points.geometry.center();
 
     const bounds = new Box3().setFromObject(points);
     const sphere = bounds.getBoundingSphere(new Sphere());
@@ -916,18 +967,16 @@ export class LawnMowerPointCloud extends LitElement {
     scene.add(points);
     const camera = new PerspectiveCamera(45, 1, radius / 1000, radius * 100);
     camera.up.set(0, 0, 1);
+    const budget = pointCloudRenderBudget(this._pointCount || 0, window.devicePixelRatio);
     const renderer = new WebGLRenderer({
       alpha: true,
-      antialias: (this._renderedPointCount || 0) < 300_000,
+      // The source count is known even while only the preview is mounted.
+      // Reserve the large-cloud budget before creating the WebGL context.
+      antialias: budget.antialias,
       powerPreference: "high-performance",
     });
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio || 1,
-        (this._renderedPointCount || 0) < 300_000 ? 2 : 1.5,
-      ),
-    );
+    renderer.setPixelRatio(budget.pixelRatio);
     viewport.replaceChildren(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -984,7 +1033,7 @@ export class LawnMowerPointCloud extends LitElement {
   };
 
   private _renderScene = (): void => {
-    if (this._scene && this._camera && this._renderer) {
+    if (this.active && this._scene && this._camera && this._renderer) {
       this._renderer.render(this._scene, this._camera);
     }
   };
@@ -1077,6 +1126,7 @@ export class LawnMowerPointCloud extends LitElement {
   private async _parsePointCloud(
     content: ArrayBuffer,
     signal: AbortSignal,
+    onPreview: (result: PointCloudWorkerResult) => Promise<void>,
   ): Promise<PointCloudWorkerResult> {
     this._worker?.terminate();
     const workerUrl = URL.createObjectURL(
@@ -1118,6 +1168,20 @@ export class LawnMowerPointCloud extends LitElement {
         if (event.data.id !== id) {
           return;
         }
+        if (event.data.stage === "preview") {
+          void onPreview(event.data).then(() => {
+            // Let the coarse geometry paint before transferring/uploading detail.
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              if (!signal.aborted && this._worker === worker) {
+                worker.postMessage({ id, type: "detail" });
+              }
+            }));
+          }).catch((error: unknown) => {
+            finish();
+            reject(error);
+          });
+          return;
+        }
         finish();
         if (event.data.error) {
           reject(new Error(event.data.error));
@@ -1135,6 +1199,11 @@ export class LawnMowerPointCloud extends LitElement {
       "position",
       new Float32BufferAttribute(new Float32Array(result.positions), 3),
     );
+    if (result.center) {
+      geometry.translate(-result.center[0], -result.center[1], -result.center[2]);
+    } else {
+      geometry.center();
+    }
     if (result.colors) {
       geometry.setAttribute(
         "color",
