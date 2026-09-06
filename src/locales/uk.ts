@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const uk = {
+  "card.savedPreview": "Збережений перегляд",
   "cardPicker.name":"Картка газонокосарки","cardPicker.description":"Картка Home Assistant для газонокосарок із варіантами відображення зображення, карти, камери та елементів керування.","editor.titlePlaceholder":"Газонокосарка в саду",
   "common.automatic":"Автоматично","common.on":"Увімк.","common.off":"Вимк.","common.enabled":"увімкнено","common.disabled":"вимкнено","common.unavailable":"Недоступно","common.unknown":"Невідомо","common.error":"Помилка","common.entity":"Сутність","common.label":"Назва","common.icon":"Піктограма","common.type":"Тип","common.service":"Служба","common.center":"По центру","common.top":"Зверху","common.bottom":"Знизу","common.left":"Ліворуч","common.right":"Праворуч","common.topLeft":"Зверху ліворуч","common.topRight":"Зверху праворуч","common.bottomLeft":"Знизу ліворуч","common.bottomRight":"Знизу праворуч",
   "common.state":"Стан","common.task":"Завдання","common.zone":"Зона","common.zones":"Зони","common.spot":"Точка","common.spots":"Точки","common.time":"Час","common.readOnly":"Лише читання","common.unsupportedValue":"Непідтримуване значення",

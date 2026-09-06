@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const fr = {
+  "card.savedPreview": "Aperçu enregistré",
   "cardPicker.name":"Carte de tondeuse","cardPicker.description":"Une carte Home Assistant conçue pour les tondeuses, avec des dispositions pour l’image, la carte, la caméra et les commandes.","editor.titlePlaceholder":"Tondeuse du jardin",
   "common.automatic":"Automatique","common.on":"Activé","common.off":"Désactivé","common.enabled":"activé","common.disabled":"désactivé","common.unavailable":"Indisponible","common.unknown":"Inconnu","common.error":"Erreur","common.entity":"Entité","common.label":"Libellé","common.icon":"Icône","common.type":"Type","common.service":"Service","common.center":"Centre","common.top":"Haut","common.bottom":"Bas","common.left":"Gauche","common.right":"Droite","common.topLeft":"En haut à gauche","common.topRight":"En haut à droite","common.bottomLeft":"En bas à gauche","common.bottomRight":"En bas à droite",
   "common.state":"État","common.task":"Tâche","common.zone":"Zone","common.zones":"Zones","common.spot":"Point","common.spots":"Points","common.time":"Durée","common.readOnly":"Lecture seule","common.unsupportedValue":"Valeur non prise en charge",

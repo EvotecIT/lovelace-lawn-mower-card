@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const ru = {
+  "card.savedPreview": "Сохранённый предпросмотр",
   "cardPicker.name":"Карточка газонокосилки","cardPicker.description":"Карточка Home Assistant для газонокосилок с вариантами отображения изображения, карты, камеры и элементов управления.","editor.titlePlaceholder":"Газонокосилка в саду",
   "common.automatic":"Автоматически","common.on":"Вкл.","common.off":"Выкл.","common.enabled":"включено","common.disabled":"выключено","common.unavailable":"Недоступно","common.unknown":"Неизвестно","common.error":"Ошибка","common.entity":"Сущность","common.label":"Название","common.icon":"Значок","common.type":"Тип","common.service":"Служба","common.center":"По центру","common.top":"Сверху","common.bottom":"Снизу","common.left":"Слева","common.right":"Справа","common.topLeft":"Сверху слева","common.topRight":"Сверху справа","common.bottomLeft":"Снизу слева","common.bottomRight":"Снизу справа",
   "common.state":"Состояние","common.task":"Задание","common.zone":"Зона","common.zones":"Зоны","common.spot":"Точка","common.spots":"Точки","common.time":"Время","common.readOnly":"Только чтение","common.unsupportedValue":"Неподдерживаемое значение",

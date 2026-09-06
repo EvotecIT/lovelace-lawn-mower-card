@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const de = {
+  "card.savedPreview": "Gespeicherte Vorschau",
   "cardPicker.name":"Rasenmäher-Karte","cardPicker.description":"Eine speziell für Mähroboter entwickelte Home-Assistant-Karte mit Bild-, Karten-, Kamera- und Steuerungslayouts.","editor.titlePlaceholder":"Mäher im Garten",
   "common.automatic":"Automatisch","common.on":"Ein","common.off":"Aus","common.enabled":"aktiviert","common.disabled":"deaktiviert","common.unavailable":"Nicht verfügbar","common.unknown":"Unbekannt","common.error":"Fehler","common.entity":"Entität","common.label":"Bezeichnung","common.icon":"Symbol","common.type":"Typ","common.service":"Dienst","common.center":"Mitte","common.top":"Oben","common.bottom":"Unten","common.left":"Links","common.right":"Rechts","common.topLeft":"Oben links","common.topRight":"Oben rechts","common.bottomLeft":"Unten links","common.bottomRight":"Unten rechts",
   "common.state":"Status","common.task":"Auftrag","common.zone":"Zone","common.zones":"Zonen","common.spot":"Punkt","common.spots":"Punkte","common.time":"Zeit","common.readOnly":"Schreibgeschützt","common.unsupportedValue":"Nicht unterstützter Wert",

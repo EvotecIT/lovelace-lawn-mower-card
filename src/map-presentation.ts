@@ -32,3 +32,9 @@ export function mapPresentationClasses(
 ): string {
   return `map-fit-${normalizeMapFit(fit)} map-position-${normalizeMapPosition(position)}`;
 }
+/** Persisted restart pixels must never be labelled as a live mower position. */
+export function mapIsLive(attributes: Record<string, unknown>, mowerState: string): boolean {
+  if (attributes.restart_preview === true || attributes.map_placeholder === true) return false;
+  return Boolean(attributes.map_has_live_path ?? attributes.has_live_path) ||
+    ["mowing", "paused", "returning"].includes(mowerState.toLowerCase());
+}

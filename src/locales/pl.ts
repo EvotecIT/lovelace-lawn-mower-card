@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const pl = {
+  "card.savedPreview": "Zapisany podgląd",
   "cardPicker.name": "Karta kosiarki",
   "cardPicker.description": "Karta Home Assistant zaprojektowana dla kosiarek, z układami obrazu, mapy, kamery i elementów sterujących.",
   "editor.titlePlaceholder": "Kosiarka w ogrodzie",

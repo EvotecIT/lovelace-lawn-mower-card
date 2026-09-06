@@ -43,6 +43,12 @@ The first fully exercised pairing is
 [Dreame Lawn Mower](https://github.com/EvotecIT/homeassistant-dreamelawnmower),
 but the card remains integration-agnostic at its core.
 
+Unrelated Home Assistant state changes do not redraw the card. Hidden pages
+suspend media immediately; a card scrolled off screen gets a 15-second grace
+period before suspending, so a brief scroll does not restart video. Media resumes
+when the card is visible again. Integration-provided restart map images are
+labelled **Saved preview**, not **Live**.
+
 ![Live-path map inside the Lawn Mower Card Hero layout](assets/lawn-mower-card-map.png)
 
 ## 🧩 More from Evotec
@@ -371,9 +377,17 @@ access message instead of the point cloud.
 The browser renders at most 750,000 points on ordinary devices and 300,000 on
 devices that report 4 GB of memory or less. Larger supported PCDs are
 deterministically sampled in the worker, keeping parsing away from the main
-thread. Returning to the Hero 3D tab reuses the same scene and camera view
+thread. For larger clouds, a spatially sampled preview appears first, then full
+detail replaces it without resetting the camera. Returning to the Hero 3D tab
+reuses the same scene and camera view
 without downloading or parsing it again. Compatible integration versions also
 serve the private response with an ETag and a five-minute revalidation window.
+
+For performance troubleshooting, the viewer exposes `data-load-stage` and
+`data-load-timings` on its element and emits a `lawn-mower-media-timing` event.
+Timings cover authorization, response headers, download, preview rendering,
+full-detail rendering, and parsing. Render milestones mean submission to the
+graphics renderer, not a measurement of when pixels reached the display.
 
 While the mower prepares a fresh file, the viewer shows elapsed time and the
 integration's normal 45-second generation window. The browser stops a request

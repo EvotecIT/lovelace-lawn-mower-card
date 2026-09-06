@@ -12,6 +12,7 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "card.savedPreview": "Saved preview",
   "common.automatic": "Automatic",
   "common.on": "On",
   "common.off": "Off",

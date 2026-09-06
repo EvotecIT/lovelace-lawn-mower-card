@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const it = {
+  "card.savedPreview": "Anteprima salvata",
   "cardPicker.name":"Scheda rasaerba","cardPicker.description":"Una scheda Home Assistant pensata per i rasaerba, con layout per immagini, mappa, telecamera e comandi.","editor.titlePlaceholder":"Rasaerba del giardino",
   "common.automatic":"Automatico","common.on":"Attivo","common.off":"Disattivato","common.enabled":"attivo","common.disabled":"disattivato","common.unavailable":"Non disponibile","common.unknown":"Sconosciuto","common.error":"Errore","common.entity":"Entità","common.label":"Etichetta","common.icon":"Icona","common.type":"Tipo","common.service":"Servizio","common.center":"Centro","common.top":"In alto","common.bottom":"In basso","common.left":"Sinistra","common.right":"Destra","common.topLeft":"In alto a sinistra","common.topRight":"In alto a destra","common.bottomLeft":"In basso a sinistra","common.bottomRight":"In basso a destra",
   "common.state":"Stato","common.task":"Attività","common.zone":"Zona","common.zones":"Zone","common.spot":"Punto","common.spots":"Punti","common.time":"Tempo","common.readOnly":"Sola lettura","common.unsupportedValue":"Valore non supportato",

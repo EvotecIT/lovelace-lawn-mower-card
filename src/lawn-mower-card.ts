@@ -1,7 +1,9 @@
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
 import "./lawn-mower-card-editor";
+import { mowerHassChanged } from "./card-update-scope";
+import { MediaVisibility } from "./media-visibility";
 
 import {
   getStubConfig,
@@ -48,6 +50,7 @@ import {
 } from "./hero-image";
 import {
   mapPresentationClasses,
+  mapIsLive,
   normalizeMapFit,
   normalizeMapPosition,
 } from "./map-presentation";
@@ -231,6 +234,12 @@ export class LawnMowerCard extends LitElement {
   @state() private _traditionalPointCloudLoading = false;
   @state() private _pointCloudLoadError?: string;
   @state() private _cameraMounted = false;
+  @state() private _mediaVisible = true;
+  private _visibleMapUrl?: string;
+  private _mediaVisibility = new MediaVisibility(this, (visible) => {
+    this._mediaVisible = visible;
+    if (!visible) this._resetCameraRecovery();
+  });
   @state() private _cameraRenderGeneration = 0;
   @state() private _cameraReconnecting = false;
   @state() private _actionFeedback?: {
@@ -300,6 +309,7 @@ export class LawnMowerCard extends LitElement {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    this._mediaVisibility.connect();
     this._mutationSubscription ??= subscribeMowerMutations((entityId) => {
       if (entityId === this._config?.entity) {
         this.requestUpdate();
@@ -320,6 +330,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   public disconnectedCallback(): void {
+    this._mediaVisibility.disconnect();
     const entityId = this._config?.entity;
     if (
       entityId &&
@@ -374,6 +385,13 @@ export class LawnMowerCard extends LitElement {
     this._resetCameraRecovery();
   }
 
+  protected shouldUpdate(changed: PropertyValues): boolean {
+    if (changed.size === 0 || [...changed.keys()].some((key) => key !== "hass")) {
+      return true;
+    }
+    return mowerHassChanged(changed.get("hass"), this.hass, this._config);
+  }
+
   public static async getConfigElement(): Promise<HTMLElement> {
     return document.createElement("lawn-mower-card-editor");
   }
@@ -399,7 +417,10 @@ export class LawnMowerCard extends LitElement {
     const layout = this._config.layout || "default";
     const subtitle = this._entityState(this._config.status_entity) || this._friendlyMowerState(mower.state);
     const mapEntity = this._config.map_entity ? this.hass.states[this._config.map_entity] : undefined;
-    const mapUrl = mapEntity ? this._cameraUrl(mapEntity) : undefined;
+    if (this._mediaVisible) {
+      this._visibleMapUrl = mapEntity ? this._cameraUrl(mapEntity) : undefined;
+    }
+    const mapUrl = this._visibleMapUrl;
     const showMap = this._config.show_map ?? Boolean(this._config.map_entity);
     const pointCloudPath = pointCloudPathFromEntity(mapEntity);
     const showPointCloud =
@@ -511,7 +532,7 @@ export class LawnMowerCard extends LitElement {
                           <lawn-mower-point-cloud
                             .hass=${this.hass as PointCloudHomeAssistant}
                             .path=${pointCloudPath}
-                            .active=${true}
+                            .active=${this._mediaVisible}
                             .autoLoad=${true}
                             .compact=${layout === "compact"}
                             .locale=${this._locale}
@@ -761,9 +782,10 @@ export class LawnMowerCard extends LitElement {
         : undefined,
       pointCloudPath,
       pointCloudMounted: this._pointCloudMounted,
+      mediaVisible: this._mediaVisible,
       pointCloudLoadError: this._pointCloudLoadError,
       cameraEntity,
-      cameraMounted: this._cameraMounted,
+      cameraMounted: this._cameraMounted && this._mediaVisible,
       cameraRenderKey: cameraEntity
         ? `${cameraEntity.entity_id}:${this._cameraRenderGeneration}`
         : undefined,
@@ -817,9 +839,22 @@ export class LawnMowerCard extends LitElement {
         this._pointCloudLoadError = undefined;
         return;
       }
-      this._pointCloudMounted = true;
       this._pointCloudLoadError = undefined;
-      void loadPointCloudModule().catch(() => {
+      void loadPointCloudModule().then(() => {
+        // Mount only after registration so initial reactive properties are not
+        // shadowed by assignments to an unupgraded custom element.
+        if (
+          pointCloudActivationErrorIsCurrent(
+            pointCloudGeneration,
+            this._heroPointCloudGeneration,
+            this._config?.layout,
+            this._heroView,
+            this._currentPointCloudPath(),
+          )
+        ) {
+          this._pointCloudMounted = true;
+        }
+      }).catch(() => {
         if (
           !pointCloudActivationErrorIsCurrent(
             pointCloudGeneration,
@@ -977,6 +1012,7 @@ export class LawnMowerCard extends LitElement {
     const camera = this._cameraCandidate();
     if (
       this._heroView !== "camera" ||
+      !this._mediaVisible ||
       !this._cameraMounted ||
       !camera
     ) {
@@ -1245,13 +1281,15 @@ export class LawnMowerCard extends LitElement {
     const mapName =
       this._stringValue(details.map_name) ||
       this._stringValue(details.name);
-    const live = Boolean(details.map_has_live_path ?? details.has_live_path) ||
-      ["mowing", "paused", "returning"].includes(mowerState.toLowerCase());
+    const live = mapIsLive(details, mowerState);
     const invalidPosition = details.runtime_position_valid === false;
     return html`
       <div class="map-status">
         ${mapName ? html`<span class="map-badge">${mapName}</span>` : nothing}
         ${live ? html`<span class="map-badge live">${this._t("card.live")}</span>` : nothing}
+        ${details.restart_preview === true
+          ? html`<span class="map-badge warning">${this._t("card.savedPreview")}</span>`
+          : nothing}
         ${invalidPosition
           ? html`<span class="map-badge warning">${this._t("card.positionWithheld")}</span>`
           : nothing}

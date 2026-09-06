@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const es = {
+  "card.savedPreview": "Vista previa guardada",
   "cardPicker.name": "Tarjeta de cortacésped",
   "cardPicker.description": "Una tarjeta Home Assistant específica para cortacéspedes con interfaces para imágenes, mapas, cámara y controles.",
   "editor.titlePlaceholder": "Cortacésped del jardín",

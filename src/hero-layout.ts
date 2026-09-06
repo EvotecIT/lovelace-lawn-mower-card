@@ -43,6 +43,7 @@ export type HeroLayoutModel = {
   mapStatus?: TemplateResult;
   pointCloudPath?: string;
   pointCloudMounted: boolean;
+  mediaVisible?: boolean;
   pointCloudLoadError?: string;
   cameraEntity?: object;
   cameraMounted: boolean;
@@ -116,7 +117,7 @@ function renderView(model: HeroLayoutModel): TemplateResult {
             }`}
             .hass=${model.hass}
             .path=${model.pointCloudPath}
-            .active=${model.activeView === "point-cloud"}
+            .active=${model.activeView === "point-cloud" && model.mediaVisible !== false}
             .autoLoad=${true}
             .compact=${true}
             .locale=${model.locale}
@@ -171,6 +172,15 @@ function renderView(model: HeroLayoutModel): TemplateResult {
           <div class="hero-empty">
             <ha-icon icon="mdi:cube-off-outline"></ha-icon>
             <span>${model.t("hero.noPointCloud")}</span>
+          </div>
+        `
+      : nothing}
+    ${model.activeView === "point-cloud" && model.pointCloudPath &&
+    !model.pointCloudMounted && !model.pointCloudLoadError
+      ? html`
+          <div class="hero-empty" role="status">
+            <ha-icon icon="mdi:cube-scan"></ha-icon>
+            <span>${model.t("pointCloud.rendererLoading")}</span>
           </div>
         `
       : nothing}
@@ -484,6 +494,10 @@ export const heroLayoutStyles = css`
     overflow: hidden;
     isolation: isolate;
     background: #080b09;
+  }
+
+  .hero-stage .map-status {
+    inset: auto 12px 12px;
   }
 
   .hero-art,
