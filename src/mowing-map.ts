@@ -67,6 +67,7 @@ export class LawnMowerMowingMap extends LitElement {
     if (!this.active) {
       this._stop();
     } else if (!this._abort && this._timer === undefined && mowingMapPath(this.path)) {
+      if (this._scene) this._expireOverlay(this._scene);
       void this._refresh();
     }
   }
