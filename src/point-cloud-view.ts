@@ -22,6 +22,7 @@ import {
   type PointCloudProblem,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
+  pointCloudRenderBudget,
   pointCloudRetryDelayMs,
   signedPathFromResponse,
 } from "./point-cloud-logic";
@@ -821,9 +822,11 @@ export class LawnMowerPointCloud extends LitElement {
           this._detailPending = true;
           await this.updateComplete;
           if (abortController.signal.aborted || this._abortController !== abortController) return;
+          failureStage = "renderer";
           this._mountPointCloud(this._pointsFromWorker(preview));
           timing.mark("preview_render");
           this.dataset.loadStage = "detail";
+          failureStage = "parser";
         },
       );
       if (
@@ -964,18 +967,16 @@ export class LawnMowerPointCloud extends LitElement {
     scene.add(points);
     const camera = new PerspectiveCamera(45, 1, radius / 1000, radius * 100);
     camera.up.set(0, 0, 1);
+    const budget = pointCloudRenderBudget(this._pointCount || 0, window.devicePixelRatio);
     const renderer = new WebGLRenderer({
       alpha: true,
-      antialias: (this._renderedPointCount || 0) < 300_000,
+      // The source count is known even while only the preview is mounted.
+      // Reserve the large-cloud budget before creating the WebGL context.
+      antialias: budget.antialias,
       powerPreference: "high-performance",
     });
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio || 1,
-        (this._renderedPointCount || 0) < 300_000 ? 2 : 1.5,
-      ),
-    );
+    renderer.setPixelRatio(budget.pixelRatio);
     viewport.replaceChildren(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
