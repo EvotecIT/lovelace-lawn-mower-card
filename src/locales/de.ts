@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const de = {
+  "editor.heroComposition": "Anordnung",
+  "editor.heroCinematic": "Kinoansicht",
+  "editor.heroDashboard": "Dashboard",
+  "dashboard.openCamera": "Kamera öffnen",
+  "dashboard.cameraOnDemand": "Die Kamera startet erst nach Auswahl",
+  "dashboard.closeCamera": "Schließen",
   "mowingMap.garden": "Gartengrenze",
   "mowingMap.thisRun": "Dieser Einsatz · Strecke",
   "mowingMap.mowerNow": "Mäher jetzt",

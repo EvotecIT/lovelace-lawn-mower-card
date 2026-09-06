@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Dashboard composition · local fixture</title>
+  <style>
+    :root { color-scheme:dark; --primary-text-color:#edf8f6; --secondary-text-color:#a6bdc5; --divider-color:#2d4855; --primary-color:#9ddb89; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:20px; background:#08131e; color:#edf8f6; font:14px system-ui,sans-serif; }
+    main { width:var(--preview-width,1080px); max-width:100%; margin:auto; }
+    header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    h1 { margin:0; font-size:18px; } p { color:#a6bdc5; font-size:12px; }
+    nav { display:flex; flex-wrap:wrap; gap:8px; } a { color:#8ed5e1; }
+    lawn-mower-card { display:block; }
+    #events { padding:12px 0; color:#a6bdc5; font-size:12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header><div><h1>Garden dashboard</h1><p>Local fixture · synthetic map, telemetry and camera</p></div>
+      <nav aria-label="Preview width"><a href="?width=1080">Wide</a><a href="?width=390">Compact</a><a href="?width=320">Narrow</a></nav>
+    </header>
+    <lawn-mower-card id="mower"></lawn-mower-card>
+    <div id="events" role="status">No mower commands sent.</div>
+  </main>
+  <script type="module" src="./dashboard.mjs"></script>
+</body>
+</html>

@@ -36,6 +36,7 @@ export class LawnMowerMowingMap extends LitElement {
   @state() private _view: MapViewport = fitMap(1, 1);
   @state() private _error = false;
   @state() private _loading = false;
+  @state() private _fallbackFailed = false;
   @state() private _size = { width: 500, height: 300 };
   private _resize?: ResizeObserver;
   private _abort?: AbortController;
@@ -47,6 +48,7 @@ export class LawnMowerMowingMap extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (!this.isConnected) return;
+    if (changed.has("fallbackUrl")) this._fallbackFailed = false;
     if (!this._resize) {
       const viewport = this.renderRoot.querySelector(".canvas");
       if (viewport) {
@@ -315,8 +317,10 @@ export class LawnMowerMowingMap extends LitElement {
                 data-mower-position="current">
                 ${mowerMapMarker(position.heading)}
               </g>` : nothing}
-          </svg>` : this.fallbackUrl ? html`
-          <img class="fallback" src=${this.fallbackUrl} alt=${this._t("mowingMap.mapLabel")} />` : nothing}
+          </svg>` : this.fallbackUrl && !this._fallbackFailed ? html`
+          <img class="fallback" src=${this.fallbackUrl} alt=${this._t("mowingMap.garden")}
+            @error=${() => { this._fallbackFailed = true; }} />` : html`
+          <div class="map-empty">${this._t(this._loading ? "mowingMap.loading" : "mowingMap.unavailable")}</div>`}
         </div>
         <div class="legend">
           <span class="legend-item"><span class="swatch" aria-hidden="true"></span>${this._t("mowingMap.garden")}</span>
@@ -327,7 +331,7 @@ export class LawnMowerMowingMap extends LitElement {
           ${this._loading ? this._t("mowingMap.loading") : this._error
             ? this._t("mowingMap.unavailable") : position ? this._t("mowingMap.mowerNow")
             : this._t("mowingMap.noPosition")}
-          ${!scene && this.fallbackSaved ? html` · ${this._t("card.savedPreview")}` : nothing}
+          ${!scene && this.fallbackSaved && !this._fallbackFailed ? html` · ${this._t("card.savedPreview")}` : nothing}
           </span>
           <span class="coverage-note">${this._t("mowingMap.coverageUnavailable")}</span>
         </div>

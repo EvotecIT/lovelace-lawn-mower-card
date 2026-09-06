@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const uk = {
+  "editor.heroComposition": "Компонування",
+  "editor.heroCinematic": "Кінематографічне",
+  "editor.heroDashboard": "Панель",
+  "dashboard.openCamera": "Відкрити камеру",
+  "dashboard.cameraOnDemand": "Камера запускається лише за запитом",
+  "dashboard.closeCamera": "Закрити",
   "mowingMap.garden": "Межа саду",
   "mowingMap.thisRun": "Поточний запуск · маршрут",
   "mowingMap.mowerNow": "Косарка зараз",
