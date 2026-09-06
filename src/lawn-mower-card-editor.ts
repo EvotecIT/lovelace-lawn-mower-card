@@ -222,6 +222,13 @@ export class LawnMowerCardEditor extends LitElement {
           <strong>${this._t("editor.heroAppearance")}</strong>
           <span class="hint">${this._t("editor.heroAppearanceHint")}</span>
         </div>
+        <label>
+          <span>${this._t("editor.heroComposition")}</span>
+          <select data-key="hero_layout" .value=${config.hero_layout === "dashboard" ? "dashboard" : "cinematic"} @change=${this._valueChanged}>
+            <option value="cinematic">${this._t("editor.heroCinematic")}</option>
+            <option value="dashboard">${this._t("editor.heroDashboard")}</option>
+          </select>
+        </label>
         ${this._field(
           this._t("editor.backgroundImage"),
           config.hero_image,

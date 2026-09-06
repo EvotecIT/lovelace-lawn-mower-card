@@ -777,6 +777,7 @@ export class LawnMowerCard extends LitElement {
       : undefined;
 
     return renderHeroLayout({
+      dashboard: this._config.hero_layout === "dashboard",
       t: this._t,
       locale: this._locale,
       title,

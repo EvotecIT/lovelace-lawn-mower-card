@@ -46,6 +46,8 @@ export const mowingMapStyles = css`
   .canvas { position:relative; min-height:0; overflow:hidden;
     background:var(--mower-map-ground, color-mix(in srgb, var(--map-surface) 94%, #91a799)); }
   .map-canvas,.fallback { width:100%; height:100%; display:block; object-fit:contain; }
+  .map-empty { height:100%; display:grid; place-items:center; padding:20px;
+    box-sizing:border-box; color:var(--map-muted); font-size:13px; text-align:center; }
   .map-canvas { touch-action:none; cursor:grab; outline-offset:-3px; }
   .map-canvas:active { cursor:grabbing; }
   .map-canvas:focus-visible { outline:2px solid var(--map-accent); }

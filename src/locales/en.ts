@@ -12,6 +12,12 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "editor.heroComposition": "Composition",
+  "editor.heroCinematic": "Cinematic",
+  "editor.heroDashboard": "Dashboard",
+  "dashboard.openCamera": "Open camera",
+  "dashboard.cameraOnDemand": "Camera starts only when selected",
+  "dashboard.closeCamera": "Close",
   "mowingMap.garden": "Garden boundary",
   "mowingMap.thisRun": "This run · route",
   "mowingMap.mowerNow": "Mower now",

@@ -1,3 +1,7 @@
+![Lawn Mower Card for Home Assistant](assets/lawn-mower-card-social.png)
+
+*Illustrative artwork. Actual card views are shown below; available features depend on the mower integration.*
+
 # Lawn Mower Card for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
@@ -69,34 +73,23 @@ integration or a camera without the attribute continues to show its map image.
 
 ![Live-path map inside the Lawn Mower Card Hero layout](assets/lawn-mower-card-map.png)
 
-## 🧩 More from Evotec
+## More for your Home Assistant home
 
-Our Home Assistant projects:
+Other projects we maintain for the same setup:
 
-- [Dreame Lawn Mower](https://github.com/EvotecIT/homeassistant-dreamelawnmower)
-  with its companion
-  [Lawn Mower Card](https://github.com/EvotecIT/lovelace-lawn-mower-card)
-- [Siegenia](https://github.com/EvotecIT/homeassistant-siegenia) for local
-  window control
-- [KEF](https://github.com/EvotecIT/homeassistant-kef) for local speaker control
-- [Devialet](https://github.com/EvotecIT/homeassistant-devialet) for local
-  speaker control
-- [EasyControlX](https://github.com/EvotecIT/homeassistant-easycontrolx) for
-  workstation control
+- [Dreame & MOVA mowers](https://github.com/EvotecIT/homeassistant-dreamelawnmower) — mowing controls, maps, schedules, and supported cameras.
+- [KEF](https://github.com/EvotecIT/homeassistant-kef) — local control for modern and legacy speaker families.
+- [Devialet](https://github.com/EvotecIT/homeassistant-devialet) — local speaker control, with Dione support.
+- [Siegenia](https://github.com/EvotecIT/homeassistant-siegenia) — local control for supported window controllers.
+- [EasyControlX](https://github.com/EvotecIT/homeassistant-easycontrolx) — connect supported Windows and macOS hosts.
 
-Our Apple apps:
+Prefer a native app for everyday control? [CasaRay](https://casaray.dev/)
+brings rooms, devices, cameras, and home activity together on iPhone, iPad, and
+Mac. [Tactra Remote](https://tactra.dev/) puts media players, speakers, and TV
+controls in a focused remote for iPhone, iPad, Apple Watch, and Mac.
 
-- [CasaRay](https://casaray.dev/) offers a calm whole-home view on iPhone, iPad,
-  and Mac. [View it on the App Store](https://apps.apple.com/us/app/casaray/id6778025328).
-- [Tactra Remote](https://tactra.dev/) focuses on Home Assistant media control
-  across iPhone, iPad, Apple Watch, and Mac.
-  [View it on the App Store](https://apps.apple.com/us/app/tactra-remote/id6775426723).
-
-CasaRay's complete-home Free experience remains genuinely useful. CasaRay Plus
-and Tactra purchases help fund continued work on that free experience and these
-open-source Home Assistant projects. If you prefer to support the open-source
-work directly, [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) is
-another option. None of them is required to use this project.
+Both connect to your Home Assistant setup. Neither is required to use this
+project.
 
 ## Installation
 
@@ -193,6 +186,25 @@ Missing metadata means unknown, not unsupported. The card continues normal
 entity discovery for unknown features and always honors explicitly configured
 entities. Integration-specific services can be added as custom actions without
 changing the generic mower controls.
+
+### Dashboard composition
+
+In the visual editor, choose **Hero → Hero appearance → Composition → Dashboard**
+for a map/media panel beside an on-demand camera and mission totals. On narrow
+cards, the panels stack vertically. The existing cinematic composition remains
+the default.
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.my_mower
+layout: hero
+hero_layout: dashboard
+```
+
+Opening the camera keeps the map visible when one is available. Video still
+starts only when selected; closing the camera uses the same short reconnection
+grace period as the cinematic layout. Mission totals come from the mower, and
+the map route shows observed movement—not an inferred cut-area mask.
 
 ### Custom Hero background
 
@@ -308,6 +320,8 @@ tiles:
   `it`, `pl`, `ru`, `uk`, or `es`. Automatic mode follows the Home Assistant user
   language, then the browser language, and safely falls back to English.
 - `layout`: optional `default`, `compact`, `wide`, or `hero`
+- `hero_layout`: optional `cinematic` (default) or `dashboard` composition
+  when `layout: hero` is selected
 - `hero_image`: optional Hero overview background. Use an HTTPS URL or a
   `/local/...` path for a file stored under Home Assistant's `config/www`.
 - `hero_image_position`: optional image focus: `center` (default), `left`,

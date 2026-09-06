@@ -1345,6 +1345,7 @@
           ...profileConfig,
           ...overrides,
           layout: "hero",
+          hero_layout: new URLSearchParams(window.location.search).get("composition") === "dashboard" ? "dashboard" : "cinematic",
         });
         cards.hero.requestUpdate();
 
