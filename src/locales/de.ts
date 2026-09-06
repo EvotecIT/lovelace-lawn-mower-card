@@ -1,6 +1,13 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const de = {
+  "mowingMap.garden": "Gartengrenze",
+  "mowingMap.thisRun": "Dieser Einsatz · Strecke",
+  "mowingMap.mowerNow": "Mäher jetzt",
+  "mowingMap.coverageUnavailable": "Nur Strecke · genaue Schnittflächen fehlen",
+  "mowingMap.completed": "Gemäht · gemeldet",
+  "mowingMap.remaining": "Noch zu mähen",
+  "mowingMap.reportedArea": "Aktuelle Zielfläche",
   "mowingMap.mapLabel": "Interaktive Mähkarte. Pfeiltasten verschieben, Plus und Minus zoomen, Pos1 zeigt den Garten.",
   "mowingMap.tools": "Kartensteuerung",
   "mowingMap.zoomIn": "Vergrößern",

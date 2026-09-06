@@ -1,6 +1,13 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const it = {
+  "mowingMap.garden": "Confine del giardino",
+  "mowingMap.thisRun": "Questo ciclo · percorso",
+  "mowingMap.mowerNow": "Posizione attuale",
+  "mowingMap.coverageUnavailable": "Solo percorso · area tagliata esatta non disponibile",
+  "mowingMap.completed": "Tagliato · rilevato",
+  "mowingMap.remaining": "Da tagliare",
+  "mowingMap.reportedArea": "Area obiettivo attuale",
   "mowingMap.mapLabel": "Mappa di taglio interattiva. Frecce per spostare, più e meno per lo zoom, Home per tutto il giardino.",
   "mowingMap.tools": "Controlli mappa",
   "mowingMap.zoomIn": "Ingrandisci",

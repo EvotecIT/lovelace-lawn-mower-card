@@ -1,6 +1,13 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const ru = {
+  "mowingMap.garden": "Граница сада",
+  "mowingMap.thisRun": "Текущий запуск · маршрут",
+  "mowingMap.mowerNow": "Косилка сейчас",
+  "mowingMap.coverageUnavailable": "Только маршрут · точная карта скошенного недоступна",
+  "mowingMap.completed": "Скошено · по данным",
+  "mowingMap.remaining": "Осталось скосить",
+  "mowingMap.reportedArea": "Текущая целевая площадь",
   "mowingMap.mapLabel": "Интерактивная карта кошения. Стрелки перемещают карту, плюс и минус меняют масштаб, Home показывает весь сад.",
   "mowingMap.tools": "Управление картой",
   "mowingMap.zoomIn": "Приблизить",

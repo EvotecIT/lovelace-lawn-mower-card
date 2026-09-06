@@ -1,6 +1,13 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const pl = {
+  "mowingMap.garden": "Granice ogrodu",
+  "mowingMap.thisRun": "Ten przejazd · trasa",
+  "mowingMap.mowerNow": "Kosiarka teraz",
+  "mowingMap.coverageUnavailable": "Tylko trasa · brak dokładnej mapy skoszonego obszaru",
+  "mowingMap.completed": "Skoszone · odczyt",
+  "mowingMap.remaining": "Do skoszenia",
+  "mowingMap.reportedArea": "Bieżący obszar docelowy",
   "mowingMap.mapLabel": "Interaktywna mapa koszenia. Strzałki przesuwają mapę, plus i minus zmieniają skalę, Home pokazuje cały ogród.",
   "mowingMap.tools": "Sterowanie mapą",
   "mowingMap.zoomIn": "Powiększ",

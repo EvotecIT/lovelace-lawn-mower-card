@@ -5,6 +5,7 @@ import "./lawn-mower-card-editor";
 import { mowerHassChanged } from "./card-update-scope";
 import { MediaVisibility } from "./media-visibility";
 import { mowingMapPath } from "./mowing-map-logic";
+import { mowingAreaProgress, type MowingAreaProgress } from "./mowing-progress";
 
 import {
   getStubConfig,
@@ -163,7 +164,7 @@ type RuntimeSessionDetails = {
 type HeroMetric = {
   label: string;
   value?: string;
-  areaProgress?: number;
+  area?: MowingAreaProgress;
 };
 
 type PlannedRunDetails = {
@@ -787,7 +788,7 @@ export class LawnMowerCard extends LitElement {
       progressLabel: progress.label,
       coverage: coverage.value,
       coverageLabel: coverage.label,
-      areaProgress: coverage.areaProgress,
+      area: coverage.area,
       mowingMapPath: scenePath,
       mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,
       heroImage: normalizeHeroImage(this._config.hero_image),
@@ -2055,12 +2056,7 @@ export class LawnMowerCard extends LitElement {
           ? this._t("metric.lastCoverage")
           : this._t("metric.coverage"),
       value: combinedValue,
-      areaProgress: currentValue && totalValue && currentUnit && currentUnit === totalUnit &&
-        current?.attributes.cached !== true && total?.attributes.cached !== true &&
-        Number.isFinite(Number(current?.state)) && Number(current?.state) >= 0 &&
-        Number.isFinite(Number(total?.state)) && Number(total?.state) > 0 &&
-        Number(current?.state) <= Number(total?.state)
-          ? Number(current?.state) / Number(total?.state) * 100 : undefined,
+      area: mowingAreaProgress(current, total),
     };
   }
 

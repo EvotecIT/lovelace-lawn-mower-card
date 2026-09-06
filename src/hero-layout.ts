@@ -6,6 +6,8 @@ import {
 } from "./map-presentation";
 import { keyed } from "lit/directives/keyed.js";
 import "./mowing-map";
+import { renderMowingMission, mowingMissionStyles } from "./mowing-mission";
+import type { MowingAreaProgress } from "./mowing-progress";
 
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
 import {
@@ -34,7 +36,7 @@ export type HeroLayoutModel = {
   progressLabel?: string;
   coverage?: string;
   coverageLabel?: string;
-  areaProgress?: number;
+  area?: MowingAreaProgress;
   mowingMapPath?: string;
   mapSavedPreview?: boolean;
   heroImage?: string;
@@ -318,7 +320,8 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             <div class="hero-title-block">
               <span class="hero-eyebrow">${model.t("hero.gardenMower")}</span>
               <h2>${model.title}</h2>
-              <span class="hero-subtitle">${model.subtitle}</span>
+              ${model.activeView !== "map" || model.subtitle.toLowerCase() !== model.stateLabel.toLowerCase()
+                ? html`<span class="hero-subtitle">${model.subtitle}</span>` : nothing}
             </div>
             <div class=${`hero-state state-${model.stateKey}`}>
               <span class="hero-state-dot" aria-hidden="true"></span>
@@ -345,17 +348,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             : nothing}
         </section>
 
-        ${model.activeView === "map" ? html`
-          <section class="mowing-mission" aria-label=${model.t("hero.mission")}>
-            <div class="mowing-metrics">
-              ${renderMetric("mdi:battery-high", model.t("hero.battery"), model.battery)}
-              ${renderMetric("mdi:grass", model.coverageLabel || model.t("hero.coverage"), model.coverage)}
-              ${renderMetric("mdi:progress-clock", model.progressLabel || model.t("hero.mission"), model.progress)}
-            </div>
-            ${model.areaProgress !== undefined ? html`
-              <progress max="100" .value=${model.areaProgress}
-                aria-label=${model.coverageLabel || model.t("hero.coverage")}></progress>` : nothing}
-          </section>` : nothing}
+        ${model.activeView === "map" ? renderMowingMission(model) : nothing}
 
         ${showHeroViewTabs(model.availableViews)
           ? html`
@@ -469,28 +462,26 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
 }
 
 export const heroLayoutStyles = css`
+  ${mowingMissionStyles}
   .view-map.interactive-map { display:flex; flex-direction:column; aspect-ratio:auto; height:auto; }
-  .view-map.interactive-map .hero-heading { position:relative; order:1; padding:16px; }
+  .view-map.interactive-map .hero-heading { position:relative; order:1; padding:18px; align-items:center; }
+  .view-map.interactive-map .hero-eyebrow { display:none; }
+  .view-map.interactive-map .hero-title-block { text-shadow:none; }
+  .view-map.interactive-map .hero-title-block h2 { font-size:clamp(1.1rem,2.4vw,1.4rem); }
   .view-map.interactive-map .hero-scrim { display:none; }
   .hero-mowing-map { position:absolute; inset:0; width:100%; height:100%; }
   .view-map.interactive-map .hero-mowing-map { position:relative; order:2;
-    height:clamp(280px,45vh,460px); flex:none; }
-  .mowing-mission { padding:12px 14px; background:#101b15; }
-  .mowing-metrics { display:grid; grid-template-columns:minmax(0,.7fr) minmax(0,1.4fr) minmax(0,1fr); gap:8px; }
-  .mowing-metrics .hero-metric { padding:9px; box-shadow:none; background:#17251d; }
-  .mowing-metrics .hero-metric strong { font-size:clamp(.8rem,2.5vw,1.05rem); }
-  .mowing-metrics .hero-metric-label { display:block; font-size:.62rem; }
-  .mowing-mission progress { width:100%; height:7px; margin-top:12px; display:block;
-    border:0; border-radius:5px; overflow:hidden; accent-color:#8dcc99; }
-  .mowing-mission progress::-webkit-progress-bar { background:#2d4034; }
-  .mowing-mission progress::-webkit-progress-value { background:#8dcc99; }
-  @media(max-width:420px) {
-    .mowing-metrics { gap:5px; }
-    .mowing-metrics .hero-metric { padding:7px; gap:5px; }
-    .mowing-metrics .hero-metric ha-icon { display:none; }
-  }
+    height:clamp(360px,50vh,500px); flex:none; }
   ha-card.hero-card {
+    --mower-surface:#111a15;
+    --mower-text:#eef3ed;
+    --mower-muted:#a4b3a8;
+    --mower-border:#2b3b30;
+    --mower-accent:#aed098;
+    --mower-route:#71b9cf;
+    --mower-map-ground:#18291e;
     overflow: hidden;
+    border-radius:var(--ha-card-border-radius,18px);
     border: 1px solid color-mix(in srgb, var(--divider-color) 80%, #7ea36e 20%);
     background: #0a0d0b;
   }
@@ -840,7 +831,8 @@ export const heroLayoutStyles = css`
 
   .hero-tabs {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow:column;
+    grid-auto-columns:minmax(0, 1fr);
     gap: 6px;
     padding: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -849,11 +841,11 @@ export const heroLayoutStyles = css`
   }
 
   .hero-selectors {
-    --card-background-color: #151b16;
-    --primary-text-color: #f7faf7;
-    --secondary-text-color: rgba(232, 240, 228, 0.68);
-    --divider-color: rgba(255, 255, 255, 0.12);
-    --primary-color: #9fca8b;
+    --card-background-color: var(--mower-surface);
+    --primary-text-color: var(--mower-text);
+    --secondary-text-color: var(--mower-muted);
+    --divider-color: var(--mower-border);
+    --primary-color: var(--mower-accent);
     color-scheme: dark;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -874,9 +866,9 @@ export const heroLayoutStyles = css`
   }
 
   .hero-selectors .selector-card select {
-    border-color: rgba(255, 255, 255, 0.16);
-    color: #f7faf7;
-    background: #151b16;
+    border-color: var(--mower-border);
+    color: var(--mower-text);
+    background-color: var(--mower-surface);
   }
 
   .hero-selectors .schedule-panel {

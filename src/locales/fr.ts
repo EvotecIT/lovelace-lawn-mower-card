@@ -1,6 +1,13 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const fr = {
+  "mowingMap.garden": "Limite du jardin",
+  "mowingMap.thisRun": "Ce cycle · trajet",
+  "mowingMap.mowerNow": "Tondeuse maintenant",
+  "mowingMap.coverageUnavailable": "Trajet seul · surface tondue exacte indisponible",
+  "mowingMap.completed": "Tondu · signalé",
+  "mowingMap.remaining": "Reste à tondre",
+  "mowingMap.reportedArea": "Surface cible actuelle",
   "mowingMap.mapLabel": "Carte de tonte interactive. Flèches pour déplacer, plus et moins pour zoomer, Début pour cadrer le jardin.",
   "mowingMap.tools": "Commandes de carte",
   "mowingMap.zoomIn": "Agrandir",

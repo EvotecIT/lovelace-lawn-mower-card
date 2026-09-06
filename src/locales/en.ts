@@ -12,6 +12,13 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "mowingMap.garden": "Garden boundary",
+  "mowingMap.thisRun": "This run · route",
+  "mowingMap.mowerNow": "Mower now",
+  "mowingMap.coverageUnavailable": "Route only · exact cut-area shading unavailable",
+  "mowingMap.completed": "Mowed · reported",
+  "mowingMap.remaining": "Left to mow",
+  "mowingMap.reportedArea": "Current target area",
   "mowingMap.mapLabel": "Interactive mowing map. Use arrow keys to pan, plus or minus to zoom, and Home to fit the garden.",
   "mowingMap.tools": "Map controls",
   "mowingMap.zoomIn": "Zoom in",

@@ -1,8 +1,9 @@
-import { LitElement, css, html, nothing, svg, type PropertyValues } from "lit";
+import { LitElement, html, nothing, svg, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { createTranslator, type SupportedLocale } from "./localization";
 import { signedPathFromResponse } from "./point-cloud-logic";
 import type { HomeAssistant } from "./card-config";
+import { mapControlIcon, mowerMapMarker, mowingMapStyles } from "./mowing-map-presentation";
 import {
   constrainViewport, fitMap, mowingMapPath, overlayIsFresh, readMowingMapScene,
   zoomMap, type MapPoint, type MapViewport, type MowingMapScene,
@@ -47,7 +48,7 @@ export class LawnMowerMowingMap extends LitElement {
   protected updated(changed: PropertyValues): void {
     if (!this.isConnected) return;
     if (!this._resize) {
-      const viewport = this.renderRoot.querySelector(".viewport");
+      const viewport = this.renderRoot.querySelector(".canvas");
       if (viewport) {
         this._resize = new ResizeObserver(([entry]) => {
           const { width, height } = entry.contentRect;
@@ -191,7 +192,7 @@ export class LawnMowerMowingMap extends LitElement {
   }
 
   private _point(client: MapPoint): MapPoint {
-    const canvas = this.renderRoot.querySelector("svg");
+    const canvas = this.renderRoot.querySelector<SVGSVGElement>(".map-canvas");
     const matrix = canvas?.getScreenCTM()?.inverse();
     if (!matrix) return { x: this._view.width / 2, y: this._view.height / 2 };
     const point = new DOMPoint(client.x, client.y).matrixTransform(matrix);
@@ -276,67 +277,62 @@ export class LawnMowerMowingMap extends LitElement {
     const scene = this._scene;
     const fresh = Boolean(scene && this.active && !this._error && overlayIsFresh(scene));
     const position = fresh ? scene?.overlay.position : undefined;
-    const markerSize = Math.max(this._view.width / this._size.width, this._view.height / this._size.height) * 12;
+    const markerSize = Math.max(this._view.width / this._size.width, this._view.height / this._size.height) * 20;
     const zoom = scene ? scene.width / this._view.width : 1;
     return html`
       <div class="viewport" data-map-state=${this._error ? "error" : scene ? "ready" : "loading"}>
+        <div class="toolbar" aria-label=${this._t("mowingMap.tools")}>
+          <span class="map-name">${scene?.name || this._t("mowingMap.garden")}</span>
+          <div class="tool-actions">
+            <button class="zoom" @click=${() => this._zoom(1.4)} ?disabled=${!scene || zoom >= 12}
+              title=${this._t("mowingMap.zoomIn")} aria-label=${this._t("mowingMap.zoomIn")}>+</button>
+            <button class="zoom" @click=${() => this._zoom(1 / 1.4)} ?disabled=${!scene || zoom <= 1}
+              title=${this._t("mowingMap.zoomOut")} aria-label=${this._t("mowingMap.zoomOut")}>−</button>
+            <button @click=${this._fit} ?disabled=${!scene} aria-label=${this._t("mowingMap.fit")}
+              title=${this._t("mowingMap.fit")}>${mapControlIcon("fit")}<span>${this._t("mowingMap.fit")}</span></button>
+            <button class="centre-button" @click=${this._centre} ?disabled=${!position}
+              aria-label=${this._t("mowingMap.centre")} title=${this._t("mowingMap.centre")}
+              >${mapControlIcon("centre")}<span>${this._t("mowingMap.centre")}</span></button>
+          </div>
+        </div>
+        <div class="canvas">
         ${scene && this._image ? html`
-          <svg viewBox=${`${this._view.x} ${this._view.y} ${this._view.width} ${this._view.height}`}
+          <svg class="map-canvas" viewBox=${`${this._view.x} ${this._view.y} ${this._view.width} ${this._view.height}`}
             tabindex="0" role="img" aria-label=${this._t("mowingMap.mapLabel")}
             @pointerdown=${this._down} @pointermove=${this._move} @pointerup=${this._up}
             @pointercancel=${this._up} @lostpointercapture=${this._up}
             @wheel=${this._wheel} @keydown=${this._key}>
             <image href=${this._image} x="0" y="0" width=${scene.width} height=${scene.height} />
             ${fresh ? scene.overlay.trail.map((segment) => svg`
-              <polyline points=${segment.map((point) => point.join(",")).join(" ")}
-                fill="none" stroke="#087bcd" stroke-width="3" vector-effect="non-scaling-stroke"
+              <polyline class="trail-outline" points=${segment.map((point) => point.join(",")).join(" ")}
+                fill="none" stroke-width="5" vector-effect="non-scaling-stroke"
+                stroke-linecap="round" stroke-linejoin="round" />
+              <polyline class="trail" points=${segment.map((point) => point.join(",")).join(" ")}
+                fill="none" stroke-width="2.5" vector-effect="non-scaling-stroke"
                 stroke-linecap="round" stroke-linejoin="round" />`) : nothing}
             ${position ? svg`
               <g transform=${`translate(${position.x} ${position.y}) scale(${markerSize})`}
                 data-mower-position="current">
-                <circle r="0.7" fill="#fff" stroke="#183c30" stroke-width="0.12" />
-                ${position.heading !== null ? svg`
-                  <path d="M 0 -1.2 L .55 .45 L 0 .15 L -.55 .45 Z"
-                    fill="#ec6d2e" stroke="#fff" stroke-width=".1"
-                    transform=${`rotate(${position.heading})`} />`
-                  : svg`<circle r=".4" fill="#ec6d2e" />`}
+                ${mowerMapMarker(position.heading)}
               </g>` : nothing}
           </svg>` : this.fallbackUrl ? html`
           <img class="fallback" src=${this.fallbackUrl} alt=${this._t("mowingMap.mapLabel")} />` : nothing}
-        <div class="toolbar" aria-label=${this._t("mowingMap.tools")}>
-          <button @click=${() => this._zoom(1.4)} ?disabled=${!scene || zoom >= 12}
-            title=${this._t("mowingMap.zoomIn")} aria-label=${this._t("mowingMap.zoomIn")}>+</button>
-          <button @click=${() => this._zoom(1 / 1.4)} ?disabled=${!scene || zoom <= 1}
-            title=${this._t("mowingMap.zoomOut")} aria-label=${this._t("mowingMap.zoomOut")}>−</button>
-          <button @click=${this._fit} ?disabled=${!scene}>${this._t("mowingMap.fit")}</button>
-          <button @click=${this._centre} ?disabled=${!position}>${this._t("mowingMap.centre")}</button>
         </div>
-        <div class="status" role="status">
+        <div class="legend">
+          <span class="legend-item"><span class="swatch" aria-hidden="true"></span>${this._t("mowingMap.garden")}</span>
+          ${fresh && scene?.overlay.trail.length ? html`
+            <span class="legend-item"><span class="swatch route" aria-hidden="true"></span>${this._t("mowingMap.thisRun")}</span>` : nothing}
+          <span class=${`status${position ? " current" : ""}${this._error ? " error" : ""}`} role="status">
+          <span class="status-dot" aria-hidden="true"></span>
           ${this._loading ? this._t("mowingMap.loading") : this._error
-            ? this._t("mowingMap.unavailable") : position ? this._t("mowingMap.observedTrail")
+            ? this._t("mowingMap.unavailable") : position ? this._t("mowingMap.mowerNow")
             : this._t("mowingMap.noPosition")}
           ${!scene && this.fallbackSaved ? html` · ${this._t("card.savedPreview")}` : nothing}
+          </span>
+          <span class="coverage-note">${this._t("mowingMap.coverageUnavailable")}</span>
         </div>
       </div>`;
   }
 
-  static styles = css`
-    :host { display:block; width:100%; height:100%; min-height:240px; }
-    .viewport { position:relative; width:100%; height:100%; min-height:inherit;
-      background:#f6f8f7; overflow:hidden; color:#19372c; }
-    svg,.fallback { width:100%; height:100%; display:block; object-fit:contain; }
-    svg { touch-action:none; cursor:grab; outline-offset:-3px; }
-    svg:active { cursor:grabbing; }
-    .toolbar { position:absolute; top:10px; right:10px; left:10px; display:flex;
-      gap:6px; flex-wrap:wrap; justify-content:flex-end; pointer-events:none; }
-    button { pointer-events:auto; min-height:36px; min-width:36px; padding:6px 10px;
-      border:1px solid #a8bfb2; background:rgba(255,255,255,.95); color:#19372c;
-      border-radius:9px; font:inherit; font-size:12px; cursor:pointer; }
-    button:disabled { opacity:.5; cursor:default; }
-    button:focus-visible { outline:3px solid #087bcd; outline-offset:1px; }
-    .status { position:absolute; bottom:8px; left:10px; right:10px; width:fit-content;
-      max-width:calc(100% - 40px); background:rgba(255,255,255,.94); border-radius:6px;
-      padding:5px 8px; font-size:11px; pointer-events:none; }
-    @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto; } }
-  `;
+  static styles = mowingMapStyles;
 }
