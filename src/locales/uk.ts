@@ -1,6 +1,11 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const uk = {
+  "mowingMap.lastKnown": "Останнє відоме положення",
+  "mowingMap.atDock": "На станції · спостережене положення",
+  "mowingMap.dockedNoPosition": "На станції · положення на карті недоступне",
+  "runtime.observedTime": "Спостережений час косіння",
+  "runtime.observedTimePartial": "Спостережений час · неповний",
   "editor.heroComposition": "Компонування",
   "editor.heroCinematic": "Кінематографічне",
   "editor.heroDashboard": "Панель",

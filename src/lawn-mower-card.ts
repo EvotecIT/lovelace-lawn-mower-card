@@ -147,6 +147,8 @@ function connectedCardSlot(element: Element): string | undefined {
 }
 
 type RuntimeSessionDetails = {
+  observedTime?: string;
+  observedTimePartial?: boolean;
   missionProgress?: string;
   currentArea?: string;
   totalArea?: string;
@@ -1950,6 +1952,10 @@ export class LawnMowerCard extends LitElement {
     if (entityId.endsWith("_current_cleaning_time")) {
       return this._t("common.time");
     }
+    if (entityId.endsWith("_observed_mowing_time")) {
+      return this._t(this.hass.states[entityId]?.attributes.partial !== false
+        ? "runtime.observedTimePartial" : "runtime.observedTime");
+    }
     if (entityId.endsWith("_current_zone")) {
       return this._t("runtime.currentZone");
     }
@@ -2359,6 +2365,9 @@ export class LawnMowerCard extends LitElement {
 
   private _runtimeSessionDetails(): RuntimeSessionDetails | undefined {
     const mapEntity = this._mapEntity();
+    const observedEntity = this._companionEntity("sensor", "observed_mowing_time");
+    const observedTime = observedEntity && !this._isUnavailableEntity(observedEntity)
+      ? this._friendlyState(observedEntity) : undefined;
     const missionProgress =
       this._companionState("sensor", "runtime_mission_progress") ||
       this._companionState("sensor", "mowing_progress");
@@ -2397,6 +2406,7 @@ export class LawnMowerCard extends LitElement {
         : undefined;
 
     const hasAnyRuntimeData =
+      observedTime !== undefined ||
       missionProgress !== undefined ||
       currentArea !== undefined ||
       totalArea !== undefined ||
@@ -2411,6 +2421,8 @@ export class LawnMowerCard extends LitElement {
     }
 
     return {
+      observedTime,
+      observedTimePartial: observedEntity?.attributes.partial !== false,
       missionProgress,
       currentArea,
       totalArea,
@@ -2568,6 +2580,14 @@ export class LawnMowerCard extends LitElement {
   private _renderRuntimeSessionPanel(runtimeSession: RuntimeSessionDetails) {
     const metrics: Array<{ label: string; value: string }> = [];
 
+    if (runtimeSession.observedTime) {
+      metrics.push({
+        label: this._t(runtimeSession.observedTimePartial
+          ? "runtime.observedTimePartial" : "runtime.observedTime"),
+        value: runtimeSession.observedTime,
+      });
+    }
+
     if (runtimeSession.missionProgress) {
       metrics.push({
         label: this._t("metric.progress"),
@@ -2647,15 +2667,16 @@ export class LawnMowerCard extends LitElement {
       return nothing;
     }
 
+    const observedTimeOnly = metrics.length === 1 && runtimeSession.observedTime !== undefined;
     return html`
       <div class="session-panel">
         <div class="session-header">
-          <div class="session-title">${this._t("card.liveSession")}</div>
-          <div class="session-badge">${this._t("card.runtimeOverlay")}</div>
+          <div class="session-title">${this._t(observedTimeOnly ? "runtime.observedTime" : "card.liveSession")}</div>
+          ${observedTimeOnly ? nothing : html`<div class="session-badge">${this._t("card.runtimeOverlay")}</div>`}
         </div>
-        <div class="session-subtitle">
+        ${observedTimeOnly ? nothing : html`<div class="session-subtitle">
           ${this._t("runtime.subtitle")}
-        </div>
+        </div>`}
         <div class="session-grid">
           ${metrics.map(
             (metric) => html`

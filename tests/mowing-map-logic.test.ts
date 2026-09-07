@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  fitMap, mowingMapPath, overlayIsFresh, readMowingMapScene, zoomMap,
+  fitMap, mowingMapPath, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
 
 const path = "/api/dreame_lawn_mower/mowing-map/entry";
@@ -48,6 +48,42 @@ test("client expires a live overlay even if the last response remains cached", (
   assert.equal(overlayIsFresh(scene, now + 89_000), true);
   assert.equal(overlayIsFresh(scene, now + 91_000), false);
   assert.equal(overlayIsFresh(scene, now - 6000), false);
+});
+
+test("retained positions keep their provenance and never relabel a route as live", () => {
+  for (const status of ["last_known", "known_dock"]) {
+    const data = payload();
+    const scene = readMowingMapScene({ ...data, overlay: { ...data.overlay,
+      position_status: status, docked: true, position_observed_at: "2026-09-06T11:00:00Z",
+    } }, path);
+    assert.ok(scene.overlay.position);
+    assert.deepEqual(scene.overlay.trail, []);
+    assert.equal(positionStatusKey(scene, true), status === "known_dock" ? "mowingMap.atDock" : "mowingMap.lastKnown");
+    if (status === "last_known") assert.equal(scene.overlay.position.heading, null);
+    assert.equal(overlayIsFresh(scene, Date.parse("2026-09-06T12:02:00Z")), false);
+  }
+});
+
+test("charging without coordinates is displayed as docked, not an invented marker", () => {
+  const data = payload();
+  const scene = readMowingMapScene({ ...data, overlay: { ...data.overlay,
+    position: null, position_status: "unavailable", docked: true,
+  } }, path);
+  assert.equal(scene.overlay.position, null);
+  assert.equal(positionStatusKey(scene, false), "mowingMap.dockedNoPosition");
+});
+
+test("retained marker requires bounded timestamp and dock-state evidence", () => {
+  const data = payload();
+  for (const extra of [
+    { position_status: "last_known", position_observed_at: null },
+    { position_status: "last_known", position_observed_at: "2026-09-04T12:00:00Z" },
+    { position_status: "known_dock", docked: false, position_observed_at: "2026-09-06T11:00:00Z" },
+    { position_status: "known_dock", docked: true, position_observed_at: "2026-09-07T12:00:00Z" },
+  ]) {
+    const scene = readMowingMapScene({ ...data, overlay: { ...data.overlay, ...extra } }, path);
+    assert.equal(scene.overlay.position, null);
+  }
 });
 
 test("zoom preserves an anchor and has a bounded twelve-fold range", () => {
