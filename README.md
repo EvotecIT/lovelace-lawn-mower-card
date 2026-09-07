@@ -112,6 +112,7 @@ For narrow desktop dashboard columns, prefer **Hero**, **Default**, or
 | Use schedules, settings, zone selection, or advanced panels | [Controls and mowing context](docs/controls.md) |
 | Use the map, live video, or 3D viewer | [Maps, video, and 3D](docs/media.md) |
 | Check what my integration needs to expose | [Integration compatibility](docs/integration-compatibility.md) |
+| Safely try another `custom:lawn-mower-card` or fix a loading conflict | [Card-name conflict troubleshooting](docs/troubleshooting.md) |
 | Build, test, or preview the card | [Development](docs/development.md) |
 
 The card displays device-reported mission totals and observed movement. A route
