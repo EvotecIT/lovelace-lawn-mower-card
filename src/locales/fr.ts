@@ -1,6 +1,11 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const fr = {
+  "mowingMap.lastKnown": "Dernière position connue",
+  "mowingMap.atDock": "À la station · position observée",
+  "mowingMap.dockedNoPosition": "À la station · position sur la carte indisponible",
+  "runtime.observedTime": "Temps de tonte observé",
+  "runtime.observedTimePartial": "Temps observé · partiel",
   "editor.heroComposition": "Composition",
   "editor.heroCinematic": "Cinématique",
   "editor.heroDashboard": "Tableau de bord",

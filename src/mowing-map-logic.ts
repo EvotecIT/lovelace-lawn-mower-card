@@ -13,6 +13,8 @@ export type MowingMapScene = {
     position: (MapPoint & { heading: number | null }) | null;
     trail: number[][][];
     position_status: string;
+    position_observed_at: string | null;
+    docked: boolean;
     updated_at: string | null;
     max_age_seconds: number;
   };
@@ -46,6 +48,12 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
   const width = data.width, height = data.height;
   const overlay = record(data.overlay);
   const position = record(overlay.position);
+  const status = overlay.position_status;
+  const observedAt = typeof overlay.position_observed_at === "string" ? overlay.position_observed_at : null;
+  const retainedAge = Date.parse(String(overlay.updated_at)) - Date.parse(observedAt || "");
+  const retained = (status === "last_known" || (status === "known_dock" && overlay.docked === true)) &&
+    Number.isFinite(retainedAge) && retainedAge >= -5000 &&
+    retainedAge <= (status === "known_dock" ? 7 : 1) * 86400_000;
   const validPoint = (point: Record<string, unknown>) =>
     finite(point.x) && finite(point.y) && point.x >= 0 && point.x <= width &&
     point.y >= 0 && point.y <= height;
@@ -67,13 +75,15 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
     name: typeof data.name === "string" ? data.name.slice(0, 256) : "",
     background_path: data.background_path as string,
     overlay: {
-      position: overlay.position_status === "current" && validPoint(position)
+      position: (status === "current" || retained) && validPoint(position)
         ? { x: position.x as number, y: position.y as number,
-            heading: finite(position.heading) ? position.heading : null }
+            heading: status !== "last_known" && finite(position.heading) ? position.heading : null }
         : null,
-      trail,
+      trail: status === "current" ? trail : [],
       position_status: typeof overlay.position_status === "string"
         ? overlay.position_status : "unavailable",
+      position_observed_at: observedAt,
+      docked: overlay.docked === true,
       updated_at: typeof overlay.updated_at === "string" ? overlay.updated_at : null,
       max_age_seconds: finite(overlay.max_age_seconds)
         ? Math.max(1, Math.min(90, overlay.max_age_seconds)) : 90,
@@ -86,6 +96,13 @@ export function overlayIsFresh(scene: MowingMapScene, now = Date.now()): boolean
   const age = now - updated;
   return Number.isFinite(updated) && age >= -5000 &&
     age <= scene.overlay.max_age_seconds * 1000;
+}
+
+export function positionStatusKey(scene: MowingMapScene | undefined, visible: boolean) {
+  if (!visible) return scene?.overlay.docked ? "mowingMap.dockedNoPosition" : "mowingMap.noPosition";
+  if (scene?.overlay.position_status === "known_dock") return "mowingMap.atDock";
+  if (scene?.overlay.position_status === "last_known") return "mowingMap.lastKnown";
+  return "mowingMap.mowerNow";
 }
 
 export function fitMap(width: number, height: number): MapViewport {

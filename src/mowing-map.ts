@@ -5,7 +5,7 @@ import { signedPathFromResponse } from "./point-cloud-logic";
 import type { HomeAssistant } from "./card-config";
 import { mapControlIcon, mowerMapMarker, mowingMapStyles } from "./mowing-map-presentation";
 import {
-  constrainViewport, fitMap, mowingMapPath, overlayIsFresh, readMowingMapScene,
+  constrainViewport, fitMap, mowingMapPath, overlayIsFresh, positionStatusKey, readMowingMapScene,
   zoomMap, type MapPoint, type MapViewport, type MowingMapScene,
 } from "./mowing-map-logic";
 
@@ -314,7 +314,8 @@ export class LawnMowerMowingMap extends LitElement {
                 stroke-linecap="round" stroke-linejoin="round" />`) : nothing}
             ${position ? svg`
               <g transform=${`translate(${position.x} ${position.y}) scale(${markerSize})`}
-                data-mower-position="current">
+                data-mower-position=${scene.overlay.position_status}
+                opacity=${scene.overlay.position_status === "last_known" ? "0.55" : "1"}>
                 ${mowerMapMarker(position.heading)}
               </g>` : nothing}
           </svg>` : this.fallbackUrl && !this._fallbackFailed ? html`
@@ -329,8 +330,7 @@ export class LawnMowerMowingMap extends LitElement {
           <span class=${`status${position ? " current" : ""}${this._error ? " error" : ""}`} role="status">
           <span class="status-dot" aria-hidden="true"></span>
           ${this._loading ? this._t("mowingMap.loading") : this._error
-            ? this._t("mowingMap.unavailable") : position ? this._t("mowingMap.mowerNow")
-            : this._t("mowingMap.noPosition")}
+            ? this._t("mowingMap.unavailable") : this._t(positionStatusKey(scene, Boolean(position)))}
           ${!scene && this.fallbackSaved && !this._fallbackFailed ? html` · ${this._t("card.savedPreview")}` : nothing}
           </span>
           <span class="coverage-note">${this._t("mowingMap.coverageUnavailable")}</span>

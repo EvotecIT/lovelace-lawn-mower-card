@@ -12,6 +12,11 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "mowingMap.lastKnown": "Last known position",
+  "mowingMap.atDock": "At dock · observed position",
+  "mowingMap.dockedNoPosition": "Docked · map position unavailable",
+  "runtime.observedTime": "Observed mowing time",
+  "runtime.observedTimePartial": "Observed time · partial",
   "editor.heroComposition": "Composition",
   "editor.heroCinematic": "Cinematic",
   "editor.heroDashboard": "Dashboard",

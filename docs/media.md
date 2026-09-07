@@ -11,9 +11,21 @@ loaded while fresh position and current-run movement update separately.
 
 In Hero layout, a mowing session initially opens Map. Choosing another view
 overrides that default. Battery, reported current/target area, progress, and mower
-controls remain available in the card. Stale positions are hidden, and the
+controls remain available in the card. Stale live positions are hidden, and the
 trail is labelled **Observed movement · not cut-area coverage**; it does not
 claim that every enclosed patch has been cut.
+
+A compatible integration may provide a **Last known position**, shown with a
+muted marker, or **At dock · observed position** learned from an observed docked pose.
+These labels distinguish retained coordinates from **Mower now** and never
+restore an old route. **Centre on mower** also works for retained positions.
+When docking is confirmed but coordinates are missing, the card says
+**Docked · map position unavailable**. Charging alone does not locate the dock.
+
+The optional advanced-details panel and configured sensor tiles can show
+**Observed time**, including a **partial** label when the integration missed
+part of the session. This separate sensor does not replace device-reported
+**Current Mowing Time** or turn an unavailable reported duration into zero.
 
 The visual editor prefers a compatible primary map camera for new automatic
 selections. Existing explicit `map_entity` choices are preserved. With the Dreame
