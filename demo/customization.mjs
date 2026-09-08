@@ -88,5 +88,6 @@ document.getElementById("toggle-editor").addEventListener("click", event => {
 });
 document.getElementById("reset").addEventListener("click", () => { config=example();renderConfig(); });
 document.getElementById("width").value=query.get("width") || "1080";
+document.documentElement.style.setProperty("--preview-width", `${Number(document.getElementById("width").value)}px`);
 if (query.get("theme") === "light") { document.documentElement.classList.add("light");document.getElementById("theme").value="light"; }
 renderConfig();

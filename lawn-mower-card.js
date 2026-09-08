@@ -1523,7 +1523,7 @@ var En=Object.defineProperty;var In=Object.getOwnPropertyDescriptor;var g=(t,i,e
     }
   }
 
-  @media (max-width: 560px) {
+  @container (max-width: 560px) {
     .hero-stage {
       width: 100%;
       min-width: 0;
@@ -1573,7 +1573,6 @@ var En=Object.defineProperty;var In=Object.getOwnPropertyDescriptor;var g=(t,i,e
     }
 
     .hero-actions {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
       padding: 9px;
     }
@@ -2472,13 +2471,13 @@ var En=Object.defineProperty;var In=Object.getOwnPropertyDescriptor;var g=(t,i,e
       padding: 10px;
     }
 
-    @media (max-width: 480px) {
+    @container (max-width: 480px) {
       .actions {
         grid-template-columns: 1fr;
       }
     }
 
-    @media (max-width: 900px) {
+    @container (max-width: 900px) {
       .wrap.layout-wide {
         grid-template-columns: 1fr;
       }

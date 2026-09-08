@@ -512,7 +512,7 @@ export const heroLayoutStyles = css`
     }
   }
 
-  @media (max-width: 560px) {
+  @container (max-width: 560px) {
     .hero-stage {
       width: 100%;
       min-width: 0;
@@ -562,7 +562,6 @@ export const heroLayoutStyles = css`
     }
 
     .hero-actions {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
       padding: 9px;
     }

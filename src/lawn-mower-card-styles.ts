@@ -651,13 +651,13 @@ export const lawnMowerCardStyles = [css`
       padding: 10px;
     }
 
-    @media (max-width: 480px) {
+    @container (max-width: 480px) {
       .actions {
         grid-template-columns: 1fr;
       }
     }
 
-    @media (max-width: 900px) {
+    @container (max-width: 900px) {
       .wrap.layout-wide {
         grid-template-columns: 1fr;
       }
