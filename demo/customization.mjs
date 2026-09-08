@@ -44,7 +44,6 @@ const example = () => ({
   ],
 });
 let config = example();
-if (query.get("baseline") === "true") config.summary_entities = config.summary_entities.map(item => item.entity);
 
 function renderConfig() {
   card.setConfig(config); card.hass=currentHass;
