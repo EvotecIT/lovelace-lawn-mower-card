@@ -1,3 +1,5 @@
+import { cardAppearance } from "./card-appearance";
+import { styleMap } from "lit/directives/style-map.js";
 import "./action-confirmation";
 import { summaryItems, controlGroups, configuredTile, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
 import { renderSummary, renderTiles } from "./customization-view";
@@ -468,7 +470,7 @@ export class LawnMowerCard extends LitElement {
     }
 
     return html`
-      <ha-card lang=${this._locale}>
+      <ha-card class=${cardAppearance(this._config).classes} style=${styleMap(cardAppearance(this._config).styles)} lang=${this._locale}>
         <div class=${`wrap layout-${layout}`}>
           <div class="main">
             <div class="header">
@@ -754,7 +756,8 @@ export class LawnMowerCard extends LitElement {
       confirmation: this._renderCustomConfirmation(),
       sections: heroSections(this._config.hero_sections),
       density: this._config.hero_density,
-      theme: this._config.hero_theme,
+      theme: cardAppearance(this._config).theme,
+      appearance: cardAppearance(this._config),
       tileColumns: tileColumns(this._config.tile_columns),
       details: this._config.show_advanced_details ? html`
         ${this._plannedRunDetails(mower) ? this._renderPlannedRunPanel(this._plannedRunDetails(mower)!) : nothing}

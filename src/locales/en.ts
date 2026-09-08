@@ -12,6 +12,27 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "appearance.preset": "Style preset",
+  "appearance.native": "Native Home Assistant",
+  "appearance.modern": "Modern",
+  "appearance.minimal": "Minimal",
+  "appearance.surface": "Card surface",
+  "appearance.solid": "Solid",
+  "appearance.tinted": "Tinted",
+  "appearance.translucent": "Translucent",
+  "appearance.hint": "Presets follow your Home Assistant theme. Controls keep a readable background when the card is translucent.",
+  "appearance.advanced": "Advanced appearance",
+  "appearance.accent": "Accent color",
+  "appearance.accentHint": "Optional #RGB or #RRGGBB color. Leave empty to use the theme accent.",
+  "appearance.radius": "Corner radius (0–32 px)",
+  "appearance.shadow": "Shadow",
+  "appearance.presetDefault": "Preset default",
+  "appearance.none": "None",
+  "appearance.soft": "Soft",
+  "appearance.opacity": "Surface opacity (60–100%)",
+  "appearance.artwork": "Overview artwork",
+  "appearance.image": "Show image",
+  "appearance.overlay": "Artwork overlay strength (0–100%)",
   "custom.confirmAction": "Confirm action",
   "custom.cancel": "Cancel",
 

@@ -27,7 +27,9 @@ provides the most extensively exercised pairing. See
 See the [layout gallery](docs/gallery.md) for Hero, Compact, mobile, and 3D
 screenshots with configuration examples.
 [Customize the card](docs/customization.md) with your own summary chips, tiles,
-actions, and controls in every layout, including both Hero compositions.
+actions, and controls in every layout, including both Hero compositions. Choose
+Native HA, Modern, or Minimal styling, with optional tinted or translucent
+surfaces and artwork controls to match your dashboard.
 
 ## Sponsor
 

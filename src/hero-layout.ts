@@ -1,4 +1,6 @@
 import type { DisplayTile, DisplayAction, HeroSection } from "./card-customization";
+import type { CardAppearance } from "./card-appearance";
+import { styleMap } from "lit/directives/style-map.js";
 import { renderSummary, renderTiles, renderCustomActions } from "./customization-view";
 import { html, nothing, type TemplateResult } from "lit";
 import {
@@ -65,6 +67,7 @@ export type HeroLayoutModel = {
   details?: TemplateResult;
   density?: "comfortable" | "compact";
   theme?: "dark" | "auto";
+  appearance: CardAppearance;
   tileColumns?: number;
   hass: object;
   supportsStart: boolean;
@@ -148,7 +151,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
     },
   ];
   return html`
-    <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}`} lang=${model.locale}>
+    <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
       <div class="hero-shell">
         ${model.dashboard ? html`${renderDashboardHeader(model)}
           <div class="dashboard-command-panel">${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>` : nothing}

@@ -89,6 +89,14 @@ export type LawnMowerCardConfig = {
   hero_sections?: Array<"tiles" | "actions" | "controls" | "details">;
   hero_density?: "comfortable" | "compact";
   hero_theme?: "dark" | "auto";
+  appearance?: "native" | "modern" | "minimal";
+  surface?: "solid" | "tinted" | "translucent";
+  accent_color?: string;
+  corner_radius?: number;
+  card_shadow?: "theme" | "none" | "soft";
+  surface_opacity?: number;
+  hero_artwork?: "auto" | "image" | "none";
+  hero_overlay?: number;
   tile_columns?: 1 | 2 | 3 | 4;
   actions?: LawnMowerActionConfig[];
   tiles?: LawnMowerTileConfig[];
@@ -102,5 +110,6 @@ export function getStubConfig(): LawnMowerCardConfig {
   return {
     type: "custom:lawn-mower-card",
     entity: "lawn_mower.my_mower",
+    appearance: "native",
   };
 }

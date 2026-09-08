@@ -56,7 +56,7 @@ export class CustomizationEditor extends LitElement {
   protected render() {
     if (!this.config) return nothing;
     return html`
-      ${this.config.layout === "hero" ? this.appearance() : nothing}
+      ${this.appearance()}
       ${(["control_entities", "summary_entities", "tiles", "actions"] as Collection[]).map(key => this.collection(key))}
       <datalist id="custom-entities">${Object.keys(this.hass?.states || {}).sort().map(id => html`<option value=${id}></option>`)}</datalist>
       <datalist id="custom-controls">${Object.keys(this.hass?.states || {}).filter(id => /^(select|number|switch|time)\./.test(id)).sort().map(id => html`<option value=${id}></option>`)}</datalist>
@@ -76,8 +76,10 @@ export class CustomizationEditor extends LitElement {
     return html`<div class="section">
       <strong>${this.t("custom.appearance")}</strong>
       <div class="row-grid">
-        ${this.select(this.t("custom.density"), config.hero_density || "comfortable", [["comfortable", this.t("custom.comfortable")], ["compact", this.t("editor.layoutCompact")]], value => this.change({ ...config, hero_density: value as LawnMowerCardConfig["hero_density"] }))}
-        ${this.select(this.t("custom.theme"), config.hero_theme || "dark", [["dark", this.t("custom.original")], ["auto", this.t("custom.followTheme")]], value => this.change({ ...config, hero_theme: value as LawnMowerCardConfig["hero_theme"] }))}
+        ${this.select(this.t("appearance.preset"), config.appearance || "legacy", [["legacy", this.t("custom.existingDefault")], ["native", this.t("appearance.native")], ["modern", this.t("appearance.modern")], ["minimal", this.t("appearance.minimal")]], value => { const next = { ...config }; if (value === "legacy") delete next.appearance; else next.appearance = value as LawnMowerCardConfig["appearance"]; this.change(next); })}
+        ${config.appearance ? this.select(this.t("appearance.surface"), config.surface || "solid", [["solid", this.t("appearance.solid")], ["tinted", this.t("appearance.tinted")], ["translucent", this.t("appearance.translucent")]], value => this.change({ ...config, surface: value as LawnMowerCardConfig["surface"] })) : nothing}
+        ${config.layout === "hero" ? this.select(this.t("custom.density"), config.hero_density || "comfortable", [["comfortable", this.t("custom.comfortable")], ["compact", this.t("editor.layoutCompact")]], value => this.change({ ...config, hero_density: value as LawnMowerCardConfig["hero_density"] })) : nothing}
+        ${config.layout === "hero" && !config.appearance ? this.select(this.t("custom.theme"), config.hero_theme || "dark", [["dark", this.t("custom.original")], ["auto", this.t("custom.followTheme")]], value => this.change({ ...config, hero_theme: value as LawnMowerCardConfig["hero_theme"] })) : nothing}
         ${this.select(this.t("custom.columns"), String(config.tile_columns || "auto"), [["auto", this.t("common.automatic")], ...[1,2,3,4].map(n => [String(n), String(n)] as [string,string])], value => {
           const next = { ...config };
           if (value === "auto") delete next.tile_columns;
@@ -85,6 +87,17 @@ export class CustomizationEditor extends LitElement {
           this.change(next);
         })}
       </div>
+      ${config.appearance ? html`<span class="hint">${this.t("appearance.hint")}</span>
+        <details><summary>${this.t("appearance.advanced")}</summary><div class="detail-fields">
+          ${this.textField(this.t("appearance.accent"), config.accent_color, value => { const next={...config}; if (!value) delete next.accent_color; else next.accent_color=value; this.change(next); })}
+          <span class="hint">${this.t("appearance.accentHint")}</span>
+          ${this.numberField("appearance.radius", "corner_radius", 0, 32)}
+          ${this.select(this.t("appearance.shadow"), config.card_shadow || "preset", [["preset", this.t("appearance.presetDefault")], ["theme", this.t("custom.followTheme")], ["none", this.t("appearance.none")], ["soft", this.t("appearance.soft")]], value => { const next={...config}; if(value === "preset") delete next.card_shadow; else next.card_shadow=value as LawnMowerCardConfig["card_shadow"]; this.change(next); })}
+          ${config.surface === "translucent" ? this.numberField("appearance.opacity", "surface_opacity", 60, 100) : nothing}
+        </div></details>` : nothing}
+      ${config.layout === "hero" ? html`
+      ${this.select(this.t("appearance.artwork"), config.hero_artwork || "auto", [["auto", this.t("appearance.presetDefault")], ["image", this.t("appearance.image")], ["none", this.t("appearance.none")]], value => this.change({ ...config, hero_artwork: value as LawnMowerCardConfig["hero_artwork"] }))}
+      ${this.numberField("appearance.overlay", "hero_overlay", 0, 100)}
       <strong>${this.t("custom.sectionOrder")}</strong>
       <span class="hint">${this.t("custom.sectionHint")}</span>
       ${rows.map(section => html`<div class="section-order">
@@ -95,8 +108,18 @@ export class CustomizationEditor extends LitElement {
           this.change({ ...config, hero_sections: ordered });
         })}
       </div>`)}
-      <button type="button" @click=${() => { const next = { ...config }; delete next.hero_sections; this.change(next); }}>${this.t("custom.resetOrder")}</button>
+      <button type="button" @click=${() => { const next = { ...config }; delete next.hero_sections; this.change(next); }}>${this.t("custom.resetOrder")}</button>` : nothing}
     </div>`;
+  }
+
+  private numberField(label: TranslationKey, key: "corner_radius" | "surface_opacity" | "hero_overlay", min: number, max: number) {
+    return html`<label><span>${this.t(label)}</span><input type="number" min=${min} max=${max} step="1" placeholder=${this.t("appearance.presetDefault")} .value=${this.config[key] === undefined ? "" : String(this.config[key])} @input=${(event: Event) => {
+      const input=event.currentTarget as HTMLInputElement;
+      if (!input.validity.valid) return;
+      const next={...this.config};
+      if (input.value === "") delete next[key]; else next[key]=Number(input.value);
+      this.change(next);
+    }}></label>`;
   }
 
   private collection(key: Collection) {

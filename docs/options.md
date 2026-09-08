@@ -8,6 +8,16 @@
   `it`, `pl`, `ru`, `uk`, or `es`. Automatic mode follows the Home Assistant user
   language, then the browser language, and safely falls back to English.
 - `layout`: optional `default`, `compact`, `wide`, or `hero`
+- `appearance`: optional `native`, `modern`, or `minimal` preset. New cards use
+  `native`; omitted settings preserve existing appearance. Presets follow HA colors.
+- `surface`: `solid` (default), `tinted`, or `translucent`; requires a preset
+- `surface_opacity`: translucent surface opacity, 60–100; default 88
+- `accent_color`: optional `#RGB` or `#RRGGBB` accent; otherwise follows the theme
+- `corner_radius`: optional 0–32 pixel outer radius; otherwise follows the preset
+- `card_shadow`: optional `theme`, `none`, or `soft`; otherwise follows the preset
+- `hero_artwork`: `auto` (default), `image`, or `none`. Minimal hides overview
+  artwork in auto mode; map and camera availability is unchanged.
+- `hero_overlay`: photographic overview overlay strength, 0–100; default 100
 - `hero_layout`: optional `cinematic` (default) or `dashboard` composition
   when `layout: hero` is selected
 - `hero_image`: optional Hero overview background. Use an HTTPS URL or a

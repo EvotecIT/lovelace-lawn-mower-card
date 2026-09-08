@@ -10,6 +10,9 @@
     :root.light { color-scheme:light; --primary-text-color:#20303a; --secondary-text-color:#54636e; --divider-color:#cedadf; --primary-color:#35794f; --card-background-color:#fff; --secondary-background-color:#f2f6f7; --error-color:#b83d3d; }
     * { box-sizing:border-box; }
     body { margin:0; padding:24px; background:var(--secondary-background-color); color:var(--primary-text-color); font:14px system-ui,sans-serif; }
+    :root[data-backdrop="pattern"] body { background-image:linear-gradient(130deg,#7b55ba44,transparent 55%),repeating-linear-gradient(45deg,transparent,transparent 25px,#409ca522 25px,#409ca522 50px); background-attachment:fixed; }
+    :root[data-backdrop="photo"] body { background-image:linear-gradient(#12283388,#12283388),url('../assets/lawn-mower-hero.jpg'); background-size:cover; background-position:center; background-attachment:fixed; }
+    :root[data-backdrop="photo"] header, :root[data-backdrop="photo"] .toolbar { padding:14px; border-radius:12px; background:var(--card-background-color); }
     main { max-width:1400px; margin:auto; }
     header { display:flex; align-items:start; justify-content:space-between; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
     h1 { margin:0 0 6px; font-size:23px; font-weight:650; } p { color:var(--secondary-text-color); margin:0; line-height:1.6; font-size:13px; }
@@ -31,6 +34,9 @@
   <main>
     <header><div><h1>Your mower, your dashboard</h1><p>Hero customization preview · simulated Home Assistant data · no device connection</p></div><button id="toggle-editor" type="button" aria-expanded="false">Open visual editor</button></header>
     <nav class="toolbar" aria-label="Preview settings">
+      <label>Style<select id="preset"><option value="native">Native HA</option><option value="modern">Modern</option><option value="minimal">Minimal</option><option value="legacy">Existing appearance</option></select></label>
+      <label>Surface<select id="surface"><option value="solid">Solid</option><option value="tinted">Tinted</option><option value="translucent">Translucent</option></select></label>
+      <label>Dashboard background<select id="backdrop"><option value="plain">Plain</option><option value="pattern">Pattern</option><option value="photo">Photo</option></select></label>
       <label>Layout<select id="layout"><option value="cinematic">Hero · Cinematic</option><option value="dashboard">Hero · Dashboard</option><option value="default">Traditional</option></select></label>
       <label>Card width<select id="width"><option value="1080">Wide · 1080 px</option><option value="680">Medium · 680 px</option><option value="390">Phone · 390 px</option><option value="320">Narrow · 320 px</option></select></label>
       <label>Page theme<select id="theme"><option value="dark">Dark</option><option value="light">Light</option></select></label>

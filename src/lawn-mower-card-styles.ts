@@ -1,4 +1,5 @@
 import { heroThemeStyles } from "./hero-theme";
+import { cardAppearanceStyles } from "./card-appearance-styles";
 import { customizationStyles } from "./customization-view";
 import { css } from "lit";
 
@@ -662,4 +663,4 @@ export const lawnMowerCardStyles = [css`
         grid-template-columns: 1fr;
       }
     }
-  `, schedulePanelStyles, deviceSettingsPanelStyles, heroLayoutStyles, customizationStyles, heroThemeStyles];
+  `, schedulePanelStyles, deviceSettingsPanelStyles, heroLayoutStyles, customizationStyles, heroThemeStyles, cardAppearanceStyles];

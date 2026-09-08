@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const it = {
+  "appearance.preset": "Stile",
+  "appearance.native": "Home Assistant nativo",
+  "appearance.modern": "Moderno",
+  "appearance.minimal": "Minimale",
+  "appearance.surface": "Superficie della scheda",
+  "appearance.solid": "Uniforme",
+  "appearance.tinted": "Colorata",
+  "appearance.translucent": "Traslucida",
+  "appearance.hint": "Gli stili seguono il tema di Home Assistant. I controlli mantengono uno sfondo leggibile sulle schede traslucide.",
+  "appearance.advanced": "Aspetto avanzato",
+  "appearance.accent": "Colore di accento",
+  "appearance.accentHint": "Colore facoltativo #RGB o #RRGGBB. Lascia vuoto per usare quello del tema.",
+  "appearance.radius": "Raggio degli angoli (0–32 px)",
+  "appearance.shadow": "Ombra",
+  "appearance.presetDefault": "Predefinito dello stile",
+  "appearance.none": "Nessuna",
+  "appearance.soft": "Morbida",
+  "appearance.opacity": "Opacità (60–100%)",
+  "appearance.artwork": "Immagine panoramica",
+  "appearance.image": "Mostra immagine",
+  "appearance.overlay": "Intensità oscuramento (0–100%)",
   "custom.confirmAction": "Conferma azione",
   "custom.cancel": "Annulla",
 

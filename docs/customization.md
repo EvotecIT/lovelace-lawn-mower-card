@@ -7,6 +7,58 @@ layout, including Hero Cinematic and Hero Dashboard. Configure them in the
 visual editor and use the up/down buttons to change their order. Switching
 layouts keeps your configured items.
 
+## Match your Home Assistant dashboard
+
+Choose a **Style preset** independently of the layout. All presets use your
+Home Assistant theme colors. Newly added cards use Native Home Assistant;
+existing YAML with no `appearance` setting keeps its previous appearance.
+
+| Preset | Appearance |
+| --- | --- |
+| `native` | Uses the theme's card corners, shadow, and body font. |
+| `modern` | Larger rounded corners and a soft shadow. |
+| `minimal` | Small corners, no outer shadow, and simpler tiles. Hero overview artwork is hidden by default. |
+
+Select a solid, tinted, or translucent **Card surface**. Tinted surfaces use a
+small amount of the accent color. Translucent surfaces let the dashboard
+background show through while controls retain their own readable backgrounds.
+Opacity defaults to 88%; use 60–100% to adjust it. Very busy backgrounds may
+still need a solid surface. These settings work in Traditional and Hero layouts.
+
+Under **Advanced appearance**, override the accent with a `#RGB` or `#RRGGBB`
+color, set a corner radius from 0 to 32 pixels, or choose the theme shadow,
+no shadow, or a soft shadow. Clear numeric fields to restore preset defaults.
+Accent and surface overrides require a selected preset; choosing Existing
+layout default keeps those settings saved but inactive.
+
+```yaml
+appearance: native
+surface: translucent
+surface_opacity: 88
+accent_color: "#6754ca"
+corner_radius: 16
+card_shadow: theme
+```
+
+For Hero, **Overview artwork** can follow the preset, show the configured or
+built-in image, or show no image. `hero_artwork: none` keeps the title, state,
+and metrics in a compact overview; map and camera views remain available.
+Use the existing background image and focal-point fields for a custom image.
+`hero_overlay` adjusts the image's dark overlay from 0 to 100%; it defaults to
+100% of the original overlay. Image controls affect the photographic overview,
+not map or camera imagery. Keep enough overlay for readable text.
+
+```yaml
+appearance: minimal
+hero_artwork: image
+hero_image: /local/my-garden.jpg
+hero_image_position: center
+hero_overlay: 85
+```
+
+The older `hero_theme` setting still works when no preset is selected. A selected
+preset follows Home Assistant instead, without deleting that saved legacy setting.
+
 ## Choose automatic or custom content
 
 The **Content selection** field appears under Controls and Header summary chips.

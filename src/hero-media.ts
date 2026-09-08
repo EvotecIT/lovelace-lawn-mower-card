@@ -17,7 +17,7 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
   const image = normalizeHeroImage(model.heroImage) || heroArtwork;
   const position = normalizeHeroImagePosition(model.heroImagePosition);
   return html`
-    ${views.includes("overview") ? html`<img
+    ${views.includes("overview") && model.appearance.artwork ? html`<img
       class=${`hero-layer hero-art position-${position}${
         model.activeView === "overview" ? " active" : ""
       }`}

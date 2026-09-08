@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const pl = {
+  "appearance.preset": "Styl",
+  "appearance.native": "Natywny Home Assistant",
+  "appearance.modern": "Nowoczesny",
+  "appearance.minimal": "Minimalny",
+  "appearance.surface": "Tło karty",
+  "appearance.solid": "Jednolite",
+  "appearance.tinted": "Barwione",
+  "appearance.translucent": "Półprzezroczyste",
+  "appearance.hint": "Style korzystają z motywu Home Assistant. Elementy sterujące zachowują czytelne tło na półprzezroczystej karcie.",
+  "appearance.advanced": "Zaawansowany wygląd",
+  "appearance.accent": "Kolor akcentu",
+  "appearance.accentHint": "Opcjonalny kolor #RGB lub #RRGGBB. Puste pole używa akcentu motywu.",
+  "appearance.radius": "Promień narożników (0–32 px)",
+  "appearance.shadow": "Cień",
+  "appearance.presetDefault": "Domyślne dla stylu",
+  "appearance.none": "Brak",
+  "appearance.soft": "Delikatny",
+  "appearance.opacity": "Krycie tła (60–100%)",
+  "appearance.artwork": "Obraz podsumowania",
+  "appearance.image": "Pokaż obraz",
+  "appearance.overlay": "Siła przyciemnienia obrazu (0–100%)",
   "custom.confirmAction": "Potwierdź czynność",
   "custom.cancel": "Anuluj",
 

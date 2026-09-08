@@ -21,6 +21,8 @@ const example = () => ({
   type:"custom:lawn-mower-card", entity:"lawn_mower.demo", name:"Backyard mower", layout:"hero",
   hero_layout:query.get("composition") === "dashboard" ? "dashboard" : "cinematic",
   locale:query.get("locale") || "en", hero_theme:"auto", hero_density:"comfortable", tile_columns:3,
+  appearance:query.get("preset") === "legacy" ? undefined : query.get("preset") || "native",
+  surface:query.get("surface") || "solid",
   map_entity:"image.demo_map", show_map:true, show_point_cloud:false, camera_entity:"camera.demo",
   progress_entity:"sensor.demo_progress", coverage_entity:"sensor.demo_area", coverage_total_entity:"sensor.demo_total",
   show_helper_actions:false, controls_mode:"custom", summary_mode:"custom", hero_sections:["tiles","actions","controls","details"],
@@ -50,6 +52,9 @@ function renderConfig() {
   document.getElementById("config").textContent=JSON.stringify(config,null,2);
   document.getElementById("layout").value=config.layout === "hero" ? config.hero_layout : config.layout;
   document.getElementById("locale").value=config.locale;
+  document.getElementById("preset").value=config.appearance || "legacy";
+  document.getElementById("surface").value=config.surface || "solid";
+  document.getElementById("surface").disabled=!config.appearance;
 }
 
 function updateState(id, state) {
@@ -72,6 +77,9 @@ document.getElementById("layout").addEventListener("change", event => {
 });
 document.getElementById("width").addEventListener("change", event => document.documentElement.style.setProperty("--preview-width",`${Number(event.target.value)}px`));
 document.getElementById("theme").addEventListener("change", event => document.documentElement.classList.toggle("light",event.target.value === "light"));
+document.getElementById("preset").addEventListener("change", event => { config={...config}; if(event.target.value === "legacy") delete config.appearance; else config.appearance=event.target.value;renderConfig(); });
+document.getElementById("surface").addEventListener("change", event => { config={...config,surface:event.target.value};renderConfig(); });
+document.getElementById("backdrop").addEventListener("change", event => document.documentElement.dataset.backdrop=event.target.value);
 document.getElementById("locale").addEventListener("change", event => { config={...config,locale:event.target.value};renderConfig(); });
 document.getElementById("rain").addEventListener("click", event => {
   const rainy=currentHass.states["binary_sensor.garden_rain"].state !== "on";

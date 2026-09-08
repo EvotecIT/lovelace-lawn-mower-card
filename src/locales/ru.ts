@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const ru = {
+  "appearance.preset": "Стиль",
+  "appearance.native": "Стиль Home Assistant",
+  "appearance.modern": "Современный",
+  "appearance.minimal": "Минимальный",
+  "appearance.surface": "Поверхность карточки",
+  "appearance.solid": "Сплошная",
+  "appearance.tinted": "Тонированная",
+  "appearance.translucent": "Полупрозрачная",
+  "appearance.hint": "Стили используют тему Home Assistant. Элементы управления сохраняют читаемый фон на полупрозрачной карточке.",
+  "appearance.advanced": "Дополнительное оформление",
+  "appearance.accent": "Цвет акцента",
+  "appearance.accentHint": "Необязательный цвет #RGB или #RRGGBB. Пустое поле использует цвет темы.",
+  "appearance.radius": "Радиус углов (0–32 px)",
+  "appearance.shadow": "Тень",
+  "appearance.presetDefault": "По умолчанию для стиля",
+  "appearance.none": "Нет",
+  "appearance.soft": "Мягкая",
+  "appearance.opacity": "Непрозрачность (60–100%)",
+  "appearance.artwork": "Изображение обзора",
+  "appearance.image": "Показать изображение",
+  "appearance.overlay": "Затемнение изображения (0–100%)",
   "custom.confirmAction": "Подтвердить действие",
   "custom.cancel": "Отмена",
 

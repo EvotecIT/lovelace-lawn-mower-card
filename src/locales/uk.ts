@@ -1,6 +1,27 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const uk = {
+  "appearance.preset": "Стиль",
+  "appearance.native": "Стиль Home Assistant",
+  "appearance.modern": "Сучасний",
+  "appearance.minimal": "Мінімальний",
+  "appearance.surface": "Поверхня картки",
+  "appearance.solid": "Суцільна",
+  "appearance.tinted": "Тонована",
+  "appearance.translucent": "Напівпрозора",
+  "appearance.hint": "Стилі використовують тему Home Assistant. Елементи керування зберігають читабельне тло на напівпрозорій картці.",
+  "appearance.advanced": "Додаткове оформлення",
+  "appearance.accent": "Колір акценту",
+  "appearance.accentHint": "Необов’язковий колір #RGB або #RRGGBB. Порожнє поле використовує колір теми.",
+  "appearance.radius": "Радіус кутів (0–32 px)",
+  "appearance.shadow": "Тінь",
+  "appearance.presetDefault": "Типово для стилю",
+  "appearance.none": "Немає",
+  "appearance.soft": "М’яка",
+  "appearance.opacity": "Непрозорість (60–100%)",
+  "appearance.artwork": "Зображення огляду",
+  "appearance.image": "Показати зображення",
+  "appearance.overlay": "Затемнення зображення (0–100%)",
   "custom.confirmAction": "Підтвердити дію",
   "custom.cancel": "Скасувати",
 
