@@ -12,7 +12,6 @@ import {
   cameraRecoveryMarker,
   cameraRecoveryVerified,
   configuredCameraCanBePresented,
-  configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
   featureCapabilityState,
@@ -20,7 +19,6 @@ import {
   heroViewRestorationAllowed,
   isPreferenceControlEntity,
   numberControlSettings,
-  prioritizedHeaderSummary,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
   resolvedMowerCompanionEntity,
@@ -853,18 +851,6 @@ test("number control settings preserve Home Assistant bounds and units", () => {
   assert.equal(numberControlSettings(entity("unavailable")), undefined);
 });
 
-test("explicitly configured summary chips are preserved", () => {
-  const configured = [
-    "sensor.garden_runtime_mission_progress",
-    "sensor.garden_runtime_current_area",
-    "sensor.garden_runtime_total_area",
-  ];
-
-  assert.deepEqual(
-    configuredHeaderSummaryEntities(configured),
-    configured,
-  );
-});
 
 test("summary labels prefer Home Assistant friendly names", () => {
   const progress = {
@@ -890,15 +876,6 @@ test("summary labels prefer Home Assistant friendly names", () => {
   );
 });
 
-test("explicit summary chips are prioritized before automatic chips", () => {
-  assert.deepEqual(
-    prioritizedHeaderSummary(
-      ["Custom one", "Custom two", "Custom three"],
-      ["Error blocked", "Battery 78%", "Rain Delay On"],
-    ),
-    ["Custom one", "Custom two", "Custom three", "Error blocked"],
-  );
-});
 
 test("default helpers expose user features and omit diagnostics", () => {
   const states = {

@@ -33,10 +33,19 @@ export type HomeAssistant = {
   hassUrl(path: string): string;
 };
 
+export type ContentMode = "auto" | "append" | "custom" | "hidden";
+
+/** A simple state condition; unavailable or missing entities never match. */
+export type DisplayCondition = { entity: string; state: string };
+
 export type LawnMowerTileConfig = {
   entity: string;
   label?: string;
   icon?: string;
+  attribute?: string;
+  unit?: string;
+  show_unavailable?: boolean;
+  visibility?: DisplayCondition;
 };
 
 export type LawnMowerActionConfig = {
@@ -46,6 +55,8 @@ export type LawnMowerActionConfig = {
   entity?: string;
   service?: string;
   service_data?: Record<string, unknown>;
+  visibility?: DisplayCondition;
+  confirmation?: string;
 };
 
 export type LawnMowerCardConfig = {
@@ -72,7 +83,13 @@ export type LawnMowerCardConfig = {
   show_helper_actions?: boolean;
   show_advanced_details?: boolean;
   control_entities?: string[];
-  summary_entities?: string[];
+  controls_mode?: ContentMode;
+  summary_mode?: ContentMode;
+  summary_entities?: Array<string | LawnMowerTileConfig>;
+  hero_sections?: Array<"tiles" | "actions" | "controls" | "details">;
+  hero_density?: "comfortable" | "compact";
+  hero_theme?: "dark" | "auto";
+  tile_columns?: 1 | 2 | 3 | 4;
   actions?: LawnMowerActionConfig[];
   tiles?: LawnMowerTileConfig[];
 };

@@ -1,3 +1,4 @@
+import { summaryConfig } from "./card-customization.ts";
 import type { HomeAssistant, LawnMowerCardConfig } from "./card-config";
 
 function configuredEntities(config: LawnMowerCardConfig): Set<string> {
@@ -5,9 +6,9 @@ function configuredEntities(config: LawnMowerCardConfig): Set<string> {
     config.entity, config.map_entity, config.camera_entity, config.status_entity,
     config.battery_entity, config.progress_entity, config.coverage_entity,
     config.coverage_total_entity, ...(config.control_entities || []),
-    ...(config.summary_entities || []),
-    ...(config.tiles || []).map((tile) => tile.entity),
-    ...(config.actions || []).map((action) => action.entity),
+    ...(config.summary_entities || []).flatMap(item => { const tile = summaryConfig(item); return [tile.entity, tile.visibility?.entity]; }),
+    ...(config.tiles || []).flatMap(tile => [tile.entity, tile.visibility?.entity]),
+    ...(config.actions || []).flatMap(action => [action.entity, action.visibility?.entity]),
   ].filter((value): value is string => Boolean(value)));
 }
 

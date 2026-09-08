@@ -4,6 +4,7 @@ import { renderHeroMedia } from "./hero-media";
 import { renderMowingMission } from "./mowing-mission";
 import { dashboardMainView } from "./dashboard-view";
 import { batteryPercent } from "./battery-presentation";
+import { renderSummary } from "./customization-view";
 export { dashboardMainView } from "./dashboard-view";
 
 /** Dashboard telemetry stays outside the media stage, including camera and 3D views. */
@@ -15,7 +16,7 @@ export function renderDashboardHeader(model: HeroLayoutModel) {
     : model.stateKey === "error" || model.stateKey === "unavailable" ? "mdi:alert-circle-outline"
     : "mdi:power";
   return html`
-    <header class="dashboard-header">
+    <div class="dashboard-header-block"><header class="dashboard-header">
       <div class="dashboard-identity">
         <div class="dashboard-mower-icon" aria-hidden="true"><ha-icon icon="mdi:robot-mower-outline"></ha-icon></div>
         <div class="dashboard-title">
@@ -35,7 +36,7 @@ export function renderDashboardHeader(model: HeroLayoutModel) {
         </svg>
         <div><strong>${model.battery || "—"}</strong><span>${model.t("hero.battery")}</span></div>
       </div>
-    </header>`;
+    </header>${model.summary.length ? html`<div class="hero-summary">${renderSummary(model.summary)}</div>` : nothing}</div>`;
 }
 
 /** Composition only: camera activation and warm-stream lifetime remain in the card. */

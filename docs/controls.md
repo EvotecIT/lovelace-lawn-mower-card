@@ -70,7 +70,9 @@ milliseconds remain visible but read-only instead of being rounded. In global
 mode the controls
 update the selected map's global preference;
 in custom mode they update the selected zone. An explicit `control_entities`
-list is left unchanged.
+list is left unchanged. Use `controls_mode: custom` to render only those
+controls in list order, or `controls_mode: append` to put them ahead of discovered
+controls. See [customization](customization.md) for all content modes.
 
 The Dreame integration keeps the device-write behavior in its Home Assistant
 entities. The card calls the standard `select.select_option`, `number.set_value`,

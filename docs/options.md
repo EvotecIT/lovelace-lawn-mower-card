@@ -1,6 +1,6 @@
 # Card options
 
-[Back to the README](../README.md) · [Configuration examples](configuration.md)
+[Back to the README](../README.md) · [Configuration examples](configuration.md) · [Customization](customization.md)
 
 - `entity`: required `lawn_mower` entity id
 - `name`: optional card title override
@@ -43,7 +43,13 @@
   Planned Run and Live Session panels
 - `control_entities`: optional list of `select`, `number`, `switch`, or `time`
   entities rendered as inline mower controls
-- `summary_entities`: optional list of entities rendered as header summary chips
+- `controls_mode`: optional `auto`, `append`, `custom`, or `hidden`; omit to keep existing discovery behavior
+- `summary_mode`: optional `auto`, `append`, `custom`, or `hidden`; omit to keep the existing layout default
+- `summary_entities`: optional list of entity IDs or objects using the same fields as `tiles`, rendered as summary chips in every layout
+- `hero_sections`: optional ordered list of `controls`, `tiles`, `actions`, and `details`; omitted sections are hidden, and an empty list hides all four
+- `hero_density`: optional `comfortable` (default) or `compact` spacing for custom content
+- `hero_theme`: optional `dark` (original Hero colors, default) or `auto` (Home Assistant theme outside the media canvas)
+- `tile_columns`: optional integer from 1 to 4; narrow cards use at most two columns
 - `actions`: optional list of extra action chips
   - `type`: one of `start`, `pause`, `dock`, `more-info`, or `service`
   - `label`: optional button label override
@@ -51,10 +57,16 @@
   - `entity`: optional target entity for `type: more-info`
   - `service`: required for `type: service`, using `domain.service` format
   - `service_data`: optional service data payload for `type: service`
+  - `confirmation`: optional message shown before executing the action
+  - `visibility`: optional `{ entity, state }` raw-state condition
 - `tiles`: optional list of extra stat tiles
   - `entity`: entity id
   - `label`: optional tile label override
   - `icon`: optional MDI icon override
+  - `attribute`: optional scalar entity attribute to display instead of state
+  - `unit`: optional displayed unit override; an empty string removes the unit
+  - `show_unavailable`: optional boolean, defaults to `false`
+  - `visibility`: optional `{ entity, state }` raw-state condition
 
 The built-in visual editor covers the main card fields, Hero appearance,
 explicit `control_entities`, `summary_entities`, extra `tiles`, and custom

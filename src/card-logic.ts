@@ -792,12 +792,6 @@ export function numberControlSettings(
   };
 }
 
-export function configuredHeaderSummaryEntities(
-  configured: string[] | undefined,
-): string[] {
-  return configured?.filter(Boolean) || [];
-}
-
 export function entitySummaryLabel(
   entityId: string,
   entity: MinimalHassEntity,
@@ -811,14 +805,6 @@ export function entitySummaryLabel(
     return preferredLabel;
   }
   return entityId.split(".")[1]?.replace(/_/g, " ") || entityId;
-}
-
-export function prioritizedHeaderSummary(
-  configured: string[],
-  automatic: string[],
-  limit = 4,
-): string[] {
-  return [...new Set([...configured, ...automatic])].slice(0, limit);
 }
 
 export function resolvedMowerLiveVideoEntity(

@@ -1,3 +1,5 @@
+import { heroThemeStyles } from "./hero-theme";
+import { customizationStyles } from "./customization-view";
 import { css } from "lit";
 
 import { deviceSettingsPanelStyles } from "./device-settings-panel";
@@ -6,6 +8,7 @@ import { schedulePanelStyles } from "./schedule-panel";
 
 export const lawnMowerCardStyles = [css`
     :host {
+      container-type: inline-size;
       display: block;
     }
 
@@ -659,4 +662,4 @@ export const lawnMowerCardStyles = [css`
         grid-template-columns: 1fr;
       }
     }
-  `, schedulePanelStyles, deviceSettingsPanelStyles, heroLayoutStyles];
+  `, schedulePanelStyles, deviceSettingsPanelStyles, heroLayoutStyles, customizationStyles, heroThemeStyles];
