@@ -1,3 +1,7 @@
+import type { DisplayTile, DisplayAction, HeroSection } from "./card-customization";
+import type { CardAppearance } from "./card-appearance";
+import { styleMap } from "lit/directives/style-map.js";
+import { renderSummary, renderTiles, renderCustomActions } from "./customization-view";
 import { html, nothing, type TemplateResult } from "lit";
 import {
   type MapFit,
@@ -54,6 +58,17 @@ export type HeroLayoutModel = {
   cameraBlockReason?: string;
   cameraPreviewUrl?: string;
   controls?: TemplateResult;
+  customSectionOrder?: boolean;
+  summary: DisplayTile[];
+  tiles: DisplayTile[];
+  customActions: DisplayAction[];
+  confirmation?: TemplateResult;
+  sections: HeroSection[];
+  details?: TemplateResult;
+  density?: "comfortable" | "compact";
+  theme?: "dark" | "auto";
+  appearance: CardAppearance;
+  tileColumns?: number;
   hass: object;
   supportsStart: boolean;
   supportsPause: boolean;
@@ -136,7 +151,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
     },
   ];
   return html`
-    <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}`} lang=${model.locale}>
+    <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
       <div class="hero-shell">
         ${model.dashboard ? html`${renderDashboardHeader(model)}
           <div class="dashboard-command-panel">${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>` : nothing}
@@ -177,6 +192,8 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             : nothing}
         </section>
 
+        ${!model.dashboard && model.summary.length ? html`<div class="hero-summary">${renderSummary(model.summary)}</div>` : nothing}
+
         ${model.dashboard ? renderDashboardAside(model) : model.activeView === "map" ? renderMowingMission(model) : nothing}
 
         ${showHeroViewTabs(model.availableViews)
@@ -195,16 +212,17 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             `
           : nothing}
 
-        ${model.controls
-          ? html`
-              <div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>
-                ${model.controls}
-              </div>
-            `
-          : nothing}
 
+        ${!model.customSectionOrder && model.controls ? html`<div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>` : nothing}
         ${!model.dashboard ? renderHeroActionFeedback(model) : nothing}
         ${!model.dashboard ? renderHeroActions(model) : nothing}
+        ${model.sections.some(section => section === "tiles" ? model.tiles.length : section === "actions" ? model.customActions.length : section === "controls" ? model.customSectionOrder && model.controls : model.details)
+          ? html`<div class="hero-customization">${model.sections.map(section => {
+            if (section === "tiles") return renderTiles(model.tiles, model.tileColumns);
+            if (section === "actions") return renderCustomActions(model.customActions, model.t("action.custom"), model.confirmation);
+            if (section === "details") return model.details || nothing;
+            return model.customSectionOrder && model.controls ? html`<div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>` : nothing;
+          })}</div>` : nothing}
       </div>
     </ha-card>
   `;

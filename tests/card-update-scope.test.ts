@@ -46,3 +46,13 @@ test("discovery, removal, locale and service changes update the card", () => {
     ...old, states: { ...old.states, "lawn_mower.bodzio_two": entity("lawn_mower.bodzio_two") },
   }, config), true);
 });
+
+test("custom summary values and visibility conditions react to unrelated garden entities", () => {
+  const old = base();
+  const next = { ...old, states: { ...old.states, "sensor.kitchen":entity("sensor.kitchen") } };
+  assert.equal(mowerHassChanged(old,next,{ ...config, summary_entities:[{entity:"sensor.kitchen",label:"Weather"}] }),true);
+  const visibility = {entity:"sensor.kitchen",state:"on"};
+  assert.equal(mowerHassChanged(old,next,{ ...config, summary_entities:[{entity:"sensor.other",visibility}] }),true);
+  assert.equal(mowerHassChanged(old,next,{ ...config, tiles:[{entity:"sensor.other",visibility}] }),true);
+  assert.equal(mowerHassChanged(old,next,{ ...config, actions:[{type:"pause",visibility}] }),true);
+});

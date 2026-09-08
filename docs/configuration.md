@@ -109,8 +109,10 @@ integrations. Existing dashboards keep their current layout unless
 `layout: hero` is selected.
 
 The Hero action rail follows `show_default_actions` and
-`show_helper_actions`. Extra configured tiles, custom actions, and advanced
-planning panels remain available in the traditional layouts.
+`show_helper_actions`. Both Hero compositions also support configured summary
+chips, extra tiles, custom actions, and advanced planning panels. See
+[customization](customization.md) for content modes, ordering, visibility, and
+appearance settings.
 
 For the traditional map-and-controls layouts, the full configuration remains
 available:

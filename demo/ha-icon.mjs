@@ -1,6 +1,15 @@
 // Local fixture stand-in for Home Assistant's icon host. Production uses ha-icon.
 // Authored SVG geometry keeps the preview legible without downloading an icon font.
 const shapes = {
+  "mdi:thermometer": '<path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0Z"/><path d="M12 8v10"/>',
+  "mdi:calendar-clock": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6m10-6v6M3 10h18m-9 3v4l3 1"/>',
+  "mdi:content-cut": '<circle cx="5" cy="6" r="3"/><circle cx="5" cy="18" r="3"/><path d="m7 8 14 13M7 16 21 3"/>',
+  "mdi:clock-outline": '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
+  "mdi:weather-night": '<path d="M20 15A9 9 0 0 1 9 3a9 9 0 1 0 11 12Z"/>',
+  "mdi:information-outline": '<circle cx="12" cy="12" r="10"/><path d="M12 10v7m0-11v.1"/>',
+  "mdi:weather-rainy": '<path d="M6 15a5 5 0 1 1 2-10 6 6 0 0 1 11 3 4 4 0 0 1 0 8M7 18l-1 3m7-3-1 3m7-3-1 3"/>',
+  "mdi:battery-high": '<path d="M9 2h6M8 5h8a1 1 0 0 1 1 1v15H7V6a1 1 0 0 1 1-1Z"/><path d="M10 10h4v8h-4Z" fill="currentColor"/>',
+  "mdi:progress-clock": '<circle cx="12" cy="12" r="9" stroke-dasharray="22 4"/><path d="M12 6v6l4 2"/>',
   "mdi:play": '<path d="M7 3.5 21 12 7 20.5Z" fill="currentColor" stroke="none"/>',
   "mdi:pause": '<path d="M7 4v16M17 4v16" stroke-width="5"/>',
   "mdi:close": '<path d="m6 6 12 12M18 6 6 18"/>',

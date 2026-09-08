@@ -1,3 +1,6 @@
+import { heroThemeStyles } from "./hero-theme";
+import { cardAppearanceStyles } from "./card-appearance-styles";
+import { customizationStyles } from "./customization-view";
 import { css } from "lit";
 
 import { deviceSettingsPanelStyles } from "./device-settings-panel";
@@ -6,6 +9,7 @@ import { schedulePanelStyles } from "./schedule-panel";
 
 export const lawnMowerCardStyles = [css`
     :host {
+      container-type: inline-size;
       display: block;
     }
 
@@ -648,15 +652,15 @@ export const lawnMowerCardStyles = [css`
       padding: 10px;
     }
 
-    @media (max-width: 480px) {
+    @container (max-width: 480px) {
       .actions {
         grid-template-columns: 1fr;
       }
     }
 
-    @media (max-width: 900px) {
+    @container (max-width: 900px) {
       .wrap.layout-wide {
         grid-template-columns: 1fr;
       }
     }
-  `, schedulePanelStyles, deviceSettingsPanelStyles, heroLayoutStyles];
+  `, schedulePanelStyles, deviceSettingsPanelStyles, heroLayoutStyles, customizationStyles, heroThemeStyles, cardAppearanceStyles];

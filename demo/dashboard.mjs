@@ -9,6 +9,7 @@ customElements.define("ha-card", class extends HTMLElement {
 });
 customElements.define("ha-camera-stream", class extends HTMLElement {
   connectedCallback() {
+    this.style.cssText="display:grid;place-items:center;background:linear-gradient(155deg,#426350,#16312e)";
     this.attachShadow({ mode:"open" }).innerHTML = `<style>:host{display:grid;place-items:center;background:linear-gradient(155deg,#426350,#16312e);color:#e5f2e9;font:12px system-ui}div{text-align:center}strong{display:block;font-size:22px;margin-bottom:8px}</style><div><strong>▣</strong>Simulated camera preview<br>No live video connection</div>`;
   }
 });
@@ -66,6 +67,9 @@ entity("sensor.demo_total","531",{unit_of_measurement:"m²"});
 if (query.get("status")) entity("sensor.demo_status",query.get("status"),{});
 entity("image.demo_map","ready",{friendly_name:"Garden",mowing_map_api_path:path});
 entity("camera.demo","idle",{friendly_name:"Mower camera",supported_features:2,...(query.get("camera")==="blocked"?{video_block_reason:"Demo privacy lock"}:{})});
+// A local preview avoids camera_proxy requests from the disconnected fixture.
+hass.states["camera.demo"].attributes.entity_picture=png;
+delete hass.states["camera.demo"].last_updated;
 const card=document.getElementById("mower");
 card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",name:"Garden mower",locale:query.get("locale") || "en",
   status_entity:query.get("status")?"sensor.demo_status":undefined,
@@ -73,3 +77,5 @@ card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"h
   camera_entity:query.get("camera")==="none"?undefined:"camera.demo",progress_entity:"sensor.demo_progress",coverage_entity:"sensor.demo_area",coverage_total_entity:"sensor.demo_total",control_entities:[],show_helper_actions:query.get("helpers")==="true"});
 if (query.get("camera")==="none") {delete hass.states["camera.demo"];delete hass.entities["camera.demo"];}
 card.hass=hass;
+
+export { hass, entity, card };

@@ -1,3 +1,8 @@
+import { cardAppearance } from "./card-appearance";
+import { styleMap } from "lit/directives/style-map.js";
+import "./action-confirmation";
+import { summaryItems, controlGroups, configuredTile, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
+import { renderSummary, renderTiles } from "./customization-view";
 import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
@@ -23,21 +28,17 @@ import {
   cameraRecoveryMarker,
   cameraRecoveryVerified,
   configuredCameraCanBePresented,
-  configuredHeaderSummaryEntities,
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
   heroViewRestorationAllowed,
-  isPreferenceControlEntity,
   numberControlSettings,
-  prioritizedHeaderSummary,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
 } from "./card-logic";
 import {
-  isDeviceSettingControlEntity,
   timeInputStep,
   timeInputValue,
   timeServiceValue,
@@ -233,6 +234,8 @@ export class LawnMowerCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _config?: LawnMowerCardConfig;
+  @state() private _pendingCustomAction?: LawnMowerActionConfig;
+  private _customActionTrigger?: HTMLElement;
   @state() private _heroView: HeroView = "overview";
   @state() private _heroViewChosen = false;
   @state() private _pointCloudMounted = false;
@@ -294,6 +297,7 @@ export class LawnMowerCard extends LitElement {
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
+    if (config !== this._config) this._pendingCustomAction = undefined;
     const previousEntity = this._config?.entity;
     const previousLayout = this._config?.layout || "default";
     const nextLayout = config.layout || "default";
@@ -336,6 +340,8 @@ export class LawnMowerCard extends LitElement {
   }
 
   public disconnectedCallback(): void {
+    this._pendingCustomAction = undefined;
+    this._customActionTrigger = undefined;
     this._mediaVisibility.disconnect();
     const entityId = this._config?.entity;
     if (
@@ -381,6 +387,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   protected updated(): void {
+    if (this._pendingCustomAction && !conditionMatches(this._pendingCustomAction.visibility, this.hass.states)) this._closeCustomConfirmation();
     if (!this.hass || !this._config) {
       return;
     }
@@ -434,26 +441,15 @@ export class LawnMowerCard extends LitElement {
     const statTiles = this._buildTiles();
     const actionGroups = this._buildActionGroups(mower);
     const headerSummary = this._buildHeaderSummary();
-    const scheduleControls = discoverScheduleControls(
+    const scheduleControls = this._config.controls_mode === "hidden" || this._config.controls_mode === "custom" ? [] : discoverScheduleControls(
       this.hass.states,
       this._config.entity,
-    );
+    ).filter(control => this._config!.controls_mode !== "append" || !this._config!.control_entities?.includes(control.entityId));
     const scheduleEntityIds = new Set(
       scheduleControls.map((control) => control.entityId),
     );
     const controlEntities = this._resolvedControlEntities().filter(
       (entityId) => !scheduleEntityIds.has(entityId),
-    );
-    const preferenceControlEntities = controlEntities.filter(
-      isPreferenceControlEntity,
-    );
-    const deviceSettingControlEntities = controlEntities.filter(
-      isDeviceSettingControlEntity,
-    );
-    const primaryControlEntities = controlEntities.filter(
-      (entityId) =>
-        !isPreferenceControlEntity(entityId) &&
-        !isDeviceSettingControlEntity(entityId),
     );
     const plannedRun = this._plannedRunDetails(mower);
     const runtimeSession = this._runtimeSessionDetails();
@@ -474,22 +470,14 @@ export class LawnMowerCard extends LitElement {
     }
 
     return html`
-      <ha-card lang=${this._locale}>
+      <ha-card class=${cardAppearance(this._config).classes} style=${styleMap(cardAppearance(this._config).styles)} lang=${this._locale}>
         <div class=${`wrap layout-${layout}`}>
           <div class="main">
             <div class="header">
               <div class="title-block">
                 <div class="title">${title}</div>
                 <div class="subtitle">${subtitle}</div>
-                ${headerSummary.length
-                  ? html`
-                      <div class="header-summary">
-                        ${headerSummary.map(
-                          (item) => html`<div class="summary-chip">${item}</div>`,
-                        )}
-                      </div>
-                    `
-                  : nothing}
+                ${renderSummary(headerSummary)}
               </div>
               <div class=${`state-pill state-${mower.state}`}>${this._friendlyMowerState(mower.state)}</div>
             </div>
@@ -583,27 +571,7 @@ export class LawnMowerCard extends LitElement {
               ? this._renderRuntimeSessionPanel(runtimeSession)
               : nothing}
 
-            ${scheduleControls.length
-              ? renderSchedulePanel(
-                  scheduleControls.map((control) => ({
-                    ...control,
-                    available:
-                      control.available && !Boolean(this._mutationInFlight),
-                  })),
-                  (entityId, enabled) => this._toggleSwitch(entityId, enabled),
-                  this._t,
-                )
-              : nothing}
-
-            ${primaryControlEntities.length
-              ? html`
-                  <div class="selectors">
-                    ${primaryControlEntities.map((entityId) => this._renderEntityControl(entityId))}
-                  </div>
-                `
-              : nothing}
-            ${this._renderDeviceSettingsControls(deviceSettingControlEntities)}
-            ${this._renderPreferenceControls(preferenceControlEntities)}
+            ${this._renderControlContent(controlEntities, scheduleControls)}
 
             ${actionGroups.length
               ? html`
@@ -631,6 +599,7 @@ export class LawnMowerCard extends LitElement {
                 `
               : nothing}
 
+            ${this._renderCustomConfirmation()}
             ${visibleActionFeedback
               ? html`
                   <div
@@ -652,20 +621,7 @@ export class LawnMowerCard extends LitElement {
                 `
               : nothing}
 
-            ${statTiles.length
-              ? html`
-                  <div class="stats">
-                    ${statTiles.map(
-                      (tile) => html`
-                        <div class="tile">
-                          <div class="tile-label">${tile.label}</div>
-                          <div class="tile-value">${tile.value}</div>
-                        </div>
-                      `,
-                    )}
-                  </div>
-                `
-              : nothing}
+            ${renderTiles(statTiles, tileColumns(this._config.tile_columns))}
           </div>
         </div>
       </ha-card>
@@ -735,33 +691,7 @@ export class LawnMowerCard extends LitElement {
     const progress = this._heroMissionMetric();
     const coverage = this._heroCoverageMetric();
     const controls = controlEntities.length || scheduleControls.length
-      ? html`
-          ${scheduleControls.length
-            ? renderSchedulePanel(
-                scheduleControls.map((control) => ({
-                  ...control,
-                  available:
-                    control.available && !Boolean(this._mutationInFlight),
-                })),
-                (entityId, enabled) => this._toggleSwitch(entityId, enabled),
-                this._t,
-              )
-            : nothing}
-          ${controlEntities
-            .filter(
-              (entityId) =>
-                !isPreferenceControlEntity(entityId) &&
-                !isDeviceSettingControlEntity(entityId),
-            )
-            .map((entityId) => this._renderEntityControl(entityId))}
-          ${this._renderDeviceSettingsControls(
-            controlEntities.filter(isDeviceSettingControlEntity),
-          )}
-          ${this._renderPreferenceControls(
-            controlEntities.filter(isPreferenceControlEntity),
-          )}
-        `
-      : undefined;
+      ? this._renderControlContent(controlEntities, scheduleControls, true) : undefined;
     const scenePath = this._config.show_map === false ? undefined
       : mowingMapPath(configuredMapEntity?.attributes.mowing_map_api_path);
     const availableViews = availableHeroViews({
@@ -819,6 +749,19 @@ export class LawnMowerCard extends LitElement {
         ? cameraImageUrl(cameraEntity.entity_id, cameraEntity)
         : undefined,
       controls,
+      customSectionOrder: this._config.hero_sections !== undefined,
+      summary: this._buildHeaderSummary(),
+      tiles: this._buildTiles(),
+      customActions: this._buildCustomActions(mower),
+      confirmation: this._renderCustomConfirmation(),
+      sections: heroSections(this._config.hero_sections),
+      density: this._config.hero_density,
+      theme: cardAppearance(this._config).theme,
+      appearance: cardAppearance(this._config),
+      tileColumns: tileColumns(this._config.tile_columns),
+      details: this._config.show_advanced_details ? html`
+        ${this._plannedRunDetails(mower) ? this._renderPlannedRunPanel(this._plannedRunDetails(mower)!) : nothing}
+        ${this._runtimeSessionDetails() ? this._renderRuntimeSessionPanel(this._runtimeSessionDetails()!) : nothing}` : undefined,
       hass: this.hass,
       supportsStart: mowerSupportsFeature(
         mower,
@@ -1091,29 +1034,23 @@ export class LawnMowerCard extends LitElement {
     this._cameraReconnecting = false;
   }
 
-  private _buildTiles(): Array<{ label: string; value: string }> {
-    if (!this._config || !this.hass) {
-      return [];
-    }
-
-    return (this._config.tiles || [])
-      .filter((tile) => {
-        const entity = this.hass.states[tile.entity];
-        return Boolean(entity && !this._isUnavailableEntity(entity));
-      })
-      .map((tile) => this._tileFromEntity(tile.entity, tile.label, tile.icon));
+  private _buildTiles(): DisplayTile[] {
+    return (this._config?.tiles || []).flatMap(tile => {
+      const result = configuredTile(tile, this.hass.states, entity => this._friendlyState(entity), this._t("common.unavailable"));
+      return result ? [result] : [];
+    });
   }
 
-  private _buildHeaderSummary(): string[] {
+  private _buildHeaderSummary(): DisplayTile[] {
     if (!this._config || !this.hass) {
       return [];
     }
 
     const automaticSummary: string[] = [];
-    const configuredSummary: string[] = [];
+    const configuredSummary: DisplayTile[] = [];
     const mower = this.hass.states[this._config.entity];
     if (!mower) {
-      return automaticSummary;
+      return [];
     }
 
     const error =
@@ -1130,23 +1067,14 @@ export class LawnMowerCard extends LitElement {
       automaticSummary.push(`${this._t("hero.battery")} ${battery}`);
     }
 
-    const configured = configuredHeaderSummaryEntities(
-      this._config.summary_entities,
-    );
-    if (configured.length) {
-      for (const entityId of configured) {
-        const entity = this.hass.states[entityId];
-        if (!entity || this._isUnavailableEntity(entity)) {
-          continue;
-        }
-        const label = entitySummaryLabel(
-          entityId,
-          entity,
-          this._preferredEntityLabel(entityId),
-        );
-        configuredSummary.push(`${label} ${this._friendlyState(entity)}`);
-      }
-    } else {
+    const configured = (this._config.summary_entities || []).map(summaryConfig);
+    const legacyHero = this._config.layout === "hero";
+    const mode = contentMode(this._config.summary_mode, legacyHero ? "custom" : "append");
+    for (const item of configured) {
+      const result = configuredTile(item, this.hass.states, entity => this._friendlyState(entity), this._t("common.unavailable"));
+      if (result) configuredSummary.push(result);
+    }
+    if (!configured.length || this._config.summary_mode === "auto" || this._config.summary_mode === "append") {
       const progressEntityId = this._config.progress_entity;
       const progressEntity = progressEntityId
         ? this.hass.states[progressEntityId]
@@ -1179,7 +1107,8 @@ export class LawnMowerCard extends LitElement {
       automaticSummary.push(rainDelay);
     }
 
-    return prioritizedHeaderSummary(configuredSummary, automaticSummary);
+    const automatic = automaticSummary.map(value => ({ label: "", value }));
+    return summaryItems(configuredSummary, automatic, mode, !configured.length && this._config.summary_mode === undefined);
   }
 
   private _resolvedControlEntities(): string[] {
@@ -1191,12 +1120,29 @@ export class LawnMowerCard extends LitElement {
     if (!this._config.entity || !this.hass?.states) {
       return [];
     }
-    return resolvedControlEntities(
+    const mode = contentMode(this._config.controls_mode, configured.length ? "custom" : "auto");
+    return [...new Set(selectContent(mode, configured, resolvedControlEntities(
       this.hass.states,
       this._config.entity,
-      configured,
+      [],
       this.hass.entities,
-    );
+    )))];
+  }
+
+  private _renderControlContent(controlEntities: string[], schedules: ScheduleControl[], hero = false) {
+    const groups = controlGroups(controlEntities, this._config!);
+    const inline = groups.inline.map(id => this._renderEntityControl(id));
+    const inlineContent = inline.length ? hero ? inline : html`<div class="selectors">${inline}</div>` : nothing;
+    const customFirst = this._config!.controls_mode === "append";
+    return html`
+      ${customFirst ? inlineContent : nothing}
+      ${schedules.length ? renderSchedulePanel(
+        schedules.map(control => ({ ...control, available: control.available && !Boolean(this._mutationInFlight) })),
+        (entityId, enabled) => this._toggleSwitch(entityId, enabled), this._t,
+      ) : nothing}
+      ${customFirst ? nothing : inlineContent}
+      ${this._renderDeviceSettingsControls(groups.settings)}
+      ${this._renderPreferenceControls(groups.preferences)}`;
   }
 
   private _renderEntityControl(entityId: string) {
@@ -1542,24 +1488,51 @@ export class LawnMowerCard extends LitElement {
       helperActions.push(...this._buildHelperActions());
     }
 
-    const customActions: Array<{
-      label: string;
-      icon?: string;
-      disabled: boolean;
-      handler: () => Promise<void> | void;
-    }> = [];
-    for (const action of this._config.actions || []) {
-      const built = this._buildConfiguredAction(action, mower);
-      if (built) {
-        customActions.push(built);
-      }
-    }
+    const customActions = this._buildCustomActions(mower);
 
     return [
       { title: this._t("action.controls"), actions: defaultActions },
       { title: this._t("action.helpers"), actions: helperActions },
       { title: this._t("action.custom"), actions: customActions },
     ].filter((group) => group.actions.length);
+  }
+
+  private _buildCustomActions(mower: HassEntity): DisplayAction[] {
+    return (this._config?.actions || []).flatMap(action => {
+      if (!conditionMatches(action.visibility, this.hass.states)) return [];
+      const built = this._buildConfiguredAction(action, mower);
+      if (!built) return [];
+      return [{ ...built, handler: () => {
+        if (action.confirmation) {
+          this._customActionTrigger = this.shadowRoot?.activeElement as HTMLElement | undefined;
+          this._pendingCustomAction = action;
+        } else return this._executeCustomAction(action);
+      }}];
+    });
+  }
+
+  private _executeCustomAction(action: LawnMowerActionConfig) {
+    // A changed configuration, state, or mutation lock invalidates a pending action.
+    if (!this._config?.actions?.includes(action) || !conditionMatches(action.visibility, this.hass.states)) return;
+    const mower = this.hass.states[this._config.entity];
+    if (!mower) return;
+    const current = this._buildConfiguredAction(action, mower);
+    if (current && !current.disabled) return current.handler();
+  }
+
+  private _closeCustomConfirmation() {
+    this._pendingCustomAction = undefined;
+    const trigger = this._customActionTrigger;
+    this._customActionTrigger = undefined;
+    void this.updateComplete.then(() => { if (trigger?.isConnected) trigger.focus(); });
+  }
+
+  private _renderCustomConfirmation() {
+    const action = this._pendingCustomAction;
+    if (!action) return undefined;
+    return html`<lawn-mower-action-confirmation .message=${action.confirmation!} .locale=${this._locale}
+      .onCancel=${() => this._closeCustomConfirmation()}
+      .onConfirm=${() => { this._closeCustomConfirmation(); return this._executeCustomAction(action); }}></lawn-mower-action-confirmation>`;
   }
 
   private _buildConfiguredAction(
@@ -1667,26 +1640,6 @@ export class LawnMowerCard extends LitElement {
           ? this._pressButton(helper.entityId)
           : this._showMoreInfo(helper.entityId),
     }));
-  }
-
-  private _tileFromEntity(entityId: string, fallbackLabel?: string, icon?: string) {
-    const entity = this.hass.states[entityId];
-    if (!entity || this._isUnavailableEntity(entity)) {
-      return {
-        label: fallbackLabel || this._preferredEntityLabel(entityId),
-        value: this._t("common.unavailable"),
-      };
-    }
-
-    const label =
-      fallbackLabel ||
-      this._friendlyName(entity) ||
-      this._preferredEntityLabel(entityId);
-    const value = this._friendlyState(entity);
-    return {
-      label: icon ? `${icon} ${label}` : label,
-      value,
-    };
   }
 
   private _friendlyState(entity: HassEntity): string {
