@@ -39,6 +39,16 @@ test("tiles format state or an attribute, preserve zero, and keep icons out of l
   const formatted = (entity: HassEntity) => `${entity.state} ${entity.attributes.unit_of_measurement}`;
   assert.deepEqual(configuredTile({entity:id},states,formatted,"Unavailable"), {label:"Blade life",value:"78 %",icon:"mdi:content-cut",unavailable:false});
   assert.equal(configuredTile({entity:id,attribute:"remaining",unit:"h"},states,formatted,"Unavailable")?.value,"0 h");
+  assert.equal(
+    configuredTile(
+      {entity:id,attribute:"remaining"},
+      states,
+      formatted,
+      "Unavailable",
+      (_entity, attribute, value) => `${attribute}: ${value}`,
+    )?.value,
+    "remaining: 0",
+  );
   assert.equal(configuredTile({entity:id,unit:""},states,formatted,"Unavailable")?.value,"78");
   assert.equal(summaryConfig(id).entity,id);
   const custom = {entity:id,label:"Custom"};

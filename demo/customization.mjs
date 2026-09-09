@@ -14,13 +14,23 @@ entity("binary_sensor.garden_rain", "off", { friendly_name:"Rain detected", icon
 entity("select.demo_mowing_height", "45 mm", { friendly_name:"Cutting height", options:["35 mm","45 mm","55 mm"] });
 entity("switch.demo_evening_schedule", "on", { friendly_name:"Evening schedule" });
 entity("script.mower_evening", "off", { friendly_name:"Evening routine" });
+entity("sensor.mower_state_name", query.get("stateName") || "charging_completed", { friendly_name:"State" });
+entity("select.mower_mowing_action", "All area", { friendly_name:"Akcja koszenia", options:["All area","Edge","Zone","Spot"] });
+entity("select.mower_selected_map_display_rotation", "0 degrees", { friendly_name:"Obrót mapy", options:["0 degrees","90 degrees clockwise","180 degrees","270 degrees clockwise"] });
+entity("select.mower_rain_delay", "2 hours", { friendly_name:"Opóźnienie po deszczu", options:["Until manually started","1 hour","2 hours","12 hours"] });
+entity("select.mower_voice_language", "German", { friendly_name:"Język komunikatów", options:["English","German","Polish"] });
+entity("select.mower_zone", "North-East", { friendly_name:"Strefa", options:["North-East","front_yard"] });
+entity("sensor.mower_service_remaining", "52", { friendly_name:"Robot maintenance remaining", unit_of_measurement:"h", icon:"mdi:tools" });
+entity("sensor.mower_brush_remaining", "257", { friendly_name:"Cleaning brush remaining", unit_of_measurement:"h", icon:"mdi:brush" });
 // Custom garden entities need not belong to the mower device.
 for (const id of ["sensor.garden_temperature","binary_sensor.garden_rain","script.mower_evening"]) delete hass.entities[id];
 
-const example = () => ({
+const example = () => {
+  const requestedColumns=Number(query.get("columns"));
+  const base = {
   type:"custom:lawn-mower-card", entity:"lawn_mower.demo", name:"Backyard mower", layout:"hero",
   hero_layout:query.get("composition") === "dashboard" ? "dashboard" : "cinematic",
-  locale:query.get("locale") || "en", hero_theme:"auto", hero_density:"comfortable", tile_columns:3,
+  locale:query.get("locale") || "en", hero_theme:"auto", hero_density:"comfortable", tile_columns:Number.isInteger(requestedColumns)&&requestedColumns>=1&&requestedColumns<=4?requestedColumns:3,
   appearance:query.get("preset") === "legacy" ? undefined : query.get("preset") || "native",
   surface:query.get("surface") || "solid",
   map_entity:"image.demo_map", show_map:true, show_point_cloud:false, camera_entity:"camera.demo",
@@ -42,7 +52,35 @@ const example = () => ({
     { type:"more-info", label:"Blade details", icon:"mdi:information-outline", entity:"sensor.mower_blade_life" },
     { type:"pause", label:"Pause for rain", icon:"mdi:weather-rainy", visibility:{entity:"binary_sensor.garden_rain",state:"on"} },
   ],
-});
+  };
+  if (query.get("fixture") !== "translations") return base;
+  return {
+    ...base,
+    name:"Bodzio",
+    summary_entities:[
+      { entity:"sensor.mower_state_name", label:"Stan" },
+      { entity:"select.mower_mowing_action", label:"Akcja" },
+      { entity:"select.mower_selected_map_display_rotation", label:"Obrót" },
+    ],
+    control_entities:[
+      "select.mower_mowing_action",
+      "select.mower_selected_map_display_rotation",
+      "select.mower_rain_delay",
+      "select.mower_voice_language",
+      "select.mower_zone",
+    ],
+    tiles:[
+      { entity:"sensor.mower_service_remaining", label:"Service", icon:"mdi:tools" },
+      { entity:"sensor.mower_blade_life", attribute:"remaining_hours", unit:"h", label:"Ostrze", icon:"mdi:content-cut" },
+      { entity:"sensor.mower_brush_remaining", label:"Szczotka", icon:"mdi:brush" },
+    ],
+    actions:[
+      { type:"service", label:"Resetuj service", icon:"mdi:restart", service:"button.press", service_data:{entity_id:"button.mower_reset_service"} },
+      { type:"service", label:"Resetuj ostrze", icon:"mdi:restart", service:"button.press", service_data:{entity_id:"button.mower_reset_blade"} },
+      { type:"service", label:"Resetuj szczotkę", icon:"mdi:restart", service:"button.press", service_data:{entity_id:"button.mower_reset_brush"} },
+    ],
+  };
+};
 let config = example();
 
 function renderConfig() {

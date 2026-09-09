@@ -65,6 +65,11 @@ export function configuredTile(
   states: Record<string, HassEntity>,
   friendlyState: (entity: HassEntity) => string,
   unavailableLabel: string,
+  friendlyAttribute?: (
+    entity: HassEntity,
+    attribute: string,
+    value: unknown,
+  ) => string,
 ): DisplayTile | undefined {
   if (!conditionMatches(config.visibility, states)) return undefined;
   const entity = states[config.entity];
@@ -73,7 +78,14 @@ export function configuredTile(
   if (unavailable && !config.show_unavailable) return undefined;
   const label = config.label || (typeof entity?.attributes.friendly_name === "string" ? entity.attributes.friendly_name : config.entity);
   const icon = config.icon || (typeof entity?.attributes.icon === "string" ? entity.attributes.icon : undefined);
-  const value = unavailable ? unavailableLabel : config.attribute || config.unit !== undefined
-    ? `${String(raw)}${config.unit ? ` ${config.unit}` : ""}` : friendlyState(entity!);
+  const value = unavailable
+    ? unavailableLabel
+    : config.attribute
+      ? config.unit !== undefined
+        ? `${String(raw)}${config.unit ? ` ${config.unit}` : ""}`
+        : friendlyAttribute?.(entity!, config.attribute, raw) ?? String(raw)
+      : config.unit !== undefined
+        ? `${String(raw)}${config.unit ? ` ${config.unit}` : ""}`
+        : friendlyState(entity!);
   return { label, icon, value, unavailable };
 }

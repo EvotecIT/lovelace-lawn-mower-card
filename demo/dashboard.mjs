@@ -38,7 +38,7 @@ ctx.fillText("Main lawn",370,175);ctx.fillText("Side lawn",165,530);ctx.fillText
 const png = canvas.toDataURL("image/png");
 let sceneUrl;
 const hass = {
-  language:query.get("locale") || "en",
+  language:query.get("hassLocale") || query.get("locale") || "en",
   states:{}, entities:{}, services:{lawn_mower:{start_mowing:{},pause:{},dock:{}}},
   async callWS(message) { return { path: message.path }; },
   hassUrl(route) {
@@ -56,6 +56,7 @@ const hass = {
     document.getElementById("events").textContent = `Simulated ${domain}.${service}; no device connection.`;
   },
 };
+if (query.has("formattedState")) hass.formatEntityState=()=>query.get("formattedState");
 const entity = (id,state,attributes) => {
   hass.states[id]={entity_id:id,state,attributes,last_updated:new Date().toISOString()};
   hass.entities[id]={platform:"dreame_lawn_mower",device_id:"dashboard-demo"};
