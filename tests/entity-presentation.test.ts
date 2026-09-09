@@ -213,6 +213,16 @@ test("registry hints do not translate user-owned labels or dynamic option values
   );
   assert.equal(
     translatedDreameEntityValue(
+      "select.personal_mowing_action",
+      "All area",
+      "pl",
+      t,
+      { platform: "other", translation_key: "mowing_action" },
+    ),
+    "All area",
+  );
+  assert.equal(
+    translatedDreameEntityValue(
       "select.personal_choice",
       "All area",
       "pl",

@@ -118,6 +118,12 @@ export function entityMatchesDreameRole(
   metadata: EntityRegistryPresentationMetadata | undefined,
   ...roles: readonly string[]
 ): boolean {
+  if (
+    metadata?.platform &&
+    metadata.platform !== "dreame_lawn_mower"
+  ) {
+    return false;
+  }
   const objectId = entityId.slice(entityId.indexOf(".") + 1);
   const canonicalRole =
     metadata?.platform === "dreame_lawn_mower"

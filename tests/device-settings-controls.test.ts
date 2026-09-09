@@ -33,6 +33,13 @@ test("device setting controls are classified without absorbing mowing preference
     "rain",
   );
   assert.equal(
+    deviceSettingControlGroup("select.personal_rain_delay", {
+      platform: "other",
+      translation_key: "rain_delay",
+    }),
+    undefined,
+  );
+  assert.equal(
     deviceSettingControlGroup("switch.garden_lift_alarm"),
     "anti_theft",
   );

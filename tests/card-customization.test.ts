@@ -36,6 +36,19 @@ test("registry-renamed device settings retain automatic settings grouping", () =
   assert.deepEqual(controlGroups([id], config, metadata).inline, []);
 });
 
+test("other integrations are not grouped as Dreame settings by suffix", () => {
+  const id = "select.personal_rain_delay";
+  const metadata = {
+    [id]: {
+      platform: "other",
+      translation_key: "rain_delay",
+    },
+  };
+
+  assert.deepEqual(controlGroups([id], config, metadata).settings, []);
+  assert.deepEqual(controlGroups([id], config, metadata).inline, [id]);
+});
+
 test("visibility tracks raw entity state and fails closed for missing or unavailable sources", () => {
   const condition = { entity:"binary_sensor.rain", state:"on" };
   assert.equal(conditionMatches(undefined, {}), true);
