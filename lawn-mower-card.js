@@ -26,8 +26,8 @@ var Gn=Object.defineProperty;var Xn=Object.getOwnPropertyDescriptor;var b=(t,n,e
       ${i.icon?d`<ha-icon .icon=${i.icon} aria-hidden="true"></ha-icon>`:l}<span>${i.label}</span>
     </button>`)}</div>${e||l}
   </section>`:l}var Yi=y`
-  .custom-summary { display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
-  .custom-chip { display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:18px; background:var(--mower-surface,var(--secondary-background-color)); font-size:12px; min-width:0; max-width:100%; color:var(--mower-muted,var(--secondary-text-color)); overflow-wrap:anywhere; }
+  .custom-summary { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; min-width:0; }
+  .custom-chip { box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:18px; background:var(--mower-surface,var(--secondary-background-color)); font-size:12px; min-width:0; max-width:100%; color:var(--mower-muted,var(--secondary-text-color)); overflow-wrap:anywhere; }
   .custom-chip strong { color:var(--mower-text,var(--primary-text-color)); font-weight:600; }
   .custom-chip ha-icon { --mdc-icon-size:16px; flex:none; }
   .custom-tiles { --custom-tile-gap:10px; display:grid; grid-template-columns:repeat(var(--custom-columns,auto-fit),minmax(min(140px,100%),1fr)); gap:var(--custom-tile-gap); min-width:0; }
@@ -2561,11 +2561,11 @@ var Gn=Object.defineProperty;var Xn=Object.getOwnPropertyDescriptor;var b=(t,n,e
               <div class="title-block">
                 <div class="title">${i}</div>
                 <div class="subtitle">${a}</div>
-                ${ne(f)}
               </div>
               <div class=${`state-pill state-${e.state}`}>${this._friendlyMowerState(e.state)}</div>
             </div>
 
+            ${ne(f)}
             ${c?d`
                   <div class="map">
                     ${P(r?.attributes.mowing_map_api_path)?d`<lawn-mower-mowing-map style="height:320px"

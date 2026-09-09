@@ -28,8 +28,8 @@ export function renderCustomActions(actions: DisplayAction[], title: string, con
 }
 
 export const customizationStyles = css`
-  .custom-summary { display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
-  .custom-chip { display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:18px; background:var(--mower-surface,var(--secondary-background-color)); font-size:12px; min-width:0; max-width:100%; color:var(--mower-muted,var(--secondary-text-color)); overflow-wrap:anywhere; }
+  .custom-summary { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; min-width:0; }
+  .custom-chip { box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:18px; background:var(--mower-surface,var(--secondary-background-color)); font-size:12px; min-width:0; max-width:100%; color:var(--mower-muted,var(--secondary-text-color)); overflow-wrap:anywhere; }
   .custom-chip strong { color:var(--mower-text,var(--primary-text-color)); font-weight:600; }
   .custom-chip ha-icon { --mdc-icon-size:16px; flex:none; }
   .custom-tiles { --custom-tile-gap:10px; display:grid; grid-template-columns:repeat(var(--custom-columns,auto-fit),minmax(min(140px,100%),1fr)); gap:var(--custom-tile-gap); min-width:0; }
