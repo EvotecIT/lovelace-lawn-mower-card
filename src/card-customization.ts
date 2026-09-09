@@ -1,4 +1,4 @@
-import type { ContentMode, DisplayCondition, HassEntity, LawnMowerCardConfig, LawnMowerTileConfig } from "./card-config.ts";
+import type { ContentMode, DisplayCondition, HassEntity, HomeAssistant, LawnMowerCardConfig, LawnMowerTileConfig } from "./card-config.ts";
 import { isPreferenceControlEntity } from "./card-logic.ts";
 import { isDeviceSettingControlEntity } from "./device-settings-controls.ts";
 
@@ -49,13 +49,19 @@ export function summaryItems(configured: DisplayTile[], automatic: DisplayTile[]
 }
 
 /** Explicit modes preserve list order, including controls normally grouped by discovery. */
-export function controlGroups(entityIds: string[], config: LawnMowerCardConfig) {
+export function controlGroups(
+  entityIds: string[],
+  config: LawnMowerCardConfig,
+  metadata?: HomeAssistant["entities"],
+) {
   const explicit = config.controls_mode === "custom" || config.controls_mode === "append"
     ? new Set(config.control_entities || []) : new Set<string>();
+  const isDeviceSetting = (entityId: string) =>
+    isDeviceSettingControlEntity(entityId, metadata?.[entityId]);
   return {
-    inline: entityIds.filter(id => explicit.has(id) || (!isPreferenceControlEntity(id) && !isDeviceSettingControlEntity(id))),
+    inline: entityIds.filter(id => explicit.has(id) || (!isPreferenceControlEntity(id) && !isDeviceSetting(id))),
     preferences: entityIds.filter(id => !explicit.has(id) && isPreferenceControlEntity(id)),
-    settings: entityIds.filter(id => !explicit.has(id) && isDeviceSettingControlEntity(id)),
+    settings: entityIds.filter(id => !explicit.has(id) && isDeviceSetting(id)),
   };
 }
 

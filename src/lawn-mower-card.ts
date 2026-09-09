@@ -1154,7 +1154,11 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _renderControlContent(controlEntities: string[], schedules: ScheduleControl[], hero = false) {
-    const groups = controlGroups(controlEntities, this._config!);
+    const groups = controlGroups(
+      controlEntities,
+      this._config!,
+      this.hass.entities,
+    );
     const inline = groups.inline.map(id => this._renderEntityControl(id));
     const inlineContent = inline.length ? hero ? inline : html`<div class="selectors">${inline}</div>` : nothing;
     const customFirst = this._config!.controls_mode === "append";
@@ -1415,6 +1419,11 @@ export class LawnMowerCard extends LitElement {
       this.hass.states,
       (entityId) => this._renderEntityControl(entityId),
       this._t,
+      this.hass.entities,
+      (entityId, state) => {
+        const entity = this.hass.states[entityId];
+        return entity ? this._friendlyState(entity, state) : undefined;
+      },
     );
   }
 
@@ -1680,6 +1689,7 @@ export class LawnMowerCard extends LitElement {
       raw,
       this._locale,
       this._t,
+      this.hass.entities?.[entity.entity_id],
     );
     if (translated) {
       return translated;

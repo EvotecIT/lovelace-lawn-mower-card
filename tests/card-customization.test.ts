@@ -23,6 +23,19 @@ test("explicit control order includes settings that automatic discovery normally
   assert.deepEqual(controlGroups(ids, config).inline, [ids[1]]);
 });
 
+test("registry-renamed device settings retain automatic settings grouping", () => {
+  const id = "select.delay_after_weather";
+  const metadata = {
+    [id]: {
+      platform: "dreame_lawn_mower",
+      translation_key: "rain_delay",
+    },
+  };
+
+  assert.deepEqual(controlGroups([id], config, metadata).settings, [id]);
+  assert.deepEqual(controlGroups([id], config, metadata).inline, []);
+});
+
 test("visibility tracks raw entity state and fails closed for missing or unavailable sources", () => {
   const condition = { entity:"binary_sensor.rain", state:"on" };
   assert.equal(conditionMatches(undefined, {}), true);

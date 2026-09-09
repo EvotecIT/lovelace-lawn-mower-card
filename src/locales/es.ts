@@ -143,6 +143,8 @@ export const es = {
   "option.mowAtAngle": "Corte en ángulo",
   "option.checkerboard": "Tablero de ajedrez",
   "option.lawnCare": "Cuidado del césped",
+  "option.alongLine": "A lo largo de la línea",
+  "option.sideCutting": "Corte lateral",
   "option.rotationClockwise": "{degrees}° en sentido horario",
   "option.untilManuallyStarted": "Hasta el inicio manual",
   "option.hours": {

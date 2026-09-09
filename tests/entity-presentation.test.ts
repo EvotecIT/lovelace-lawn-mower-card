@@ -120,6 +120,24 @@ test("legacy Dreame fixed values are localized while dynamic labels stay untouch
   );
   assert.equal(
     translatedDreameEntityValue(
+      "select.garden_selected_edge_mowing_walk_mode",
+      "Along line",
+      "pl",
+      t,
+    ),
+    "Wzdłuż linii",
+  );
+  assert.equal(
+    translatedDreameEntityValue(
+      "select.garden_selected_edge_cutting_style",
+      "Side cutting",
+      "pl",
+      t,
+    ),
+    "Koszenie boczne",
+  );
+  assert.equal(
+    translatedDreameEntityValue(
       "select.garden_voice_language",
       "German",
       "pl",
@@ -134,6 +152,88 @@ test("legacy Dreame fixed values are localized while dynamic labels stay untouch
   assert.equal(
     translatedDreameEntityValue("select.garden_spot", "front_yard", "pl", t),
     "front_yard",
+  );
+});
+
+test("registry metadata preserves fixed-value localization after entity IDs are renamed", () => {
+  const t = createTranslator("pl");
+  const fixedValues = [
+    ["state_name", "charging_completed", "Ładowanie zakończone"],
+    ["selected_mowing_action", "All area", "Cały obszar"],
+    ["selected_map_display_rotation", "90 degrees", "90°"],
+    ["selected_map_preference_mode", "Custom", "Niestandardowe"],
+    ["selected_zone_efficiency_mode", "Efficient", "Wydajne"],
+    ["selected_zone_direction_mode", "Checkerboard", "Szachownica"],
+    ["selected_edge_cutting_style", "Side cutting", "Koszenie boczne"],
+    ["rain_delay", "8 hours", "8 godzin"],
+    ["voice_language", "German", "niemiecki"],
+  ] as const;
+
+  for (const [translationKey, value, expected] of fixedValues) {
+    assert.equal(
+      translatedDreameEntityValue(
+        "select.my_renamed_entity",
+        value,
+        "pl",
+        t,
+        {
+          platform: "dreame_lawn_mower",
+          translation_key: translationKey,
+        },
+      ),
+      expected,
+      translationKey,
+    );
+  }
+
+  assert.equal(
+    translatedDreameEntityValue(
+      "sensor.renamed_status",
+      "smart_charging",
+      "pl",
+      t,
+      { platform: "dreame_lawn_mower", name: "State name" },
+    ),
+    "Inteligentne ładowanie",
+  );
+});
+
+test("registry hints do not translate user-owned labels or dynamic option values", () => {
+  const t = createTranslator("pl");
+
+  assert.equal(
+    translatedDreameEntityValue(
+      "select.personal_choice",
+      "All area",
+      "pl",
+      t,
+      { name: "Mowing action" },
+    ),
+    "All area",
+  );
+  assert.equal(
+    translatedDreameEntityValue(
+      "select.personal_choice",
+      "All area",
+      "pl",
+      t,
+      { platform: "other", translation_key: "mowing_action" },
+    ),
+    "All area",
+  );
+  assert.equal(
+    translatedDreameEntityValue(
+      "select.user_named_mowing_action",
+      "All area",
+      "pl",
+      t,
+      {
+        platform: "dreame_lawn_mower",
+        translation_key: "selected_zone",
+        name: "Mowing action",
+      },
+    ),
+    "All area",
   );
 });
 

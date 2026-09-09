@@ -9,6 +9,8 @@ import {
   timeInputValue,
   timeServiceValue,
 } from "../src/device-settings-controls.ts";
+import { translatedDreameEntityValue } from "../src/entity-presentation.ts";
+import { createTranslator } from "../src/localization.ts";
 
 test("device setting controls are classified without absorbing mowing preferences", () => {
   assert.equal(
@@ -21,6 +23,13 @@ test("device setting controls are classified without absorbing mowing preference
   );
   assert.equal(
     deviceSettingControlGroup("select.garden_rain_delay"),
+    "rain",
+  );
+  assert.equal(
+    deviceSettingControlGroup("select.my_delay", {
+      platform: "dreame_lawn_mower",
+      translation_key: "rain_delay",
+    }),
     "rain",
   );
   assert.equal(
@@ -87,5 +96,41 @@ test("device settings summary keeps disabled features explicit", () => {
   assert.equal(
     deviceSettingsSummary(entities, Object.keys(entities)),
     "Charging off · Rain protection off",
+  );
+});
+
+test("device settings summary presents rain delay through the card locale", () => {
+  const entities = {
+    "switch.weather_guard": { state: "on" },
+    "select.delay_after_weather": { state: "8 hours" },
+  };
+  const metadata = {
+    "switch.weather_guard": {
+      platform: "dreame_lawn_mower",
+      translation_key: "rain_protection",
+    },
+    "select.delay_after_weather": {
+      platform: "dreame_lawn_mower",
+      translation_key: "rain_delay",
+    },
+  };
+  const t = createTranslator("pl");
+
+  assert.equal(
+    deviceSettingsSummary(
+      entities,
+      Object.keys(entities),
+      t,
+      metadata,
+      (entityId, state) =>
+        translatedDreameEntityValue(
+          entityId,
+          state,
+          "pl",
+          t,
+          metadata[entityId as keyof typeof metadata],
+        ),
+    ),
+    "Opóźnienie po deszczu: 8 godzin",
   );
 });

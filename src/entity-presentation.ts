@@ -57,6 +57,8 @@ const DIRECTION_MODES: Readonly<Record<string, TranslationKey>> = {
 const EDGE_STYLES: Readonly<Record<string, TranslationKey>> = {
   "lawn care": "option.lawnCare",
   efficient: "option.efficient",
+  "along line": "option.alongLine",
+  "side cutting": "option.sideCutting",
 };
 
 const VOICE_LANGUAGE_CODES: Readonly<Record<string, string>> = {
@@ -93,6 +95,57 @@ function translatedOption(
 ): string | undefined {
   const key = options[value];
   return key ? t(key) : undefined;
+}
+
+export type EntityRegistryPresentationMetadata = NonNullable<
+  HomeAssistant["entities"]
+>[string];
+
+function normalizedEntityRole(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+/** Match semantic roles while treating a Dreame translation key as canonical. */
+export function entityMatchesDreameRole(
+  entityId: string,
+  metadata: EntityRegistryPresentationMetadata | undefined,
+  ...roles: readonly string[]
+): boolean {
+  const objectId = entityId.slice(entityId.indexOf(".") + 1);
+  const canonicalRole =
+    metadata?.platform === "dreame_lawn_mower"
+      ? normalizedEntityRole(metadata.translation_key)
+      : undefined;
+  const candidates: Array<string | undefined> = canonicalRole
+    ? [canonicalRole]
+    : [
+        objectId,
+        metadata?.platform === "dreame_lawn_mower"
+          ? metadata.name
+          : undefined,
+      ];
+  const normalizedCandidates = candidates
+    .map(normalizedEntityRole)
+    .filter((candidate): candidate is string => Boolean(candidate));
+
+  return roles.some((role) => {
+    const normalizedRole = normalizedEntityRole(role);
+    return Boolean(
+      normalizedRole &&
+        normalizedCandidates.some(
+          (candidate) =>
+            candidate === normalizedRole ||
+            candidate.endsWith(`_${normalizedRole}`),
+        ),
+    );
+  });
 }
 
 /** True only when Home Assistant's formatter uses the card's effective locale. */
@@ -150,23 +203,32 @@ export function translatedDreameEntityValue(
   rawValue: string,
   locale: SupportedLocale,
   t: Translator,
+  metadata?: EntityRegistryPresentationMetadata,
 ): string | undefined {
   const value = normalizedValue(rawValue);
 
-  if (entityId.endsWith("_state_name")) {
+  if (entityMatchesDreameRole(entityId, metadata, "state_name")) {
     return translatedOption(MOWER_STATES, value, t);
   }
 
   if (
-    entityId.endsWith("_mowing_action") ||
-    entityId.endsWith("_selected_mowing_action")
+    entityMatchesDreameRole(
+      entityId,
+      metadata,
+      "mowing_action",
+      "selected_mowing_action",
+    )
   ) {
     return translatedOption(MOWING_ACTIONS, value, t);
   }
 
   if (
-    entityId.endsWith("_selected_map_display_rotation") ||
-    entityId.endsWith("_selected_map_rotation")
+    entityMatchesDreameRole(
+      entityId,
+      metadata,
+      "selected_map_display_rotation",
+      "selected_map_rotation",
+    )
   ) {
     const rotation = value.match(/^(0|90|180|270)(?: degrees?)?( clockwise)?$/);
     if (rotation) {
@@ -177,34 +239,52 @@ export function translatedDreameEntityValue(
     }
   }
 
-  if (entityId.endsWith("_selected_map_preference_mode")) {
+  if (
+    entityMatchesDreameRole(
+      entityId,
+      metadata,
+      "selected_map_preference_mode",
+    )
+  ) {
     return translatedOption(PREFERENCE_MODES, value, t);
   }
 
   if (
-    entityId.endsWith("_selected_mowing_efficiency") ||
-    entityId.endsWith("_selected_efficient_mode") ||
-    entityId.endsWith("_selected_zone_efficiency_mode")
+    entityMatchesDreameRole(
+      entityId,
+      metadata,
+      "selected_mowing_efficiency",
+      "selected_efficient_mode",
+      "selected_zone_efficiency_mode",
+    )
   ) {
     return translatedOption(EFFICIENCY_MODES, value, t);
   }
 
   if (
-    entityId.endsWith("_selected_mowing_direction_mode") ||
-    entityId.endsWith("_selected_zone_direction_mode")
+    entityMatchesDreameRole(
+      entityId,
+      metadata,
+      "selected_mowing_direction_mode",
+      "selected_zone_direction_mode",
+    )
   ) {
     return translatedOption(DIRECTION_MODES, value, t);
   }
 
   if (
-    entityId.endsWith("_selected_turning_method") ||
-    entityId.endsWith("_selected_edge_cutting_style") ||
-    entityId.endsWith("_selected_edge_mowing_walk_mode")
+    entityMatchesDreameRole(
+      entityId,
+      metadata,
+      "selected_turning_method",
+      "selected_edge_cutting_style",
+      "selected_edge_mowing_walk_mode",
+    )
   ) {
     return translatedOption(EDGE_STYLES, value, t);
   }
 
-  if (entityId.endsWith("_rain_delay")) {
+  if (entityMatchesDreameRole(entityId, metadata, "rain_delay")) {
     if (value === "until manually started") {
       return t("option.untilManuallyStarted");
     }
@@ -214,7 +294,7 @@ export function translatedDreameEntityValue(
     }
   }
 
-  if (entityId.endsWith("_voice_language")) {
+  if (entityMatchesDreameRole(entityId, metadata, "voice_language")) {
     const language = VOICE_LANGUAGE_CODES[value];
     if (!language) return undefined;
     try {

@@ -160,6 +160,8 @@ export const en = {
   "option.mowAtAngle": "Mow at angle",
   "option.checkerboard": "Checkerboard",
   "option.lawnCare": "Lawn care",
+  "option.alongLine": "Along line",
+  "option.sideCutting": "Side cutting",
   "option.rotationClockwise": "{degrees}° clockwise",
   "option.untilManuallyStarted": "Until manually started",
   "option.hours": {

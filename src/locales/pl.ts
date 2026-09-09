@@ -143,6 +143,8 @@ export const pl = {
   "option.mowAtAngle": "Koszenie pod kątem",
   "option.checkerboard": "Szachownica",
   "option.lawnCare": "Pielęgnacja trawnika",
+  "option.alongLine": "Wzdłuż linii",
+  "option.sideCutting": "Koszenie boczne",
   "option.rotationClockwise": "{degrees}° zgodnie z ruchem wskazówek zegara",
   "option.untilManuallyStarted": "Do ręcznego uruchomienia",
   "option.hours": {
