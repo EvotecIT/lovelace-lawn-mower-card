@@ -1,4 +1,8 @@
 import { createTranslator, type Translator } from "./localization.ts";
+import {
+  entityMatchesDreameRole,
+  type EntityRegistryPresentationMetadata,
+} from "./entity-presentation.ts";
 
 export type DeviceSettingControlGroup = "charging" | "rain" | "anti_theft";
 
@@ -7,26 +11,36 @@ export type DeviceSettingEntity = {
   attributes?: Record<string, unknown>;
 };
 
-const CHARGING_CONTROL_SUFFIXES = [
-  "_charging_period",
-  "_charging_period_start",
-  "_charging_period_end",
+export type DeviceSettingStatePresenter = (
+  entityId: string,
+  state: string,
+) => string | undefined;
+
+export type DeviceSettingEntityMetadata = Record<
+  string,
+  EntityRegistryPresentationMetadata | undefined
+>;
+
+const CHARGING_CONTROL_ROLES = [
+  "charging_period",
+  "charging_period_start",
+  "charging_period_end",
 ] as const;
 
-const RAIN_CONTROL_SUFFIXES = [
-  "_rain_protection",
-  "_rain_delay",
+const RAIN_CONTROL_ROLES = [
+  "rain_protection",
+  "rain_delay",
 ] as const;
 
-const ANTI_THEFT_CONTROL_SUFFIXES = [
-  "_lift_alarm",
-  "_lift_alarm_enabled",
-  "_off_map_alarm",
-  "_off_map_alarm_enabled",
-  "_real_time_location",
-  "_real_time_location_enabled",
-  "_pin_check_before_power_off",
-  "_pin_check_before_power_off_enabled",
+const ANTI_THEFT_CONTROL_ROLES = [
+  "lift_alarm",
+  "lift_alarm_enabled",
+  "off_map_alarm",
+  "off_map_alarm_enabled",
+  "real_time_location",
+  "real_time_location_enabled",
+  "pin_check_before_power_off",
+  "pin_check_before_power_off_enabled",
 ] as const;
 
 const unavailableStates = new Set(["", "unknown", "unavailable"]);
@@ -35,21 +49,37 @@ const timePattern =
 
 export function deviceSettingControlGroup(
   entityId: string,
+  metadata?: EntityRegistryPresentationMetadata,
 ): DeviceSettingControlGroup | undefined {
-  if (CHARGING_CONTROL_SUFFIXES.some((suffix) => entityId.endsWith(suffix))) {
+  if (
+    CHARGING_CONTROL_ROLES.some((role) =>
+      entityMatchesDreameRole(entityId, metadata, role),
+    )
+  ) {
     return "charging";
   }
-  if (RAIN_CONTROL_SUFFIXES.some((suffix) => entityId.endsWith(suffix))) {
+  if (
+    RAIN_CONTROL_ROLES.some((role) =>
+      entityMatchesDreameRole(entityId, metadata, role),
+    )
+  ) {
     return "rain";
   }
-  if (ANTI_THEFT_CONTROL_SUFFIXES.some((suffix) => entityId.endsWith(suffix))) {
+  if (
+    ANTI_THEFT_CONTROL_ROLES.some((role) =>
+      entityMatchesDreameRole(entityId, metadata, role),
+    )
+  ) {
     return "anti_theft";
   }
   return undefined;
 }
 
-export function isDeviceSettingControlEntity(entityId: string): boolean {
-  return deviceSettingControlGroup(entityId) !== undefined;
+export function isDeviceSettingControlEntity(
+  entityId: string,
+  metadata?: EntityRegistryPresentationMetadata,
+): boolean {
+  return deviceSettingControlGroup(entityId, metadata) !== undefined;
 }
 
 function normalizedTimeValue(
@@ -98,9 +128,12 @@ export function timeServiceValue(value: unknown): string | undefined {
 function entityState(
   entities: Record<string, DeviceSettingEntity | undefined>,
   entityIds: readonly string[],
-  suffix: string,
+  role: string,
+  metadata?: DeviceSettingEntityMetadata,
 ): string | undefined {
-  const entityId = entityIds.find((candidate) => candidate.endsWith(suffix));
+  const entityId = entityIds.find((candidate) =>
+    entityMatchesDreameRole(candidate, metadata?.[candidate], role),
+  );
   const state = entityId ? entities[entityId]?.state.trim() : undefined;
   return state && !unavailableStates.has(state.toLowerCase()) ? state : undefined;
 }
@@ -109,18 +142,21 @@ export function deviceSettingsSummary(
   entities: Record<string, DeviceSettingEntity | undefined>,
   entityIds: readonly string[],
   t: Translator = createTranslator("en"),
+  metadata?: DeviceSettingEntityMetadata,
+  presentState?: DeviceSettingStatePresenter,
 ): string | undefined {
   const summary: string[] = [];
   const chargingEnabled = entityState(
     entities,
     entityIds,
-    "_charging_period",
+    "charging_period",
+    metadata,
   );
   const chargingStart = timeInputValue(
-    entityState(entities, entityIds, "_charging_period_start"),
+    entityState(entities, entityIds, "charging_period_start", metadata),
   );
   const chargingEnd = timeInputValue(
-    entityState(entities, entityIds, "_charging_period_end"),
+    entityState(entities, entityIds, "charging_period_end", metadata),
   );
   if (chargingEnabled === "on") {
     summary.push(
@@ -134,8 +170,25 @@ export function deviceSettingsSummary(
     summary.push(t("settings.chargingPeriod", { start: chargingStart, end: chargingEnd }));
   }
 
-  const rainEnabled = entityState(entities, entityIds, "_rain_protection");
-  const rainDelay = entityState(entities, entityIds, "_rain_delay");
+  const rainEnabled = entityState(
+    entities,
+    entityIds,
+    "rain_protection",
+    metadata,
+  );
+  const rainDelayEntityId = entityIds.find((candidate) =>
+    entityMatchesDreameRole(candidate, metadata?.[candidate], "rain_delay"),
+  );
+  const rawRainDelay = entityState(
+    entities,
+    entityIds,
+    "rain_delay",
+    metadata,
+  );
+  const rainDelay =
+    rawRainDelay && rainDelayEntityId
+      ? presentState?.(rainDelayEntityId, rawRainDelay) ?? rawRainDelay
+      : rawRainDelay;
   if (rainEnabled === "on") {
     summary.push(rainDelay ? t("settings.rainDelay", { delay: rainDelay }) : t("settings.rainOn"));
   } else if (rainEnabled === "off") {
@@ -145,7 +198,9 @@ export function deviceSettingsSummary(
   }
 
   const antiTheftIds = entityIds.filter(
-    (entityId) => deviceSettingControlGroup(entityId) === "anti_theft",
+    (entityId) =>
+      deviceSettingControlGroup(entityId, metadata?.[entityId]) ===
+      "anti_theft",
   );
   const antiTheftStates = antiTheftIds
     .map((entityId) => entities[entityId]?.state.trim().toLowerCase())

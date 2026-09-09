@@ -5,6 +5,8 @@ import {
   deviceSettingsSummary,
   type DeviceSettingEntity,
   type DeviceSettingControlGroup,
+  type DeviceSettingEntityMetadata,
+  type DeviceSettingStatePresenter,
 } from "./device-settings-controls";
 import type { Translator, TranslationKey } from "./localization";
 
@@ -130,6 +132,8 @@ export function renderDeviceSettingsPanel(
   entities: Record<string, DeviceSettingEntity | undefined>,
   renderControl: (entityId: string) => TemplateResult | typeof nothing,
   t: Translator,
+  metadata?: DeviceSettingEntityMetadata,
+  presentState?: DeviceSettingStatePresenter,
 ): TemplateResult | typeof nothing {
   if (!entityIds.length) {
     return nothing;
@@ -139,11 +143,18 @@ export function renderDeviceSettingsPanel(
     .map((group) => ({
       group,
       entityIds: entityIds.filter(
-        (entityId) => deviceSettingControlGroup(entityId) === group,
+        (entityId) =>
+          deviceSettingControlGroup(entityId, metadata?.[entityId]) === group,
       ),
     }))
     .filter(({ entityIds: groupEntityIds }) => groupEntityIds.length);
-  const summary = deviceSettingsSummary(entities, entityIds, t);
+  const summary = deviceSettingsSummary(
+    entities,
+    entityIds,
+    t,
+    metadata,
+    presentState,
+  );
 
   return html`
     <details class="device-settings-panel">

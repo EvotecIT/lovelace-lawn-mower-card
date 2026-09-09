@@ -23,6 +23,32 @@ test("explicit control order includes settings that automatic discovery normally
   assert.deepEqual(controlGroups(ids, config).inline, [ids[1]]);
 });
 
+test("registry-renamed device settings retain automatic settings grouping", () => {
+  const id = "select.delay_after_weather";
+  const metadata = {
+    [id]: {
+      platform: "dreame_lawn_mower",
+      translation_key: "rain_delay",
+    },
+  };
+
+  assert.deepEqual(controlGroups([id], config, metadata).settings, [id]);
+  assert.deepEqual(controlGroups([id], config, metadata).inline, []);
+});
+
+test("other integrations are not grouped as Dreame settings by suffix", () => {
+  const id = "select.personal_rain_delay";
+  const metadata = {
+    [id]: {
+      platform: "other",
+      translation_key: "rain_delay",
+    },
+  };
+
+  assert.deepEqual(controlGroups([id], config, metadata).settings, []);
+  assert.deepEqual(controlGroups([id], config, metadata).inline, [id]);
+});
+
 test("visibility tracks raw entity state and fails closed for missing or unavailable sources", () => {
   const condition = { entity:"binary_sensor.rain", state:"on" };
   assert.equal(conditionMatches(undefined, {}), true);
@@ -39,6 +65,16 @@ test("tiles format state or an attribute, preserve zero, and keep icons out of l
   const formatted = (entity: HassEntity) => `${entity.state} ${entity.attributes.unit_of_measurement}`;
   assert.deepEqual(configuredTile({entity:id},states,formatted,"Unavailable"), {label:"Blade life",value:"78 %",icon:"mdi:content-cut",unavailable:false});
   assert.equal(configuredTile({entity:id,attribute:"remaining",unit:"h"},states,formatted,"Unavailable")?.value,"0 h");
+  assert.equal(
+    configuredTile(
+      {entity:id,attribute:"remaining"},
+      states,
+      formatted,
+      "Unavailable",
+      (_entity, attribute, value) => `${attribute}: ${value}`,
+    )?.value,
+    "remaining: 0",
+  );
   assert.equal(configuredTile({entity:id,unit:""},states,formatted,"Unavailable")?.value,"78");
   assert.equal(summaryConfig(id).entity,id);
   const custom = {entity:id,label:"Custom"};

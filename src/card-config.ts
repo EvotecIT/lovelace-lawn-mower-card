@@ -24,6 +24,12 @@ export type HomeAssistant = {
     }
   >;
   services?: Record<string, Record<string, unknown>>;
+  formatEntityState?(entity: HassEntity, state?: string): string;
+  formatEntityAttributeValue?(
+    entity: HassEntity,
+    attribute: string,
+    value?: unknown,
+  ): string;
   callService(
     domain: string,
     service: string,

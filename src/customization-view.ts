@@ -10,7 +10,7 @@ export function renderSummary(items: DisplayTile[]) {
 }
 
 export function renderTiles(items: DisplayTile[], columns?: number) {
-  return items.length ? html`<div class=${`custom-tiles${columns ? " fixed-columns" : ""}`} style=${columns ? `--custom-columns:${columns}` : ""}>
+  return items.length ? html`<div class=${`custom-tiles${columns ? " fixed-columns" : ""}${columns === 1 ? " single-column" : ""}`} style=${columns ? `--custom-columns:${columns}` : ""}>
     ${items.map(item => html`<div class=${`custom-tile${item.unavailable ? " unavailable" : ""}`}>
       <span class="custom-tile-label">${item.icon ? html`<ha-icon .icon=${item.icon} aria-hidden="true"></ha-icon>` : nothing}<span>${item.label}</span></span>
       <strong>${item.value}</strong>
@@ -32,15 +32,16 @@ export const customizationStyles = css`
   .custom-chip { display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:18px; background:var(--mower-surface,var(--secondary-background-color)); font-size:12px; min-width:0; max-width:100%; color:var(--mower-muted,var(--secondary-text-color)); overflow-wrap:anywhere; }
   .custom-chip strong { color:var(--mower-text,var(--primary-text-color)); font-weight:600; }
   .custom-chip ha-icon { --mdc-icon-size:16px; flex:none; }
-  .custom-tiles { display:grid; grid-template-columns:repeat(var(--custom-columns,auto-fit),minmax(min(140px,100%),1fr)); gap:10px; min-width:0; }
+  .custom-tiles { --custom-tile-gap:10px; display:grid; grid-template-columns:repeat(var(--custom-columns,auto-fit),minmax(min(140px,100%),1fr)); gap:var(--custom-tile-gap); min-width:0; }
   .custom-tiles.fixed-columns { grid-template-columns:repeat(var(--custom-columns),minmax(0,1fr)); }
-  .custom-tile { padding:12px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:12px; background:var(--mower-surface,var(--secondary-background-color)); min-width:0; overflow-wrap:anywhere; }
-  .custom-tile-label { display:flex; align-items:center; gap:7px; color:var(--mower-muted,var(--secondary-text-color)); font-size:12px; margin-bottom:8px; }
+  .custom-tile { box-sizing:border-box; display:flex; flex-direction:column; align-items:center; text-align:center; padding:12px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:12px; background:var(--mower-surface,var(--secondary-background-color)); min-width:0; overflow-wrap:anywhere; }
+  .custom-tile-label { display:flex; align-items:center; justify-content:center; gap:7px; color:var(--mower-muted,var(--secondary-text-color)); font-size:12px; margin-bottom:8px; }
   .custom-tile-label ha-icon { --mdc-icon-size:19px; flex:none; color:var(--mower-accent,var(--primary-color)); }
   .custom-tile strong { font-size:20px; color:var(--mower-text,var(--primary-text-color)); }
   .custom-tile.unavailable strong { font-size:14px; }
   .custom-section-title { font-size:12px; font-weight:600; color:var(--mower-muted,var(--secondary-text-color)); margin-bottom:9px; }
-  .custom-actions { display:flex; flex-wrap:wrap; gap:8px; }
+  .custom-action-section .custom-section-title { text-align:center; }
+  .custom-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
   .custom-actions button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; max-width:100%; min-width:0; padding:10px 14px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:10px; background:var(--mower-surface,var(--secondary-background-color)); color:var(--mower-text,var(--primary-text-color)); font:inherit; font-size:13px; cursor:pointer; overflow-wrap:anywhere; }
   .custom-actions button ha-icon { --mdc-icon-size:20px; flex:none; color:var(--mower-accent,var(--primary-color)); }
   .custom-actions button:disabled { opacity:.45; cursor:default; }
@@ -55,9 +56,10 @@ export const customizationStyles = css`
   .hero-card.density-compact .hero-customization { gap:10px; }
   .density-compact .custom-tile { padding:9px; }
   .density-compact .custom-tile strong { font-size:17px; }
-  .density-compact .custom-tiles { gap:7px; }
+  .density-compact .custom-tiles { --custom-tile-gap:7px; }
   @container (max-width:450px) {
     .custom-tiles, .custom-tiles.fixed-columns { grid-template-columns:repeat(min(var(--custom-columns,2),2),minmax(0,1fr)); }
+    .custom-tiles:not(.single-column) > .custom-tile:last-child:nth-child(odd):not(:only-child) { grid-column:1/-1; justify-self:center; width:calc((100% - var(--custom-tile-gap)) / 2); }
     .custom-actions button { flex:1 1 120px; }
   }
 `;

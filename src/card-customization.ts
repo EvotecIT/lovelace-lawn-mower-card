@@ -1,4 +1,4 @@
-import type { ContentMode, DisplayCondition, HassEntity, LawnMowerCardConfig, LawnMowerTileConfig } from "./card-config.ts";
+import type { ContentMode, DisplayCondition, HassEntity, HomeAssistant, LawnMowerCardConfig, LawnMowerTileConfig } from "./card-config.ts";
 import { isPreferenceControlEntity } from "./card-logic.ts";
 import { isDeviceSettingControlEntity } from "./device-settings-controls.ts";
 
@@ -49,13 +49,19 @@ export function summaryItems(configured: DisplayTile[], automatic: DisplayTile[]
 }
 
 /** Explicit modes preserve list order, including controls normally grouped by discovery. */
-export function controlGroups(entityIds: string[], config: LawnMowerCardConfig) {
+export function controlGroups(
+  entityIds: string[],
+  config: LawnMowerCardConfig,
+  metadata?: HomeAssistant["entities"],
+) {
   const explicit = config.controls_mode === "custom" || config.controls_mode === "append"
     ? new Set(config.control_entities || []) : new Set<string>();
+  const isDeviceSetting = (entityId: string) =>
+    isDeviceSettingControlEntity(entityId, metadata?.[entityId]);
   return {
-    inline: entityIds.filter(id => explicit.has(id) || (!isPreferenceControlEntity(id) && !isDeviceSettingControlEntity(id))),
+    inline: entityIds.filter(id => explicit.has(id) || (!isPreferenceControlEntity(id) && !isDeviceSetting(id))),
     preferences: entityIds.filter(id => !explicit.has(id) && isPreferenceControlEntity(id)),
-    settings: entityIds.filter(id => !explicit.has(id) && isDeviceSettingControlEntity(id)),
+    settings: entityIds.filter(id => !explicit.has(id) && isDeviceSetting(id)),
   };
 }
 
@@ -65,6 +71,11 @@ export function configuredTile(
   states: Record<string, HassEntity>,
   friendlyState: (entity: HassEntity) => string,
   unavailableLabel: string,
+  friendlyAttribute?: (
+    entity: HassEntity,
+    attribute: string,
+    value: unknown,
+  ) => string,
 ): DisplayTile | undefined {
   if (!conditionMatches(config.visibility, states)) return undefined;
   const entity = states[config.entity];
@@ -73,7 +84,14 @@ export function configuredTile(
   if (unavailable && !config.show_unavailable) return undefined;
   const label = config.label || (typeof entity?.attributes.friendly_name === "string" ? entity.attributes.friendly_name : config.entity);
   const icon = config.icon || (typeof entity?.attributes.icon === "string" ? entity.attributes.icon : undefined);
-  const value = unavailable ? unavailableLabel : config.attribute || config.unit !== undefined
-    ? `${String(raw)}${config.unit ? ` ${config.unit}` : ""}` : friendlyState(entity!);
+  const value = unavailable
+    ? unavailableLabel
+    : config.attribute
+      ? config.unit !== undefined
+        ? `${String(raw)}${config.unit ? ` ${config.unit}` : ""}`
+        : friendlyAttribute?.(entity!, config.attribute, raw) ?? String(raw)
+      : config.unit !== undefined
+        ? `${String(raw)}${config.unit ? ` ${config.unit}` : ""}`
+        : friendlyState(entity!);
   return { label, icon, value, unavailable };
 }

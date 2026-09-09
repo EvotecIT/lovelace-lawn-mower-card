@@ -3,6 +3,12 @@ import { styleMap } from "lit/directives/style-map.js";
 import "./action-confirmation";
 import { summaryItems, controlGroups, configuredTile, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
 import { renderSummary, renderTiles } from "./customization-view";
+import {
+  homeAssistantAttributeValue,
+  homeAssistantLocaleMatches,
+  homeAssistantState,
+  translatedDreameEntityValue,
+} from "./entity-presentation";
 import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
@@ -279,6 +285,10 @@ export class LawnMowerCard extends LitElement {
 
   private get _t() {
     return createTranslator(this._locale);
+  }
+
+  private get _usesHomeAssistantLocale(): boolean {
+    return homeAssistantLocaleMatches(this.hass, this._locale);
   }
 
   private get _mutationInFlight(): string | undefined {
@@ -1036,7 +1046,14 @@ export class LawnMowerCard extends LitElement {
 
   private _buildTiles(): DisplayTile[] {
     return (this._config?.tiles || []).flatMap(tile => {
-      const result = configuredTile(tile, this.hass.states, entity => this._friendlyState(entity), this._t("common.unavailable"));
+      const result = configuredTile(
+        tile,
+        this.hass.states,
+        entity => this._friendlyState(entity),
+        this._t("common.unavailable"),
+        (entity, attribute, value) =>
+          this._friendlyAttributeValue(entity, attribute, value),
+      );
       return result ? [result] : [];
     });
   }
@@ -1071,7 +1088,14 @@ export class LawnMowerCard extends LitElement {
     const legacyHero = this._config.layout === "hero";
     const mode = contentMode(this._config.summary_mode, legacyHero ? "custom" : "append");
     for (const item of configured) {
-      const result = configuredTile(item, this.hass.states, entity => this._friendlyState(entity), this._t("common.unavailable"));
+      const result = configuredTile(
+        item,
+        this.hass.states,
+        entity => this._friendlyState(entity),
+        this._t("common.unavailable"),
+        (entity, attribute, value) =>
+          this._friendlyAttributeValue(entity, attribute, value),
+      );
       if (result) configuredSummary.push(result);
     }
     if (!configured.length || this._config.summary_mode === "auto" || this._config.summary_mode === "append") {
@@ -1130,7 +1154,11 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _renderControlContent(controlEntities: string[], schedules: ScheduleControl[], hero = false) {
-    const groups = controlGroups(controlEntities, this._config!);
+    const groups = controlGroups(
+      controlEntities,
+      this._config!,
+      this.hass.entities,
+    );
     const inline = groups.inline.map(id => this._renderEntityControl(id));
     const inlineContent = inline.length ? hero ? inline : html`<div class="selectors">${inline}</div>` : nothing;
     const customFirst = this._config!.controls_mode === "append";
@@ -1303,7 +1331,7 @@ export class LawnMowerCard extends LitElement {
               <option
                 value=${option}
                 ?selected=${option === String(entity.state)}
-              >${option}</option>
+              >${this._friendlyState(entity, option)}</option>
             `,
           )}
         </select>
@@ -1391,6 +1419,11 @@ export class LawnMowerCard extends LitElement {
       this.hass.states,
       (entityId) => this._renderEntityControl(entityId),
       this._t,
+      this.hass.entities,
+      (entityId, state) => {
+        const entity = this.hass.states[entityId];
+        return entity ? this._friendlyState(entity, state) : undefined;
+      },
     );
   }
 
@@ -1642,12 +1675,44 @@ export class LawnMowerCard extends LitElement {
     }));
   }
 
-  private _friendlyState(entity: HassEntity): string {
+  private _friendlyState(entity: HassEntity, state?: string): string {
+    const raw = String(state ?? entity.state);
+    const formatted = this._usesHomeAssistantLocale
+      ? homeAssistantState(this.hass, entity, state)
+      : undefined;
+    if (formatted && formatted !== raw) {
+      return formatted;
+    }
+
+    const translated = translatedDreameEntityValue(
+      entity.entity_id,
+      raw,
+      this._locale,
+      this._t,
+      this.hass.entities?.[entity.entity_id],
+    );
+    if (translated) {
+      return translated;
+    }
+
     const unit = entity.attributes.unit_of_measurement;
-    if (typeof unit === "string" && unit) {
+    if (state === undefined && typeof unit === "string" && unit) {
       return `${entity.state} ${unit}`;
     }
-    return this._humanizeEntityState(entity.entity_id, String(entity.state));
+    return this._humanizeEntityState(entity.entity_id, formatted ?? raw);
+  }
+
+  private _friendlyAttributeValue(
+    entity: HassEntity,
+    attribute: string,
+    value: unknown,
+  ): string {
+    return (
+      (this._usesHomeAssistantLocale
+        ? homeAssistantAttributeValue(this.hass, entity, attribute, value)
+        : undefined) ??
+      String(value)
+    );
   }
 
   private _entityState(entityId?: string): string | undefined {
