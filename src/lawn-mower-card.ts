@@ -487,11 +487,11 @@ export class LawnMowerCard extends LitElement {
               <div class="title-block">
                 <div class="title">${title}</div>
                 <div class="subtitle">${subtitle}</div>
-                ${renderSummary(headerSummary)}
               </div>
               <div class=${`state-pill state-${mower.state}`}>${this._friendlyMowerState(mower.state)}</div>
             </div>
 
+            ${renderSummary(headerSummary)}
             ${showMap
               ? html`
                   <div class="map">
