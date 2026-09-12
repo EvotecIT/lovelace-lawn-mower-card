@@ -4,7 +4,7 @@
 
 - `entity`: required `lawn_mower` entity id
 - `name`: optional card title override
-- `locale`: optional language override: `auto` (default), `en`, `de`, `fr`,
+- `locale`: optional language override: `auto` (default), `en`, `cs`, `de`, `fr`,
   `it`, `pl`, `ru`, `uk`, or `es`. Automatic mode follows the Home Assistant user
   language, then the browser language, and safely falls back to English.
 - `layout`: optional `default`, `compact`, `wide`, or `hero`
