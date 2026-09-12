@@ -19,8 +19,10 @@ function placeholders(value: unknown): string[] {
 
 test("locale resolution accepts Home Assistant BCP-47 languages and falls back safely", () => {
   assert.equal(normalizeLocale("pl-PL"), "pl");
+  assert.equal(normalizeLocale("cs-CZ"), "cs");
   assert.equal(normalizeLocale("uk_UA"), "uk");
   assert.equal(resolveLocale("auto", "de-DE"), "de");
+  assert.equal(resolveLocale("auto", "cs-CZ"), "cs");
   assert.equal(resolveLocale("fr", "pl-PL"), "fr");
   assert.equal(resolveLocale("auto", "es-ES", "pl-PL"), "es");
   assert.equal(resolveLocale("auto", "es-ES"), "es");
@@ -57,6 +59,38 @@ test("Polish uses native wording and Polish plural rules", () => {
   assert.equal(t("schedule.count", { count: 2 }), "2 plany");
   assert.equal(t("schedule.count", { count: 5 }), "5 planów");
   assert.match(t("card.zoneSelection", { count: 22 }), /22 strefy/);
+});
+
+test("Czech uses native wording and Czech plural rules", () => {
+  const t = createTranslator("cs");
+  assert.equal(t("action.startMowing"), "Spustit sekání");
+  assert.equal(t("editor.mapFitContain"), "Zobrazit celou mapu");
+  assert.equal(t("editor.titlePlaceholder"), "Zahradní sekačka");
+  assert.equal(t("appearance.opacity"), "Neprůhlednost povrchu (60–100 %)");
+  assert.equal(t("editor.heroCinematic"), "Filmové");
+  assert.equal(t("editor.heroDashboard"), "Panel");
+  assert.equal(t("editor.layoutCompact"), "Kompaktní");
+  assert.equal(t("editor.layoutWide"), "Široké");
+  assert.equal(
+    t("card.notConfirmed", { action: "Spustit sekání", detail: "Časový limit." }),
+    "Akce „Spustit sekání“ nebyla potvrzena. Časový limit.",
+  );
+  assert.match(t("card.invalidService", { service: "invalid" }), /domain\.service/);
+  assert.equal(t("schedule.count", { count: 1 }), "1 plán");
+  assert.equal(t("schedule.count", { count: 2 }), "2 plány");
+  assert.equal(t("schedule.count", { count: 5 }), "5 plánů");
+  assert.match(t("card.zoneSelection", { count: 22 }), /22 zón/);
+  assert.equal(t("pointCloud.points", { count: "1", pluralCount: 1 }), "1 bod");
+  assert.equal(t("pointCloud.points", { count: "2", pluralCount: 2 }), "2 body");
+  assert.equal(t("pointCloud.points", { count: "5", pluralCount: 5 }), "5 bodů");
+  assert.equal(
+    t("pointCloud.visiblePoints", { visible: "1", total: "1", pluralCount: 1 }),
+    "1 z 1 bodu",
+  );
+  assert.equal(
+    t("pointCloud.visiblePoints", { visible: "2", total: "3", pluralCount: 3 }),
+    "2 ze 3 bodů",
+  );
 });
 
 test("French elapsed-time wording is correct for any numeric duration", () => {

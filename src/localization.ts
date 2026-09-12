@@ -1,3 +1,4 @@
+import { cs } from "./locales/cs.ts";
 import { de } from "./locales/de.ts";
 import { en, type TranslationCatalog, type TranslationKey, type TranslationMessage, type TranslationParams } from "./locales/en.ts";
 import { fr } from "./locales/fr.ts";
@@ -9,13 +10,14 @@ import { es } from "./locales/es.ts";
 
 export type { TranslationKey } from "./locales/en.ts";
 
-export const SUPPORTED_LOCALES = ["en", "de", "fr", "it", "pl", "ru", "uk", "es"] as const;
+export const SUPPORTED_LOCALES = ["en", "cs", "de", "fr", "it", "pl", "ru", "uk", "es"] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 export type LocalePreference = SupportedLocale | "auto";
 
 export const LOCALE_OPTIONS: ReadonlyArray<{ value: LocalePreference; label: string }> = [
   { value: "auto", label: "Automatic" },
   { value: "en", label: "English" },
+  { value: "cs", label: "Čeština" },
   { value: "de", label: "Deutsch" },
   { value: "fr", label: "Français" },
   { value: "it", label: "Italiano" },
@@ -27,6 +29,7 @@ export const LOCALE_OPTIONS: ReadonlyArray<{ value: LocalePreference; label: str
 
 const catalogs: Readonly<Record<SupportedLocale, TranslationCatalog>> = {
   en,
+  cs,
   de,
   fr,
   it,
@@ -73,7 +76,7 @@ function selectMessage(
   if (typeof message === "string") {
     return message;
   }
-  const count = Number(params.count);
+  const count = Number(params.pluralCount ?? params.count);
   if (count === 0 && message.zero) {
     return message.zero;
   }
