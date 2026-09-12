@@ -76,7 +76,7 @@ function selectMessage(
   if (typeof message === "string") {
     return message;
   }
-  const count = Number(params.count);
+  const count = Number(params.pluralCount ?? params.count);
   if (count === 0 && message.zero) {
     return message.zero;
   }

@@ -538,12 +538,14 @@ export class LawnMowerPointCloud extends LitElement {
               <div class="toolbar" aria-label=${this._t("pointCloud.controls")}>
                 <span class="point-count">
                   ${this._renderedPointCount !== this._pointCount
-                    ? this._t("pointCloud.visiblePoints", {
+                      ? this._t("pointCloud.visiblePoints", {
                         visible: this._renderedPointCount?.toLocaleString(this.locale) || "0",
                         total: this._pointCount?.toLocaleString(this.locale) || "0",
+                        pluralCount: this._pointCount ?? 0,
                       })
                     : this._t("pointCloud.points", {
                         count: this._renderedPointCount?.toLocaleString(this.locale) || "0",
+                        pluralCount: this._renderedPointCount ?? 0,
                       })}
                 </span>
                 <label>
