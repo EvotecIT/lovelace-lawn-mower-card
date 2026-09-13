@@ -1151,7 +1151,20 @@
         },
       };
 
-      const previewLocale = new URLSearchParams(window.location.search).get("locale") || "en";
+      const previewParameters = new URLSearchParams(window.location.search);
+      if (previewParameters.get("scenario") === "paused-at-dock") {
+        const mower = stateStore["lawn_mower.backyard_mower"];
+        mower.state = "docked";
+        mower.attributes.activity = "docked";
+        mower.attributes.mowing_session_active = true;
+        mower.attributes.task_resumable = true;
+        mower.attributes.task_status = "paused";
+        stateStore["sensor.backyard_mower_state_name"].state =
+          "Paused task at dock";
+        stateStore["binary_sensor.backyard_mower_docked"].state = "on";
+        stateStore["binary_sensor.backyard_mower_charging"].state = "on";
+      }
+      const previewLocale = previewParameters.get("locale") || "en";
       const hass = {
         language: previewLocale,
         locale: { language: previewLocale },
@@ -1481,7 +1494,7 @@
       }
 
       applyConfig();
-      updatePreviewMeta("mowing");
+      updatePreviewMeta(stateStore["lawn_mower.backyard_mower"].state);
 
       for (const button of document.querySelectorAll("[data-state]")) {
         button.addEventListener("click", () => {

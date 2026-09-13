@@ -303,6 +303,18 @@ export const lawnMowerCardStyles = [css`
       letter-spacing: 0.02em;
     }
 
+    .selector-hint {
+      color: var(--secondary-text-color);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .selector-hint.warning {
+      color: var(--primary-text-color);
+      border-inline-start: 3px solid var(--warning-color, #9a6700);
+      padding-inline-start: 8px;
+    }
+
     .selector-card select {
       color-scheme:inherit;
       width: 100%;

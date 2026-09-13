@@ -38,9 +38,12 @@ import {
   entitySummaryLabel,
   firstAvailableEntity,
   heroViewRestorationAllowed,
+  mowerCanDock,
+  mowerSessionActive,
   numberControlSettings,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
+  resolvedMowerMapSelector,
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
 } from "./card-logic";
@@ -784,7 +787,8 @@ export class LawnMowerCard extends LitElement {
         this._canStart(mower.state) &&
         this._canStartSelectedTarget(),
       canPause: !this._mutationInFlight && this._canPause(mower.state),
-      canDock: !this._mutationInFlight && this._canDock(mower.state),
+      canDock: !this._mutationInFlight && this._canDock(mower),
+      dockActionLabel: this._dockActionLabel(mower),
       maintenancePointAvailable:
         !this._mutationInFlight &&
         maintenancePointButton !== undefined &&
@@ -1315,12 +1319,17 @@ export class LawnMowerCard extends LitElement {
       this._preferredEntityLabel(entityId) ||
       this._entityName(entityId);
     const unavailable = ["unavailable", "unknown"].includes(String(entity.state));
+    const mapSwitchBlocked = this._mapSwitchBlocked(entityId);
+    const blockedReasonId = `${entityId}-map-switch-blocked`;
 
     return html`
       <label class="selector-card">
         <span class="selector-label">${label}</span>
         <select
-          ?disabled=${unavailable || Boolean(this._mutationInFlight)}
+          aria-describedby=${mapSwitchBlocked ? blockedReasonId : nothing}
+          ?disabled=${
+            unavailable || mapSwitchBlocked || Boolean(this._mutationInFlight)
+          }
           @change=${(event: Event) => this._selectOption(entityId, event)}
         >
           ${unavailable
@@ -1335,8 +1344,28 @@ export class LawnMowerCard extends LitElement {
             `,
           )}
         </select>
+        ${mapSwitchBlocked
+          ? html`<small id=${blockedReasonId} class="selector-hint warning">
+              ${this._t("card.mapSwitchBlocked")}
+            </small>`
+          : nothing}
       </label>
     `;
+  }
+
+  private _mapSwitchBlocked(entityId: string): boolean {
+    if (!this._config) {
+      return false;
+    }
+    const mower = this.hass.states[this._config.entity];
+    if (!mower || !mowerSessionActive(mower)) {
+      return false;
+    }
+    return entityId === resolvedMowerMapSelector(
+      this.hass.states,
+      this._config.entity,
+      this.hass.entities,
+    );
   }
 
   private _renderNumberControl(entityId: string) {
@@ -1502,10 +1531,10 @@ export class LawnMowerCard extends LitElement {
       }
       if (mowerSupportsFeature(mower, LawnMowerFeature.DOCK)) {
         defaultActions.push({
-          label: this._t("action.dock"),
+          label: this._dockActionLabel(mower),
           icon: "mdi:home-import-outline",
           disabled:
-            Boolean(this._mutationInFlight) || !this._canDock(mower.state),
+            Boolean(this._mutationInFlight) || !this._canDock(mower),
           handler: () => this._dockMower(),
         });
       }
@@ -1613,10 +1642,10 @@ export class LawnMowerCard extends LitElement {
         return undefined;
       }
       return {
-        label: action.label || this._t("action.dock"),
+        label: action.label || this._dockActionLabel(mower),
         icon: action.icon || "mdi:home-import-outline",
         disabled:
-          Boolean(this._mutationInFlight) || !this._canDock(mower.state),
+          Boolean(this._mutationInFlight) || !this._canDock(mower),
         handler: () => this._dockMower(),
       };
     }
@@ -3200,8 +3229,15 @@ export class LawnMowerCard extends LitElement {
     return ["mowing", "returning"].includes(state);
   }
 
-  private _canDock(state: string): boolean {
-    return !["docked", "unavailable", "unknown"].includes(state);
+  private _canDock(mower: HassEntity): boolean {
+    return mowerCanDock(mower);
+  }
+
+  private _dockActionLabel(mower: HassEntity): string {
+    return mower.state.trim().toLowerCase() === "docked" &&
+      mowerSessionActive(mower)
+      ? this._t("action.cancelTask")
+      : this._t("action.dock");
   }
 
   private async _startMowing() {
@@ -3243,7 +3279,13 @@ export class LawnMowerCard extends LitElement {
   }
 
   private async _dockMower() {
-    await this._runMowerAction("dock", this._t("action.returnToDock"), () =>
+    const mower = this._config ? this.hass.states[this._config.entity] : undefined;
+    const actionLabel = mower &&
+      mower.state.trim().toLowerCase() === "docked" &&
+      mowerSessionActive(mower)
+      ? this._t("action.cancelTask")
+      : this._t("action.returnToDock");
+    await this._runMowerAction("dock", actionLabel, () =>
       this.hass.callService("lawn_mower", "dock", {
         entity_id: this._config?.entity,
       }),

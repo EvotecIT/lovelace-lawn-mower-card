@@ -67,6 +67,24 @@ export function heroViewRestorationAllowed(
   return layout === "hero";
 }
 
+/** Whether the mower still owns a task that must be finished or cancelled. */
+export function mowerSessionActive(entity: MinimalHassEntity): boolean {
+  const active = entity.attributes?.mowing_session_active;
+  if (typeof active === "boolean") {
+    return active;
+  }
+  return entity.attributes?.task_resumable === true;
+}
+
+/** A docked mower may still need Dock to cancel a paused resumable task. */
+export function mowerCanDock(entity: MinimalHassEntity): boolean {
+  const state = entity.state.trim().toLowerCase();
+  if (["unavailable", "unknown"].includes(state)) {
+    return false;
+  }
+  return state !== "docked" || mowerSessionActive(entity);
+}
+
 const PREFERENCE_CONTROL_SUFFIXES = [
   "_selected_map_preference_mode",
   "_selected_map_mowing_height",
@@ -499,6 +517,34 @@ export function resolvedOwnedMowerCompanionEntity(
     domain,
     ...suffixes,
   );
+}
+
+/** Resolve the mower's map selector without accepting an explicit owner mismatch. */
+export function resolvedMowerMapSelector(
+  states: HassStates,
+  mowerEntityId: string,
+  entities?: EntityRegistryEntries,
+): string | undefined {
+  const candidate = resolvedMowerCompanionEntity(
+    states,
+    mowerEntityId,
+    entities,
+    "select",
+    "map",
+  );
+  if (!candidate) {
+    return undefined;
+  }
+  const mowerEntry = entities?.[mowerEntityId];
+  const candidateEntry = entities?.[candidate];
+  if (
+    mowerEntry &&
+    candidateEntry &&
+    !registryOwnersMatch(mowerEntry, candidateEntry)
+  ) {
+    return undefined;
+  }
+  return candidate;
 }
 
 export function autoDetectedControlEntities(
