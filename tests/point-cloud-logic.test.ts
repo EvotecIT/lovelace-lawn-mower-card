@@ -189,6 +189,28 @@ test("point-cloud problem parsing falls back for old or malformed integrations",
   });
 });
 
+test("ambiguous legacy gateway timeouts require explicit retry", async () => {
+  for (const [body, contentType] of [
+    ["Gateway Timeout", "text/plain"],
+    ["{invalid", "application/problem+json"],
+    ["null", "application/problem+json"],
+    ["{}", "application/json"],
+    ["{}", "application/problem+json"],
+  ]) {
+    const problem = await pointCloudProblemFromResponse(new Response(body, {
+      status: 504, headers: { "Content-Type": contentType },
+    }));
+    assert.equal(problem.retryable, false);
+    assert.equal(problem.code, undefined); // A timeout alone does not prove no export.
+    assert.equal(pointCloudRetryDelayMs(problem, 0), undefined);
+  }
+  const diagnosedTransient = await pointCloudProblemFromResponse(new Response(
+    JSON.stringify({ code: "point_cloud_cloud_timeout", retryable: true }),
+    { status: 504, headers: { "Content-Type": "application/problem+json" } },
+  ));
+  assert.equal(diagnosedTransient.retryable, true);
+});
+
 test("point-cloud access failures use a specific non-retryable message", async () => {
   const response = new Response(null, { status: 403 });
 

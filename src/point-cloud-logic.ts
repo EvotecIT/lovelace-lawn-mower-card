@@ -139,7 +139,9 @@ export async function pointCloudProblemFromResponse(
     title: "3D map unavailable",
     detail: `The mower point cloud is unavailable (HTTP ${response.status}).`,
     status: response.status,
-    retryable: response.status >= 500,
+    // Legacy 504 responses cannot distinguish an empty generation from a
+    // gateway timeout. Require an explicit retry instead of generating forever.
+    retryable: response.status >= 500 && response.status !== 504,
   };
   const contentType = response.headers.get("Content-Type")?.toLowerCase() || "";
   if (!contentType.includes("application/problem+json")) {

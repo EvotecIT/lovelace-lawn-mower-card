@@ -250,6 +250,9 @@ export class LawnMowerPointCloud extends LitElement {
 
     .connection-notice {
       position: absolute;
+      box-sizing: border-box;
+      max-height: calc(100% - 100px);
+      overflow: auto;
       z-index: 3;
       top: 12px;
       right: 12px;
@@ -605,6 +608,9 @@ export class LawnMowerPointCloud extends LitElement {
                           ? this._t("pointCloud.retrying", { seconds: this._retryDelaySeconds })
                           : this._t("pointCloud.lastGood")
                       }`}
+                  ${!this._refreshing && this._problem && !this._problem.retryable
+                    ? html`<br />${this._problemHint(this._problem)}`
+                    : nothing}
                 </span>
               </div>
             `
@@ -664,7 +670,8 @@ export class LawnMowerPointCloud extends LitElement {
       (this._status === "idle" ||
         (this._status === "error" && this._problem?.retryable !== false) ||
         (this._status === "ready" && (this._problem?.retryable === true || this._detailPending))) &&
-      (changedProperties.has("active") || changedProperties.has("path"))
+      (changedProperties.has("active") || changedProperties.has("path") ||
+        (changedProperties.has("autoLoad") && this.autoLoad))
     ) {
       void this._load(false);
     }
