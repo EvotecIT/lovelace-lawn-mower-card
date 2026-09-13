@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const it = {
+  "pointCloud.unverifiedDescription": "L’esportazione 3D non è verificata per questo rasaerba. Una mappa 2D o il LiDAR non ne confermano il supporto. Carica solo se vuoi tentare una generazione; la mappa 2D resta disponibile.",
+  "pointCloud.notPublishedHint": "I tentativi automatici sono sospesi. Verifica se l’app ufficiale offre una mappa 3D per questo rasaerba. Salva la diagnostica dell’integrazione prima di riprovare.",
   "appearance.preset": "Stile",
   "appearance.native": "Home Assistant nativo",
   "appearance.modern": "Moderno",

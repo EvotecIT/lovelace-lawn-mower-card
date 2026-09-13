@@ -48,6 +48,7 @@ export type HeroLayoutModel = {
   mapPosition: MapPosition;
   mapStatus?: TemplateResult;
   pointCloudPath?: string;
+  pointCloudNeedsConfirmation?: boolean;
   pointCloudMounted: boolean;
   mediaVisible?: boolean;
   pointCloudLoadError?: string;

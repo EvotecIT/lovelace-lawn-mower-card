@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const uk = {
+  "pointCloud.unverifiedDescription": "Експорт 3D для цієї косарки не підтверджено. Карта 2D або LiDAR не підтверджують підтримку. Завантажуйте, лише якщо хочете спробувати генерацію; карта 2D залишається доступною.",
+  "pointCloud.notPublishedHint": "Автоматичні повтори призупинено. Перевірте, чи пропонує офіційний застосунок карту 3D для цієї косарки. Перед новою спробою збережіть діагностику інтеграції.",
   "appearance.preset": "Стиль",
   "appearance.native": "Стиль Home Assistant",
   "appearance.modern": "Сучасний",

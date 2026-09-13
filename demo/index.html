@@ -1152,6 +1152,12 @@
       };
 
       const previewParameters = new URLSearchParams(window.location.search);
+      const pointCloudCapability = previewParameters.get("point-cloud-capability");
+      if (["supported", "unknown", "unsupported"].includes(pointCloudCapability)) {
+        stateStore["camera.backyard_mower_map"].attributes.feature_capabilities = {
+          point_cloud: { state: pointCloudCapability, source: "unknown" },
+        };
+      }
       if (previewParameters.get("scenario") === "paused-at-dock") {
         const mower = stateStore["lawn_mower.backyard_mower"];
         mower.state = "docked";

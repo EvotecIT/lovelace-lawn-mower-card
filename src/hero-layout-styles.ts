@@ -200,6 +200,16 @@ export const heroLayoutStyles = css`
     height: 100%;
   }
 
+  /* Keep capability guidance and errors clear of the mower heading. */
+  .hero-stage.view-point-cloud {
+    display: flex; flex-direction: column; aspect-ratio: auto; height: auto;
+  }
+  .view-point-cloud .hero-heading { position: relative; order: 1; }
+  .view-point-cloud .hero-point-cloud {
+    position: relative; order: 2; flex: none;
+    height: clamp(330px, 50vh, 500px);
+  }
+
   .hero-empty {
     box-sizing: border-box;
     display: grid;

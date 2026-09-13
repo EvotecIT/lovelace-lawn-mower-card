@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const pl = {
+  "pointCloud.unverifiedDescription": "Eksport 3D nie został potwierdzony dla tej kosiarki. Mapa 2D ani LiDAR nie potwierdzają obsługi. Wczytaj, jeśli chcesz spróbować wygenerować mapę; mapa 2D pozostaje dostępna.",
+  "pointCloud.notPublishedHint": "Automatyczne ponawianie zostało wstrzymane. Sprawdź, czy oficjalna aplikacja oferuje mapę 3D dla tej kosiarki. Przed kolejną próbą zapisz diagnostykę integracji.",
   "appearance.preset": "Styl",
   "appearance.native": "Natywny Home Assistant",
   "appearance.modern": "Nowoczesny",

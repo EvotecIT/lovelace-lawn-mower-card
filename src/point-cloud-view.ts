@@ -21,6 +21,7 @@ import {
   type PointCloudClientFailureStage,
   type PointCloudProblem,
   pointCloudProblemFromResponse,
+  pointCloudProblemHintKey,
   pointCloudRequestPath,
   pointCloudRenderBudget,
   pointCloudRetryDelayMs,
@@ -49,6 +50,7 @@ export class LawnMowerPointCloud extends LitElement {
   @property() public path?: string;
   @property({ type: Boolean }) public active = false;
   @property({ type: Boolean }) public autoLoad = false;
+  @property({ type: Boolean }) public unverified = false;
   @property({ type: Boolean, reflect: true }) public compact = false;
   @property({ attribute: false }) public locale: SupportedLocale = "en";
 
@@ -112,14 +114,7 @@ export class LawnMowerPointCloud extends LitElement {
   }
 
   private _problemHint(problem: PointCloudProblem): string {
-    if (
-      problem.code === "point_cloud_admin_required" ||
-      problem.status === 401 ||
-      problem.status === 403
-    ) {
-      return this._t("pointCloud.hintAdmin");
-    }
-    return this._t(problem.retryable ? "pointCloud.hintRetry" : "pointCloud.hintReport");
+    return this._t(pointCloudProblemHintKey(problem));
   }
 
   public static styles = css`
@@ -162,10 +157,12 @@ export class LawnMowerPointCloud extends LitElement {
       z-index: 1;
       inset: 0;
       display: grid;
-      place-content: center;
+      place-content: safe center;
       justify-items: center;
       gap: 12px;
       padding: 24px;
+      box-sizing: border-box;
+      overflow: auto;
       text-align: center;
       color: rgba(247, 250, 247, 0.76);
     }
@@ -405,7 +402,7 @@ export class LawnMowerPointCloud extends LitElement {
 
     :host([compact]) .point-count,
     :host([compact]) label span,
-    :host([compact]) button span {
+    :host([compact]) .toolbar button span {
       display: none;
     }
 
@@ -441,7 +438,9 @@ export class LawnMowerPointCloud extends LitElement {
                 <ha-icon icon="mdi:rotate-3d-variant"></ha-icon>
                 <p>
                   ${path
-                    ? this._t("pointCloud.loadDescription")
+                    ? this._t(this.unverified
+                      ? "pointCloud.unverifiedDescription"
+                      : "pointCloud.loadDescription")
                     : this._t("pointCloud.unsupportedDescription")}
                 </p>
                 ${path
@@ -449,6 +448,7 @@ export class LawnMowerPointCloud extends LitElement {
                       <button
                         type="button"
                         class="primary"
+                        aria-label=${this._t("pointCloud.load")}
                         @click=${this._requestInitialLoad}
                       >
                         <ha-icon icon="mdi:cube-scan"></ha-icon>
