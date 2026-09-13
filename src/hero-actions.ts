@@ -62,7 +62,7 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                   : nothing}
                 ${model.supportsDock
                   ? renderAction(
-                      model.t("action.dock"),
+                      model.dockActionLabel,
                       "mdi:home-import-outline",
                       model.onDock,
                       { disabled: !model.canDock },

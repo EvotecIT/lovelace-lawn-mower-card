@@ -76,6 +76,7 @@ export type HeroLayoutModel = {
   canStart: boolean;
   canPause: boolean;
   canDock: boolean;
+  dockActionLabel: string;
   maintenancePointAvailable?: boolean;
   actionFeedback?: {
     message: string;

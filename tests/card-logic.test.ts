@@ -18,6 +18,8 @@ import {
   firstAvailableEntity,
   heroViewRestorationAllowed,
   isPreferenceControlEntity,
+  mowerCanDock,
+  mowerSessionActive,
   numberControlSettings,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
@@ -51,6 +53,38 @@ test("Hero reconnect state restores only into the Hero layout", () => {
   assert.equal(heroViewRestorationAllowed("compact"), false);
   assert.equal(heroViewRestorationAllowed("wide"), false);
   assert.equal(heroViewRestorationAllowed(undefined), false);
+});
+
+test("docked paused sessions retain a safe cancellation path", () => {
+  const pausedAtDock = {
+    state: "docked",
+    attributes: {
+      mowing_session_active: true,
+      task_resumable: true,
+    },
+  };
+
+  assert.equal(mowerSessionActive(pausedAtDock), true);
+  assert.equal(mowerCanDock(pausedAtDock), true);
+  assert.equal(mowerCanDock({ state: "docked", attributes: {} }), false);
+  assert.equal(
+    mowerCanDock({
+      state: "docked",
+      attributes: { mowing_session_active: false, task_resumable: true },
+    }),
+    false,
+  );
+  assert.equal(
+    mowerSessionActive({ state: "docked", attributes: { task_resumable: true } }),
+    true,
+  );
+  assert.equal(
+    mowerCanDock({
+      state: "unavailable",
+      attributes: pausedAtDock.attributes,
+    }),
+    false,
+  );
 });
 
 const dreameRegistry = (
