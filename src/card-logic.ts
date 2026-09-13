@@ -519,6 +519,34 @@ export function resolvedOwnedMowerCompanionEntity(
   );
 }
 
+/** Resolve the mower's map selector without accepting an explicit owner mismatch. */
+export function resolvedMowerMapSelector(
+  states: HassStates,
+  mowerEntityId: string,
+  entities?: EntityRegistryEntries,
+): string | undefined {
+  const candidate = resolvedMowerCompanionEntity(
+    states,
+    mowerEntityId,
+    entities,
+    "select",
+    "map",
+  );
+  if (!candidate) {
+    return undefined;
+  }
+  const mowerEntry = entities?.[mowerEntityId];
+  const candidateEntry = entities?.[candidate];
+  if (
+    mowerEntry &&
+    candidateEntry &&
+    !registryOwnersMatch(mowerEntry, candidateEntry)
+  ) {
+    return undefined;
+  }
+  return candidate;
+}
+
 export function autoDetectedControlEntities(
   states: HassStates,
   mowerEntityId: string,

@@ -310,7 +310,9 @@ export const lawnMowerCardStyles = [css`
     }
 
     .selector-hint.warning {
-      color: var(--warning-color, #d97706);
+      color: var(--primary-text-color);
+      border-inline-start: 3px solid var(--warning-color, #9a6700);
+      padding-inline-start: 8px;
     }
 
     .selector-card select {

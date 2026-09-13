@@ -43,6 +43,7 @@ import {
   numberControlSettings,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
+  resolvedMowerMapSelector,
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
 } from "./card-logic";
@@ -1360,12 +1361,10 @@ export class LawnMowerCard extends LitElement {
     if (!mower || !mowerSessionActive(mower)) {
       return false;
     }
-    return entityId === resolvedMowerCompanionEntity(
+    return entityId === resolvedMowerMapSelector(
       this.hass.states,
       this._config.entity,
       this.hass.entities,
-      "select",
-      "map",
     );
   }
 

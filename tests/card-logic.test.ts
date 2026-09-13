@@ -25,6 +25,7 @@ import {
   resolvedCoverageEntityIds,
   resolvedMowerCompanionEntity,
   resolvedMowerInteractiveMapEntity,
+  resolvedMowerMapSelector,
   resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
   type MinimalHassEntity,
@@ -596,6 +597,46 @@ test("mower companion resolution rejects unrelated target selectors", () => {
       "zone",
     ),
     undefined,
+  );
+});
+
+test("map selector resolution rejects explicit owner mismatches", () => {
+  const conventionalStates = {
+    "lawn_mower.garden": entity("docked"),
+    "select.garden_map": entity("Map 1"),
+  };
+  const renamedStates = {
+    "lawn_mower.garden": entity("docked"),
+    "select.front_garden_map": {
+      state: "Map 2",
+      attributes: { friendly_name: "Map" },
+    },
+  };
+  const mowerEntry = {
+    platform: "dreame_lawn_mower",
+    device_id: "mower-device",
+  };
+
+  assert.equal(
+    resolvedMowerMapSelector(conventionalStates, "lawn_mower.garden"),
+    "select.garden_map",
+  );
+  assert.equal(
+    resolvedMowerMapSelector(conventionalStates, "lawn_mower.garden", {
+      "lawn_mower.garden": mowerEntry,
+      "select.garden_map": {
+        platform: "other",
+        device_id: "other-device",
+      },
+    }),
+    undefined,
+  );
+  assert.equal(
+    resolvedMowerMapSelector(renamedStates, "lawn_mower.garden", {
+      "lawn_mower.garden": mowerEntry,
+      "select.front_garden_map": mowerEntry,
+    }),
+    "select.front_garden_map",
   );
 });
 
