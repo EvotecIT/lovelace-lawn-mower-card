@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const fr = {
+  "pointCloud.unverifiedDescription": "L’export 3D n’est pas vérifié pour cette tondeuse. Une carte 2D ou un LiDAR ne confirme pas sa prise en charge. Chargez uniquement pour tenter une génération ; la carte 2D reste disponible.",
+  "pointCloud.notPublishedHint": "Les nouvelles tentatives automatiques sont suspendues. Vérifiez si l’application officielle propose une carte 3D pour cette tondeuse. Enregistrez le diagnostic de l’intégration avant de réessayer.",
   "appearance.preset": "Style",
   "appearance.native": "Home Assistant natif",
   "appearance.modern": "Moderne",

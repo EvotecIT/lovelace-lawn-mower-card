@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const ru = {
+  "pointCloud.unverifiedDescription": "Экспорт 3D для этой косилки не подтверждён. Карта 2D или LiDAR не подтверждают поддержку. Нажмите загрузку, только если хотите попробовать генерацию; карта 2D остаётся доступной.",
+  "pointCloud.notPublishedHint": "Автоматические повторы приостановлены. Проверьте, предлагает ли официальное приложение карту 3D для этой косилки. Перед новой попыткой сохраните диагностику интеграции.",
   "appearance.preset": "Стиль",
   "appearance.native": "Стиль Home Assistant",
   "appearance.modern": "Современный",

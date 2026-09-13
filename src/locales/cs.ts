@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const cs = {
+  "pointCloud.unverifiedDescription": "Export 3D není pro tuto sekačku ověřen. Mapa 2D ani LiDAR nepotvrzují podporu. Načtěte mapu, pouze pokud chcete zkusit požadavek na generování; mapa 2D zůstává dostupná.",
+  "pointCloud.notPublishedHint": "Automatické opakování je pozastaveno. Ověřte, zda oficiální aplikace nabízí mapu 3D pro tuto sekačku. Před dalším pokusem uložte diagnostiku integrace.",
   "appearance.preset": "Styl vzhledu",
   "appearance.native": "Nativní Home Assistant",
   "appearance.modern": "Moderní",

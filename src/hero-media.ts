@@ -56,7 +56,8 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
             .hass=${model.hass}
             .path=${model.pointCloudPath}
             .active=${views.includes("point-cloud") && model.activeView === "point-cloud" && model.mediaVisible !== false}
-            .autoLoad=${true}
+            .autoLoad=${!model.pointCloudNeedsConfirmation}
+            .unverified=${model.pointCloudNeedsConfirmation === true}
             .compact=${true}
             .locale=${model.locale}
             aria-hidden=${model.activeView === "point-cloud" ? "false" : "true"}

@@ -6,7 +6,8 @@ import {
   pointCloudActivationErrorIsCurrent,
   pointCloudClientFailure,
   pointCloudPathFromEntity,
-  pointCloudProblemHint,
+  pointCloudNeedsConfirmation,
+  pointCloudProblemHintKey,
   pointCloudProblemFromResponse,
   pointCloudRequestPath,
   pointCloudRenderBudget,
@@ -43,6 +44,18 @@ test("point-cloud paths reject traversal, query injection, and bad indexes", () 
     "//example.invalid/api/dreame_lawn_mower/point-cloud/entry/0",
   ]) {
     assert.equal(normalizePointCloudApiPath(path), undefined);
+  }
+});
+
+test("3D capability is separate from its route and preserves legacy integrations", () => {
+  const path = "/api/dreame_lawn_mower/point-cloud/entry/0";
+  for (const state of ["supported", "unknown", "unsupported", undefined]) {
+    const entity = { attributes: {
+      point_cloud_api_path: path,
+      feature_capabilities: state ? { point_cloud: { state, source: "unknown" } } : undefined,
+    } };
+    assert.equal(pointCloudPathFromEntity(entity), state === "unsupported" ? undefined : path);
+    assert.equal(pointCloudNeedsConfirmation(entity), state === "unknown");
   }
 });
 
@@ -130,11 +143,15 @@ test("point-cloud problem responses retain only bounded troubleshooting fields",
     status: 504,
     code: "point_cloud_not_published",
     stage: "generation",
-    retryable: true,
+    retryable: false,
     retryAfterSeconds: 10,
     elapsedMs: 45012.4,
     timeoutSeconds: 45,
   });
+  assert.equal(pointCloudRetryDelayMs({
+    code: "point_cloud_not_published", title: "No export", detail: "No file",
+    retryable: true, retryAfterSeconds: 10,
+  }, 0), undefined);
 });
 
 test("point-cloud problem parsing falls back for old or malformed integrations", async () => {
@@ -172,6 +189,28 @@ test("point-cloud problem parsing falls back for old or malformed integrations",
   });
 });
 
+test("ambiguous legacy gateway timeouts require explicit retry", async () => {
+  for (const [body, contentType] of [
+    ["Gateway Timeout", "text/plain"],
+    ["{invalid", "application/problem+json"],
+    ["null", "application/problem+json"],
+    ["{}", "application/json"],
+    ["{}", "application/problem+json"],
+  ]) {
+    const problem = await pointCloudProblemFromResponse(new Response(body, {
+      status: 504, headers: { "Content-Type": contentType },
+    }));
+    assert.equal(problem.retryable, false);
+    assert.equal(problem.code, undefined); // A timeout alone does not prove no export.
+    assert.equal(pointCloudRetryDelayMs(problem, 0), undefined);
+  }
+  const diagnosedTransient = await pointCloudProblemFromResponse(new Response(
+    JSON.stringify({ code: "point_cloud_cloud_timeout", retryable: true }),
+    { status: 504, headers: { "Content-Type": "application/problem+json" } },
+  ));
+  assert.equal(diagnosedTransient.retryable, true);
+});
+
 test("point-cloud access failures use a specific non-retryable message", async () => {
   const response = new Response(null, { status: 403 });
 
@@ -186,31 +225,35 @@ test("point-cloud access failures use a specific non-retryable message", async (
 });
 
 test("point-cloud guidance distinguishes access, retry, and report actions", () => {
-  assert.match(
-    pointCloudProblemHint({
+  assert.equal(
+    pointCloudProblemHintKey({
       title: "Administrator access required",
       detail: "Administrator access is required.",
       status: 403,
       retryable: false,
     }),
-    /administrator account/,
+    "pointCloud.hintAdmin",
   );
-  assert.match(
-    pointCloudProblemHint({
+  assert.equal(
+    pointCloudProblemHintKey({
       title: "Temporarily unavailable",
       detail: "Try later.",
       retryable: true,
     }),
-    /retry automatically/,
+    "pointCloud.hintRetry",
   );
-  assert.match(
-    pointCloudProblemHint({
+  assert.equal(
+    pointCloudProblemHintKey({
       title: "Unsupported",
       detail: "This model is not supported.",
       retryable: false,
     }),
-    /diagnostic reference/,
+    "pointCloud.hintReport",
   );
+  assert.equal(pointCloudProblemHintKey({
+    title: "No export", detail: "No file", retryable: true,
+    code: "point_cloud_not_published",
+  }), "pointCloud.notPublishedHint");
 });
 
 test("point-cloud reconnect backoff honors server hints and stays bounded", () => {

@@ -85,6 +85,7 @@ import {
 import {
   pointCloudActivationErrorIsCurrent,
   pointCloudPathFromEntity,
+  pointCloudNeedsConfirmation,
 } from "./point-cloud-logic";
 import { loadPointCloudModule } from "./point-cloud-loader";
 import type { PointCloudHomeAssistant } from "./point-cloud-view";
@@ -557,7 +558,9 @@ export class LawnMowerCard extends LitElement {
                             <div class="point-cloud-placeholder">
                               <ha-icon icon="mdi:cube-scan"></ha-icon>
                               <p>
-                                ${this._t("pointCloud.lazyDescription")}
+                                ${this._t(pointCloudNeedsConfirmation(mapEntity)
+                                  ? "pointCloud.unverifiedDescription"
+                                  : "pointCloud.lazyDescription")}
                               </p>
                               <button
                                 type="button"
@@ -748,6 +751,7 @@ export class LawnMowerCard extends LitElement {
         ? this._renderMapStatus(configuredMapEntity, mower.state)
         : undefined,
       pointCloudPath,
+      pointCloudNeedsConfirmation: pointCloudNeedsConfirmation(configuredMapEntity),
       pointCloudMounted: this._pointCloudMounted,
       mediaVisible: this._mediaVisible,
       pointCloudLoadError: this._pointCloudLoadError,

@@ -234,14 +234,14 @@ export function configuredCameraCanBePresented(
 }
 
 export function featureCapabilityState(
-  entity: MinimalHassEntity | undefined,
+  entity: Pick<MinimalHassEntity, "attributes"> | undefined,
   feature: string,
 ): FeatureCapabilityState | undefined {
   return featureCapabilityEvidence(entity, feature)?.state;
 }
 
 function featureCapabilityEvidence(
-  entity: MinimalHassEntity | undefined,
+  entity: Pick<MinimalHassEntity, "attributes"> | undefined,
   feature: string,
 ): FeatureCapabilityEvidence | undefined {
   const capabilities = entity?.attributes?.feature_capabilities;

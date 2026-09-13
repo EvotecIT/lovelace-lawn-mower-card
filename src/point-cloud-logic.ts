@@ -1,3 +1,5 @@
+import { featureCapabilityState } from "./card-logic.ts";
+
 export const POINT_CLOUD_API_PREFIX =
   "/api/dreame_lawn_mower/point-cloud/";
 
@@ -59,9 +61,19 @@ export function normalizePointCloudApiPath(
 export function pointCloudPathFromEntity(
   entity: PointCloudHassEntity | undefined,
 ): string | undefined {
+  if (featureCapabilityState(entity, "point_cloud") === "unsupported") {
+    return undefined;
+  }
   return normalizePointCloudApiPath(
     entity?.attributes?.point_cloud_api_path,
   );
+}
+
+/** Older integrations have no evidence field; retain their existing load flow. */
+export function pointCloudNeedsConfirmation(
+  entity: PointCloudHassEntity | undefined,
+): boolean {
+  return featureCapabilityState(entity, "point_cloud") === "unknown";
 }
 
 export function pointCloudRequestPath(
@@ -127,7 +139,9 @@ export async function pointCloudProblemFromResponse(
     title: "3D map unavailable",
     detail: `The mower point cloud is unavailable (HTTP ${response.status}).`,
     status: response.status,
-    retryable: response.status >= 500,
+    // Legacy 504 responses cannot distinguish an empty generation from a
+    // gateway timeout. Require an explicit retry instead of generating forever.
+    retryable: response.status >= 500 && response.status !== 504,
   };
   const contentType = response.headers.get("Content-Type")?.toLowerCase() || "";
   if (!contentType.includes("application/problem+json")) {
@@ -155,34 +169,39 @@ export async function pointCloudProblemFromResponse(
     code,
     stage,
     retryable:
-      typeof payload.retryable === "boolean"
-        ? payload.retryable
-        : fallback.retryable,
+      code === "point_cloud_not_published"
+        ? false
+        : typeof payload.retryable === "boolean"
+          ? payload.retryable
+          : fallback.retryable,
     retryAfterSeconds: boundedNumber(payload.retry_after_seconds, 0, 3600),
     elapsedMs: boundedNumber(payload.elapsed_ms, 0, 3_600_000),
     timeoutSeconds: boundedNumber(payload.timeout_seconds, 0, 3600),
   };
 }
 
-export function pointCloudProblemHint(problem: PointCloudProblem): string {
+export function pointCloudProblemHintKey(problem: PointCloudProblem) {
+  if (problem.code === "point_cloud_not_published") {
+    return "pointCloud.notPublishedHint";
+  }
   if (
     problem.code === "point_cloud_admin_required" ||
     problem.status === 401 ||
     problem.status === 403
   ) {
-    return "Sign in with a Home Assistant administrator account, or ask an administrator to open this 3D map.";
+    return "pointCloud.hintAdmin";
   }
   if (problem.retryable) {
-    return "The card will retry automatically. If this repeats, download the integration diagnostics before restarting Home Assistant.";
+    return "pointCloud.hintRetry";
   }
-  return "Download the integration diagnostics and include this diagnostic reference in the issue report.";
+  return "pointCloud.hintReport";
 }
 
 export function pointCloudRetryDelayMs(
   problem: PointCloudProblem,
   attempt: number,
 ): number | undefined {
-  if (!problem.retryable) {
+  if (!problem.retryable || problem.code === "point_cloud_not_published") {
     return undefined;
   }
   if (

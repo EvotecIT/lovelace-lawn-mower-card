@@ -41,7 +41,8 @@ camera. A Home Assistant administrator can load it directly in the card.
 
 The download is deliberately on demand:
 
-- in Hero, select the **3D** tab
+- in Hero, select the **3D** tab; if support is unverified, read the explanation
+  and press **Load 3D map** only when you want to try a generation request
 - in compact, default, or wide layouts, press **Load 3D map**
 - use the viewer to orbit, pan, zoom, change point size, reset, or refresh
 - press **PCD** to make a separate signed request for the original file; the
@@ -63,8 +64,16 @@ indefinitely. Newer integration versions return a privacy-safe problem code,
 stage, duration, and retryability flag; the card presents those details with
 the next useful action. Older versions still receive the HTTP-status fallback.
 
-If generation repeatedly fails, retry once and then download the mower
-integration diagnostics before restarting Home Assistant. Include the visible
+The card reads `feature_capabilities.point_cloud` from the integration's map
+camera. A request URL, LiDAR, or a 2D map is not proof of 3D export. Unknown
+support requires an explicit load; supported mowers keep the existing flow.
+Explicitly unsupported exports have no 3D tab. Older integration versions
+without this metadata retain their existing on-demand behavior.
+
+If the mower finishes without publishing a fresh file, automatic retries stop.
+Check whether the official app offers an actual 3D view for that mower, and
+download integration diagnostics before restarting Home Assistant. The 2D map
+remains independent of 3D export. Include the visible
 `point_cloud_*` reference in the issue report. The card never displays or stores
 vendor URLs, transient object names, or point coordinates as troubleshooting
 data.
