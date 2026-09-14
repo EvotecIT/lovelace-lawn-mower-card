@@ -194,6 +194,7 @@ export const cs = {
   "action.pauseMowing": "Pozastavit sekání",
   "action.dock": "Dokovat",
   "action.cancelTask": "Zrušit úlohu",
+  "action.cancelTaskConfirm": "Ukončit aktuální úlohu sekání? Sekačka se zastaví a zůstane na místě.",
   "action.returnToDock": "Návrat do doku",
   "action.more": "Více",
   "action.moreInfo": "Více informací",

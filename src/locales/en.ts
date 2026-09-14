@@ -203,6 +203,7 @@ export const en = {
   "action.pauseMowing": "Pause mowing",
   "action.dock": "Dock",
   "action.cancelTask": "Cancel task",
+  "action.cancelTaskConfirm": "End the current mowing task? The mower will stop and stay where it is.",
   "action.returnToDock": "Return to dock",
   "action.more": "More",
   "action.moreInfo": "More info",

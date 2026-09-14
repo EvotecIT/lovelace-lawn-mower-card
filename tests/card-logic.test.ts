@@ -19,6 +19,7 @@ import {
   heroViewRestorationAllowed,
   isPreferenceControlEntity,
   mowerCanDock,
+  mowerCanCancelTask,
   mowerSessionActive,
   numberControlSettings,
   resolvedControlEntities,
@@ -28,6 +29,7 @@ import {
   resolvedMowerMapSelector,
   resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
+  supportsDreameTaskCancellation,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
@@ -84,6 +86,43 @@ test("docked paused sessions retain a safe cancellation path", () => {
       state: "unavailable",
       attributes: pausedAtDock.attributes,
     }),
+    false,
+  );
+});
+
+test("task cancellation follows active state and the registered integration service", () => {
+  assert.equal(mowerCanCancelTask(entity("mowing")), true);
+  assert.equal(mowerCanCancelTask(entity("paused")), true);
+  assert.equal(mowerCanCancelTask(entity("returning")), true);
+  assert.equal(
+    mowerCanCancelTask({
+      state: "docked",
+      attributes: { mowing_session_active: true },
+    }),
+    true,
+  );
+  assert.equal(mowerCanCancelTask(entity("docked")), false);
+  assert.equal(mowerCanCancelTask(entity("unavailable")), false);
+
+  const entities = {
+    "lawn_mower.garden": { platform: "dreame_lawn_mower" },
+    "lawn_mower.other": { platform: "other_mower" },
+  };
+  const services = { lawn_mower: { cancel_current_task: {} } };
+  assert.equal(
+    supportsDreameTaskCancellation(
+      "lawn_mower.garden",
+      entities,
+      services,
+    ),
+    true,
+  );
+  assert.equal(
+    supportsDreameTaskCancellation("lawn_mower.other", entities, services),
+    false,
+  );
+  assert.equal(
+    supportsDreameTaskCancellation("lawn_mower.garden", entities, {}),
     false,
   );
 });

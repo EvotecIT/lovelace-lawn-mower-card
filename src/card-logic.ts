@@ -85,6 +85,30 @@ export function mowerCanDock(entity: MinimalHassEntity): boolean {
   return state !== "docked" || mowerSessionActive(entity);
 }
 
+/** Whether the mower reports a task that can be ended without docking. */
+export function mowerCanCancelTask(entity: MinimalHassEntity): boolean {
+  const state = entity.state.trim().toLowerCase();
+  if (["unavailable", "unknown"].includes(state)) {
+    return false;
+  }
+  return (
+    ["mowing", "paused", "returning"].includes(state) ||
+    mowerSessionActive(entity)
+  );
+}
+
+/** Expose cancellation only for the integration and service that implement it. */
+export function supportsDreameTaskCancellation(
+  mowerEntityId: string,
+  entities: EntityRegistryEntries | undefined,
+  services: Record<string, Record<string, unknown> | undefined> | undefined,
+): boolean {
+  return (
+    entities?.[mowerEntityId]?.platform === "dreame_lawn_mower" &&
+    Boolean(services?.lawn_mower?.cancel_current_task)
+  );
+}
+
 const PREFERENCE_CONTROL_SUFFIXES = [
   "_selected_map_preference_mode",
   "_selected_map_mowing_height",

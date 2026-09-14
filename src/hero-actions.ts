@@ -60,6 +60,14 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                       disabled: !model.canPause,
                     })
                   : nothing}
+                ${model.supportsCancelTask
+                  ? renderAction(
+                      model.t("action.cancelTask"),
+                      "mdi:stop-circle-outline",
+                      model.onCancelTask,
+                      { disabled: !model.canCancelTask },
+                    )
+                  : nothing}
                 ${model.supportsDock
                   ? renderAction(
                       model.dockActionLabel,
@@ -110,5 +118,6 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
             : nothing}
           ${renderAction(model.t("action.more"), "mdi:dots-horizontal", model.onMoreInfo)}
         </div>
+        ${model.confirmation || nothing}
   `;
 }

@@ -184,6 +184,7 @@ export const pl = {
   "action.pauseMowing": "Wstrzymaj koszenie",
   "action.dock": "Do stacji",
   "action.cancelTask": "Anuluj zadanie",
+  "action.cancelTaskConfirm": "Zakończyć bieżące zadanie koszenia? Kosiarka zatrzyma się i pozostanie w miejscu.",
   "action.returnToDock": "Wróć do stacji",
   "action.more": "Więcej",
   "action.moreInfo": "Więcej informacji",
