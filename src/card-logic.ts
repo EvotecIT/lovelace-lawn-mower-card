@@ -77,9 +77,15 @@ export function mowerSessionActive(entity: MinimalHassEntity): boolean {
 }
 
 /** A docked mower may still need Dock to cancel a paused resumable task. */
-export function mowerCanDock(entity: MinimalHassEntity): boolean {
+export function mowerCanDock(
+  entity: MinimalHassEntity,
+  hasDedicatedCancellation = false,
+): boolean {
   const state = entity.state.trim().toLowerCase();
   if (["unavailable", "unknown"].includes(state)) {
+    return false;
+  }
+  if (hasDedicatedCancellation && state === "docked") {
     return false;
   }
   return state !== "docked" || mowerSessionActive(entity);

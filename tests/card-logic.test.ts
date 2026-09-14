@@ -69,6 +69,7 @@ test("docked paused sessions retain a safe cancellation path", () => {
 
   assert.equal(mowerSessionActive(pausedAtDock), true);
   assert.equal(mowerCanDock(pausedAtDock), true);
+  assert.equal(mowerCanDock(pausedAtDock, true), false);
   assert.equal(mowerCanDock({ state: "docked", attributes: {} }), false);
   assert.equal(
     mowerCanDock({

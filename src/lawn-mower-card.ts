@@ -1624,7 +1624,12 @@ export class LawnMowerCard extends LitElement {
     if (!action) return undefined;
     return html`<lawn-mower-action-confirmation .message=${action.confirmation!} .locale=${this._locale}
       .onCancel=${() => this._closeCustomConfirmation()}
-      .onConfirm=${() => { this._closeCustomConfirmation(); return this._executeCustomAction(action); }}></lawn-mower-action-confirmation>`;
+      .confirmDisabled=${Boolean(this._mutationInFlight)}
+      .onConfirm=${() => {
+        if (this._mutationInFlight) return;
+        this._closeCustomConfirmation();
+        return this._executeCustomAction(action);
+      }}></lawn-mower-action-confirmation>`;
   }
 
   private _renderActionConfirmation() {
@@ -1635,10 +1640,8 @@ export class LawnMowerCard extends LitElement {
       .message=${this._t("action.cancelTaskConfirm")}
       .locale=${this._locale}
       .onCancel=${() => this._closeCancelTaskConfirmation()}
-      .onConfirm=${() => {
-        this._closeCancelTaskConfirmation();
-        return this._cancelCurrentTask();
-      }}
+      .confirmDisabled=${Boolean(this._mutationInFlight)}
+      .onConfirm=${() => this._confirmCancelCurrentTask()}
     ></lawn-mower-action-confirmation>`;
   }
 
@@ -3275,7 +3278,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _canDock(mower: HassEntity): boolean {
-    return mowerCanDock(mower);
+    return mowerCanDock(mower, this._supportsCancelCurrentTask());
   }
 
   private _supportsCancelCurrentTask(): boolean {
@@ -3313,9 +3316,18 @@ export class LawnMowerCard extends LitElement {
     });
   }
 
+  private _confirmCancelCurrentTask(): Promise<void> | undefined {
+    if (this._mutationInFlight) {
+      return undefined;
+    }
+    this._closeCancelTaskConfirmation();
+    return this._cancelCurrentTask();
+  }
+
   private _dockActionLabel(mower: HassEntity): string {
     return mower.state.trim().toLowerCase() === "docked" &&
-      mowerSessionActive(mower)
+      mowerSessionActive(mower) &&
+      !this._supportsCancelCurrentTask()
       ? this._t("action.cancelTask")
       : this._t("action.dock");
   }
@@ -3373,7 +3385,8 @@ export class LawnMowerCard extends LitElement {
     const mower = this._config ? this.hass.states[this._config.entity] : undefined;
     const actionLabel = mower &&
       mower.state.trim().toLowerCase() === "docked" &&
-      mowerSessionActive(mower)
+      mowerSessionActive(mower) &&
+      !this._supportsCancelCurrentTask()
       ? this._t("action.cancelTask")
       : this._t("action.returnToDock");
     await this._runMowerAction("dock", actionLabel, () =>
