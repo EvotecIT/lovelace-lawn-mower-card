@@ -103,6 +103,22 @@ export function mowerCanCancelTask(entity: MinimalHassEntity): boolean {
   );
 }
 
+/** Whether the card actually renders the dedicated cancellation action. */
+export function dedicatedTaskCancellationVisible(
+  showDefaultActions: boolean | undefined,
+  supportsCancellation: boolean,
+): boolean {
+  return (showDefaultActions ?? true) && supportsCancellation;
+}
+
+/** Whether an open cancellation prompt still represents an executable action. */
+export function taskCancellationStillAvailable(
+  entity: MinimalHassEntity | undefined,
+  supportsCancellation: boolean,
+): boolean {
+  return Boolean(entity && supportsCancellation && mowerCanCancelTask(entity));
+}
+
 /** Expose cancellation only for the integration and service that implement it. */
 export function supportsDreameTaskCancellation(
   mowerEntityId: string,

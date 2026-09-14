@@ -34,6 +34,7 @@ import {
   cameraRecoveryMarker,
   cameraRecoveryVerified,
   configuredCameraCanBePresented,
+  dedicatedTaskCancellationVisible,
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
@@ -48,6 +49,7 @@ import {
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
   supportsDreameTaskCancellation,
+  taskCancellationStillAvailable,
 } from "./card-logic";
 import {
   timeInputStep,
@@ -412,7 +414,13 @@ export class LawnMowerCard extends LitElement {
   protected updated(): void {
     if (this._pendingCustomAction && !conditionMatches(this._pendingCustomAction.visibility, this.hass.states)) this._closeCustomConfirmation();
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
-    if (this._cancelTaskConfirmationOpen && (!mower || !mowerCanCancelTask(mower))) {
+    if (
+      this._cancelTaskConfirmationOpen &&
+      !taskCancellationStillAvailable(
+        mower,
+        this._supportsCancelCurrentTask(),
+      )
+    ) {
       this._closeCancelTaskConfirmation();
     }
     if (!this.hass || !this._config) {
@@ -1596,6 +1604,8 @@ export class LawnMowerCard extends LitElement {
       if (!built) return [];
       return [{ ...built, handler: () => {
         if (action.confirmation) {
+          this._cancelTaskConfirmationOpen = false;
+          this._cancelTaskTrigger = undefined;
           this._customActionTrigger = this.shadowRoot?.activeElement as HTMLElement | undefined;
           this._pendingCustomAction = action;
         } else return this._executeCustomAction(action);
@@ -3278,7 +3288,14 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _canDock(mower: HassEntity): boolean {
-    return mowerCanDock(mower, this._supportsCancelCurrentTask());
+    return mowerCanDock(mower, this._showsDedicatedCancelAction());
+  }
+
+  private _showsDedicatedCancelAction(): boolean {
+    return dedicatedTaskCancellationVisible(
+      this._config?.show_default_actions,
+      this._supportsCancelCurrentTask(),
+    );
   }
 
   private _supportsCancelCurrentTask(): boolean {
@@ -3317,7 +3334,19 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _confirmCancelCurrentTask(): Promise<void> | undefined {
+    const mower = this._config
+      ? this.hass.states[this._config.entity]
+      : undefined;
     if (this._mutationInFlight) {
+      return undefined;
+    }
+    if (
+      !taskCancellationStillAvailable(
+        mower,
+        this._supportsCancelCurrentTask(),
+      )
+    ) {
+      this._closeCancelTaskConfirmation();
       return undefined;
     }
     this._closeCancelTaskConfirmation();
@@ -3327,7 +3356,7 @@ export class LawnMowerCard extends LitElement {
   private _dockActionLabel(mower: HassEntity): string {
     return mower.state.trim().toLowerCase() === "docked" &&
       mowerSessionActive(mower) &&
-      !this._supportsCancelCurrentTask()
+      !this._showsDedicatedCancelAction()
       ? this._t("action.cancelTask")
       : this._t("action.dock");
   }
@@ -3386,7 +3415,7 @@ export class LawnMowerCard extends LitElement {
     const actionLabel = mower &&
       mower.state.trim().toLowerCase() === "docked" &&
       mowerSessionActive(mower) &&
-      !this._supportsCancelCurrentTask()
+      !this._showsDedicatedCancelAction()
       ? this._t("action.cancelTask")
       : this._t("action.returnToDock");
     await this._runMowerAction("dock", actionLabel, () =>

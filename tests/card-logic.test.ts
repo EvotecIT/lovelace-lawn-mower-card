@@ -12,6 +12,7 @@ import {
   cameraRecoveryMarker,
   cameraRecoveryVerified,
   configuredCameraCanBePresented,
+  dedicatedTaskCancellationVisible,
   defaultHelperEntities,
   entitySummaryLabel,
   featureCapabilityState,
@@ -30,6 +31,7 @@ import {
   resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
   supportsDreameTaskCancellation,
+  taskCancellationStillAvailable,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
@@ -126,6 +128,20 @@ test("task cancellation follows active state and the registered integration serv
     supportsDreameTaskCancellation("lawn_mower.garden", entities, {}),
     false,
   );
+});
+
+test("dedicated cancellation is rendered only with the default action group", () => {
+  assert.equal(dedicatedTaskCancellationVisible(undefined, true), true);
+  assert.equal(dedicatedTaskCancellationVisible(true, true), true);
+  assert.equal(dedicatedTaskCancellationVisible(false, true), false);
+  assert.equal(dedicatedTaskCancellationVisible(true, false), false);
+});
+
+test("cancellation confirmation expires with service support or task state", () => {
+  assert.equal(taskCancellationStillAvailable(entity("mowing"), true), true);
+  assert.equal(taskCancellationStillAvailable(entity("mowing"), false), false);
+  assert.equal(taskCancellationStillAvailable(entity("docked"), true), false);
+  assert.equal(taskCancellationStillAvailable(undefined, true), false);
 });
 
 const dreameRegistry = (
