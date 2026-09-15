@@ -59,6 +59,19 @@ hero_overlay: 85
 The older `hero_theme` setting still works when no preset is selected. A selected
 preset follows Home Assistant instead, without deleting that saved legacy setting.
 
+For the Cinematic Hero composition, change the small label above the card title
+with `hero_label`, or hide it while keeping the title with
+`show_hero_label: false`. Both settings are also available under **Hero
+appearance** in the visual editor.
+
+```yaml
+layout: hero
+hero_layout: cinematic
+hero_label: Backyard robot
+# Or hide only this label:
+show_hero_label: false
+```
+
 ## Choose automatic or custom content
 
 The **Content selection** field appears under Controls and Header summary chips.

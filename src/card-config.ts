@@ -71,6 +71,8 @@ export type LawnMowerCardConfig = {
   locale?: LocalePreference;
   name?: string;
   layout?: "default" | "compact" | "wide" | "hero";
+  hero_label?: string;
+  show_hero_label?: boolean;
   hero_image?: string;
   hero_layout?: "cinematic" | "dashboard";
   hero_image_position?: HeroImagePosition;
