@@ -12,6 +12,7 @@ import {
   cameraRecoveryMarker,
   cameraRecoveryVerified,
   configuredCameraCanBePresented,
+  dedicatedTaskCancellationVisible,
   defaultHelperEntities,
   entitySummaryLabel,
   featureCapabilityState,
@@ -19,6 +20,7 @@ import {
   heroViewRestorationAllowed,
   isPreferenceControlEntity,
   mowerCanDock,
+  mowerCanCancelTask,
   mowerSessionActive,
   numberControlSettings,
   resolvedControlEntities,
@@ -28,6 +30,8 @@ import {
   resolvedMowerMapSelector,
   resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
+  supportsDreameTaskCancellation,
+  taskCancellationStillAvailable,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
@@ -67,6 +71,7 @@ test("docked paused sessions retain a safe cancellation path", () => {
 
   assert.equal(mowerSessionActive(pausedAtDock), true);
   assert.equal(mowerCanDock(pausedAtDock), true);
+  assert.equal(mowerCanDock(pausedAtDock, true), false);
   assert.equal(mowerCanDock({ state: "docked", attributes: {} }), false);
   assert.equal(
     mowerCanDock({
@@ -86,6 +91,63 @@ test("docked paused sessions retain a safe cancellation path", () => {
     }),
     false,
   );
+});
+
+test("task cancellation follows active state and the registered integration service", () => {
+  assert.equal(mowerCanCancelTask(entity("mowing")), true);
+  assert.equal(mowerCanCancelTask(entity("paused")), true);
+  assert.equal(mowerCanCancelTask(entity("returning")), true);
+  assert.equal(
+    mowerCanCancelTask({
+      state: "docked",
+      attributes: { mowing_session_active: true },
+    }),
+    true,
+  );
+  assert.equal(mowerCanCancelTask(entity("docked")), false);
+  assert.equal(mowerCanCancelTask(entity("unavailable")), false);
+
+  const entities = {
+    "lawn_mower.garden": { platform: "dreame_lawn_mower" },
+    "lawn_mower.other": { platform: "other_mower" },
+  };
+  const services = { dreame_lawn_mower: { cancel_current_task: {} } };
+  assert.equal(
+    supportsDreameTaskCancellation(
+      "lawn_mower.garden",
+      entities,
+      services,
+    ),
+    true,
+  );
+  assert.equal(
+    supportsDreameTaskCancellation("lawn_mower.other", entities, services),
+    false,
+  );
+  assert.equal(
+    supportsDreameTaskCancellation("lawn_mower.garden", entities, {}),
+    false,
+  );
+  assert.equal(
+    supportsDreameTaskCancellation("lawn_mower.garden", entities, {
+      lawn_mower: { cancel_current_task: {} },
+    }),
+    false,
+  );
+});
+
+test("dedicated cancellation is rendered only with the default action group", () => {
+  assert.equal(dedicatedTaskCancellationVisible(undefined, true), true);
+  assert.equal(dedicatedTaskCancellationVisible(true, true), true);
+  assert.equal(dedicatedTaskCancellationVisible(false, true), false);
+  assert.equal(dedicatedTaskCancellationVisible(true, false), false);
+});
+
+test("cancellation confirmation expires with service support or task state", () => {
+  assert.equal(taskCancellationStillAvailable(entity("mowing"), true), true);
+  assert.equal(taskCancellationStillAvailable(entity("mowing"), false), false);
+  assert.equal(taskCancellationStillAvailable(entity("docked"), true), false);
+  assert.equal(taskCancellationStillAvailable(undefined, true), false);
 });
 
 const dreameRegistry = (

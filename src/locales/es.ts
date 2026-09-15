@@ -180,6 +180,7 @@ export const es = {
   "action.pauseMowing": "Pausar corte",
   "action.dock": "A la base",
   "action.cancelTask": "Cancelar tarea",
+  "action.cancelTaskConfirm": "¿Finalizar la tarea de corte actual? El cortacésped se detendrá y permanecerá donde está.",
   "action.returnToDock": "Volver a la base",
   "action.more": "Más",
   "action.moreInfo": "Más información",

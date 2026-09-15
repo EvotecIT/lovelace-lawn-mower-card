@@ -34,10 +34,12 @@ import {
   cameraRecoveryMarker,
   cameraRecoveryVerified,
   configuredCameraCanBePresented,
+  dedicatedTaskCancellationVisible,
   defaultHelperEntities,
   entitySummaryLabel,
   firstAvailableEntity,
   heroViewRestorationAllowed,
+  mowerCanCancelTask,
   mowerCanDock,
   mowerSessionActive,
   numberControlSettings,
@@ -46,6 +48,9 @@ import {
   resolvedMowerMapSelector,
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
+  DREAME_LAWN_MOWER_SERVICE_DOMAIN,
+  supportsDreameTaskCancellation,
+  taskCancellationStillAvailable,
 } from "./card-logic";
 import {
   timeInputStep,
@@ -245,7 +250,9 @@ export class LawnMowerCard extends LitElement {
 
   @state() private _config?: LawnMowerCardConfig;
   @state() private _pendingCustomAction?: LawnMowerActionConfig;
+  @state() private _cancelTaskConfirmationOpen = false;
   private _customActionTrigger?: HTMLElement;
+  private _cancelTaskTrigger?: HTMLElement;
   @state() private _heroView: HeroView = "overview";
   @state() private _heroViewChosen = false;
   @state() private _pointCloudMounted = false;
@@ -311,7 +318,10 @@ export class LawnMowerCard extends LitElement {
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
-    if (config !== this._config) this._pendingCustomAction = undefined;
+    if (config !== this._config) {
+      this._pendingCustomAction = undefined;
+      this._cancelTaskConfirmationOpen = false;
+    }
     const previousEntity = this._config?.entity;
     const previousLayout = this._config?.layout || "default";
     const nextLayout = config.layout || "default";
@@ -356,6 +366,8 @@ export class LawnMowerCard extends LitElement {
   public disconnectedCallback(): void {
     this._pendingCustomAction = undefined;
     this._customActionTrigger = undefined;
+    this._cancelTaskConfirmationOpen = false;
+    this._cancelTaskTrigger = undefined;
     this._mediaVisibility.disconnect();
     const entityId = this._config?.entity;
     if (
@@ -402,6 +414,16 @@ export class LawnMowerCard extends LitElement {
 
   protected updated(): void {
     if (this._pendingCustomAction && !conditionMatches(this._pendingCustomAction.visibility, this.hass.states)) this._closeCustomConfirmation();
+    const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
+    if (
+      this._cancelTaskConfirmationOpen &&
+      !taskCancellationStillAvailable(
+        mower,
+        this._supportsCancelCurrentTask(),
+      )
+    ) {
+      this._closeCancelTaskConfirmation();
+    }
     if (!this.hass || !this._config) {
       return;
     }
@@ -615,7 +637,7 @@ export class LawnMowerCard extends LitElement {
                 `
               : nothing}
 
-            ${this._renderCustomConfirmation()}
+            ${this._renderActionConfirmation()}
             ${visibleActionFeedback
               ? html`
                   <div
@@ -770,7 +792,7 @@ export class LawnMowerCard extends LitElement {
       summary: this._buildHeaderSummary(),
       tiles: this._buildTiles(),
       customActions: this._buildCustomActions(mower),
-      confirmation: this._renderCustomConfirmation(),
+      confirmation: this._renderActionConfirmation(),
       sections: heroSections(this._config.hero_sections),
       density: this._config.hero_density,
       theme: cardAppearance(this._config).theme,
@@ -786,12 +808,15 @@ export class LawnMowerCard extends LitElement {
       ),
       supportsPause: mowerSupportsFeature(mower, LawnMowerFeature.PAUSE),
       supportsDock: mowerSupportsFeature(mower, LawnMowerFeature.DOCK),
+      supportsCancelTask: this._supportsCancelCurrentTask(),
       canStart:
         !this._mutationInFlight &&
         this._canStart(mower.state) &&
         this._canStartSelectedTarget(),
       canPause: !this._mutationInFlight && this._canPause(mower.state),
       canDock: !this._mutationInFlight && this._canDock(mower),
+      canCancelTask:
+        !this._mutationInFlight && mowerCanCancelTask(mower),
       dockActionLabel: this._dockActionLabel(mower),
       maintenancePointAvailable:
         !this._mutationInFlight &&
@@ -804,6 +829,7 @@ export class LawnMowerCard extends LitElement {
       onStart: () => this._startMowing(),
       onPause: () => this._pauseMowing(),
       onDock: () => this._dockMower(),
+      onCancelTask: () => this._requestCancelCurrentTask(),
       onMaintenancePoint: maintenancePointButton
         ? () => this._pressButton(maintenancePointButton.entityId)
         : undefined,
@@ -1533,6 +1559,15 @@ export class LawnMowerCard extends LitElement {
           handler: () => this._pauseMowing(),
         });
       }
+      if (this._supportsCancelCurrentTask()) {
+        defaultActions.push({
+          label: this._t("action.cancelTask"),
+          icon: "mdi:stop-circle-outline",
+          disabled:
+            Boolean(this._mutationInFlight) || !mowerCanCancelTask(mower),
+          handler: () => this._requestCancelCurrentTask(),
+        });
+      }
       if (mowerSupportsFeature(mower, LawnMowerFeature.DOCK)) {
         defaultActions.push({
           label: this._dockActionLabel(mower),
@@ -1570,6 +1605,8 @@ export class LawnMowerCard extends LitElement {
       if (!built) return [];
       return [{ ...built, handler: () => {
         if (action.confirmation) {
+          this._cancelTaskConfirmationOpen = false;
+          this._cancelTaskTrigger = undefined;
           this._customActionTrigger = this.shadowRoot?.activeElement as HTMLElement | undefined;
           this._pendingCustomAction = action;
         } else return this._executeCustomAction(action);
@@ -1586,11 +1623,12 @@ export class LawnMowerCard extends LitElement {
     if (current && !current.disabled) return current.handler();
   }
 
-  private _closeCustomConfirmation() {
+  private _closeCustomConfirmation(restoreFocus = true): HTMLElement | undefined {
     this._pendingCustomAction = undefined;
     const trigger = this._customActionTrigger;
     this._customActionTrigger = undefined;
-    void this.updateComplete.then(() => { if (trigger?.isConnected) trigger.focus(); });
+    if (restoreFocus) void this._restoreActionFocus(trigger);
+    return trigger;
   }
 
   private _renderCustomConfirmation() {
@@ -1598,7 +1636,29 @@ export class LawnMowerCard extends LitElement {
     if (!action) return undefined;
     return html`<lawn-mower-action-confirmation .message=${action.confirmation!} .locale=${this._locale}
       .onCancel=${() => this._closeCustomConfirmation()}
-      .onConfirm=${() => { this._closeCustomConfirmation(); return this._executeCustomAction(action); }}></lawn-mower-action-confirmation>`;
+      .confirmDisabled=${Boolean(this._mutationInFlight)}
+      .onConfirm=${async () => {
+        if (this._mutationInFlight) return;
+        const trigger = this._closeCustomConfirmation(false);
+        try {
+          await this._executeCustomAction(action);
+        } finally {
+          await this._restoreActionFocus(trigger);
+        }
+      }}></lawn-mower-action-confirmation>`;
+  }
+
+  private _renderActionConfirmation() {
+    if (!this._cancelTaskConfirmationOpen) {
+      return this._renderCustomConfirmation();
+    }
+    return html`<lawn-mower-action-confirmation
+      .message=${this._t("action.cancelTaskConfirm")}
+      .locale=${this._locale}
+      .onCancel=${() => this._closeCancelTaskConfirmation()}
+      .confirmDisabled=${Boolean(this._mutationInFlight)}
+      .onConfirm=${() => this._confirmCancelCurrentTask()}
+    ></lawn-mower-action-confirmation>`;
   }
 
   private _buildConfiguredAction(
@@ -3234,12 +3294,112 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _canDock(mower: HassEntity): boolean {
-    return mowerCanDock(mower);
+    return mowerCanDock(mower, this._showsDedicatedCancelAction());
+  }
+
+  private _showsDedicatedCancelAction(): boolean {
+    return dedicatedTaskCancellationVisible(
+      this._config?.show_default_actions,
+      this._supportsCancelCurrentTask(),
+    );
+  }
+
+  private _supportsCancelCurrentTask(): boolean {
+    if (!this._config) {
+      return false;
+    }
+    return supportsDreameTaskCancellation(
+      this._config.entity,
+      this.hass.entities,
+      this.hass.services,
+    );
+  }
+
+  private _requestCancelCurrentTask(): void {
+    if (!this._config || !this._supportsCancelCurrentTask()) {
+      return;
+    }
+    const mower = this.hass.states[this._config.entity];
+    if (!mower || !mowerCanCancelTask(mower) || this._mutationInFlight) {
+      return;
+    }
+    this._pendingCustomAction = undefined;
+    this._cancelTaskTrigger = this.shadowRoot?.activeElement as
+      | HTMLElement
+      | undefined;
+    this._cancelTaskConfirmationOpen = true;
+  }
+
+  private async _restoreActionFocus(trigger?: HTMLElement): Promise<void> {
+    await this.updateComplete;
+    if (!this.isConnected) return;
+
+    const available = (element?: HTMLElement | null) =>
+      Boolean(
+        element?.isConnected &&
+          !("disabled" in element && (element as HTMLButtonElement).disabled),
+      );
+    if (trigger && available(trigger)) {
+      trigger.focus();
+      return;
+    }
+
+    const focusable =
+      "button:not(:disabled), input:not(:disabled), select:not(:disabled), " +
+      'textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])';
+    const nearbyFallback = trigger?.parentElement?.querySelector<HTMLElement>(
+      focusable,
+    );
+    const fallback = available(nearbyFallback)
+      ? nearbyFallback
+      : this.shadowRoot?.querySelector<HTMLElement>(focusable);
+    if (fallback && available(fallback)) {
+      fallback.focus();
+      return;
+    }
+
+    if (!this.hasAttribute("tabindex")) this.tabIndex = -1;
+    this.focus();
+  }
+
+  private _closeCancelTaskConfirmation(
+    restoreFocus = true,
+  ): HTMLElement | undefined {
+    this._cancelTaskConfirmationOpen = false;
+    const trigger = this._cancelTaskTrigger;
+    this._cancelTaskTrigger = undefined;
+    if (restoreFocus) void this._restoreActionFocus(trigger);
+    return trigger;
+  }
+
+  private async _confirmCancelCurrentTask(): Promise<void> {
+    const mower = this._config
+      ? this.hass.states[this._config.entity]
+      : undefined;
+    if (this._mutationInFlight) {
+      return;
+    }
+    if (
+      !taskCancellationStillAvailable(
+        mower,
+        this._supportsCancelCurrentTask(),
+      )
+    ) {
+      this._closeCancelTaskConfirmation();
+      return;
+    }
+    const trigger = this._closeCancelTaskConfirmation(false);
+    try {
+      await this._cancelCurrentTask();
+    } finally {
+      await this._restoreActionFocus(trigger);
+    }
   }
 
   private _dockActionLabel(mower: HassEntity): string {
     return mower.state.trim().toLowerCase() === "docked" &&
-      mowerSessionActive(mower)
+      mowerSessionActive(mower) &&
+      !this._showsDedicatedCancelAction()
       ? this._t("action.cancelTask")
       : this._t("action.dock");
   }
@@ -3282,11 +3442,27 @@ export class LawnMowerCard extends LitElement {
     );
   }
 
+  private async _cancelCurrentTask() {
+    await this._runMowerAction(
+      "cancel-current-task",
+      this._t("action.cancelTask"),
+      () =>
+        this.hass.callService(
+          DREAME_LAWN_MOWER_SERVICE_DOMAIN,
+          "cancel_current_task",
+          {
+            entity_id: this._config?.entity,
+          },
+        ),
+    );
+  }
+
   private async _dockMower() {
     const mower = this._config ? this.hass.states[this._config.entity] : undefined;
     const actionLabel = mower &&
       mower.state.trim().toLowerCase() === "docked" &&
-      mowerSessionActive(mower)
+      mowerSessionActive(mower) &&
+      !this._showsDedicatedCancelAction()
       ? this._t("action.cancelTask")
       : this._t("action.returnToDock");
     await this._runMowerAction("dock", actionLabel, () =>

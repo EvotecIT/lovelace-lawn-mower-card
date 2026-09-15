@@ -19,6 +19,20 @@ Current auto-detected helpers include:
 Diagnostic probes remain available on the Home Assistant device page rather
 than appearing as everyday card actions.
 
+## Cancel an active task
+
+With a compatible Dreame integration, the card adds **Cancel task** beside the
+standard Pause and Dock controls. Cancel ends the current mowing task without
+sending the mower to the dock. The card asks for confirmation because the mower
+stops and remains where it is.
+
+The action appears only when Home Assistant identifies the entity as
+`dreame_lawn_mower` and registers `dreame_lawn_mower.cancel_current_task`. It is enabled
+while a task is mowing, paused, returning, or still marked active/resumable. The
+integration waits for inactive mower state before completing the service, so a
+map change can safely follow it. Other mower integrations keep their existing
+standard Start, Pause, and Dock controls unchanged.
+
 ## Control Selectors
 
 When compatible `select`, `number`, `switch`, or `time` entities exist, every

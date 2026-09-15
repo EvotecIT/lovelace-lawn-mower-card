@@ -1196,6 +1196,7 @@
         services: {
           dreame_lawn_mower: {
             start_zone_mowing: {},
+            cancel_current_task: {},
           },
         },
         async callWS(message) {
@@ -1284,6 +1285,27 @@
               for (const card of Object.values(cards)) {
                 card.requestUpdate();
               }
+            }
+          }
+          if (
+            domain === "dreame_lawn_mower" &&
+            service === "cancel_current_task"
+          ) {
+            const mower = stateStore["lawn_mower.backyard_mower"];
+            mower.state = "idle";
+            mower.attributes.activity = "idle";
+            mower.attributes.mowing_session_active = false;
+            mower.attributes.task_resumable = false;
+            mower.attributes.task_status = "idle";
+            stateStore["sensor.backyard_mower_state_name"].state = "Idle";
+            stateStore["binary_sensor.backyard_mower_docked"].state = "off";
+            stateStore["binary_sensor.backyard_mower_charging"].state = "off";
+            for (const button of document.querySelectorAll("[data-state]")) {
+              button.classList.remove("active");
+            }
+            updatePreviewMeta("idle");
+            for (const card of Object.values(cards)) {
+              card.requestUpdate();
             }
           }
         },
@@ -1397,6 +1419,7 @@
           paused: "Live: Paused",
           returning: "Live: Returning",
           docked: "Live: Docked",
+          idle: "Live: Task ended",
         };
         liveStateLabel.textContent = labels[nextState] || "Live: Unknown";
         liveStateDot.className = `status-dot ${nextState === "mowing" ? "" : nextState}`.trim();
@@ -1467,6 +1490,23 @@
             {
               title: "Next schedule ready",
               body: "The surrounding dashboard still keeps the next mowing windows visible.",
+            },
+            {
+              title: "Weather protection monitoring",
+              body:
+                stateStore["binary_sensor.backyard_mower_rain_delay_active"].state === "on"
+                  ? "Rain delay is currently active."
+                  : "No rain delay active.",
+            },
+          ],
+          idle: [
+            {
+              title: "Mowing task ended",
+              body: "The mower is idle and remains where the task was cancelled.",
+            },
+            {
+              title: "Map changes are now safe",
+              body: "A different saved map can be selected before starting another task.",
             },
             {
               title: "Weather protection monitoring",

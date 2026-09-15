@@ -77,12 +77,63 @@ export function mowerSessionActive(entity: MinimalHassEntity): boolean {
 }
 
 /** A docked mower may still need Dock to cancel a paused resumable task. */
-export function mowerCanDock(entity: MinimalHassEntity): boolean {
+export function mowerCanDock(
+  entity: MinimalHassEntity,
+  hasDedicatedCancellation = false,
+): boolean {
   const state = entity.state.trim().toLowerCase();
   if (["unavailable", "unknown"].includes(state)) {
     return false;
   }
+  if (hasDedicatedCancellation && state === "docked") {
+    return false;
+  }
   return state !== "docked" || mowerSessionActive(entity);
+}
+
+/** Whether the mower reports a task that can be ended without docking. */
+export function mowerCanCancelTask(entity: MinimalHassEntity): boolean {
+  const state = entity.state.trim().toLowerCase();
+  if (["unavailable", "unknown"].includes(state)) {
+    return false;
+  }
+  return (
+    ["mowing", "paused", "returning"].includes(state) ||
+    mowerSessionActive(entity)
+  );
+}
+
+/** Whether the card actually renders the dedicated cancellation action. */
+export function dedicatedTaskCancellationVisible(
+  showDefaultActions: boolean | undefined,
+  supportsCancellation: boolean,
+): boolean {
+  return (showDefaultActions ?? true) && supportsCancellation;
+}
+
+/** Whether an open cancellation prompt still represents an executable action. */
+export function taskCancellationStillAvailable(
+  entity: MinimalHassEntity | undefined,
+  supportsCancellation: boolean,
+): boolean {
+  return Boolean(entity && supportsCancellation && mowerCanCancelTask(entity));
+}
+
+/** Home Assistant service domain registered by the Dreame entity platform. */
+export const DREAME_LAWN_MOWER_SERVICE_DOMAIN = "dreame_lawn_mower";
+
+/** Expose cancellation only for the integration and service that implement it. */
+export function supportsDreameTaskCancellation(
+  mowerEntityId: string,
+  entities: EntityRegistryEntries | undefined,
+  services: Record<string, Record<string, unknown> | undefined> | undefined,
+): boolean {
+  return (
+    entities?.[mowerEntityId]?.platform === DREAME_LAWN_MOWER_SERVICE_DOMAIN &&
+    Boolean(
+      services?.[DREAME_LAWN_MOWER_SERVICE_DOMAIN]?.cancel_current_task,
+    )
+  );
 }
 
 const PREFERENCE_CONTROL_SUFFIXES = [
