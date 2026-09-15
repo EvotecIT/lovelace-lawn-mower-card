@@ -1623,11 +1623,12 @@ export class LawnMowerCard extends LitElement {
     if (current && !current.disabled) return current.handler();
   }
 
-  private _closeCustomConfirmation() {
+  private _closeCustomConfirmation(restoreFocus = true): HTMLElement | undefined {
     this._pendingCustomAction = undefined;
     const trigger = this._customActionTrigger;
     this._customActionTrigger = undefined;
-    void this.updateComplete.then(() => { if (trigger?.isConnected) trigger.focus(); });
+    if (restoreFocus) void this._restoreActionFocus(trigger);
+    return trigger;
   }
 
   private _renderCustomConfirmation() {
@@ -1636,10 +1637,14 @@ export class LawnMowerCard extends LitElement {
     return html`<lawn-mower-action-confirmation .message=${action.confirmation!} .locale=${this._locale}
       .onCancel=${() => this._closeCustomConfirmation()}
       .confirmDisabled=${Boolean(this._mutationInFlight)}
-      .onConfirm=${() => {
+      .onConfirm=${async () => {
         if (this._mutationInFlight) return;
-        this._closeCustomConfirmation();
-        return this._executeCustomAction(action);
+        const trigger = this._closeCustomConfirmation(false);
+        try {
+          await this._executeCustomAction(action);
+        } finally {
+          await this._restoreActionFocus(trigger);
+        }
       }}></lawn-mower-action-confirmation>`;
   }
 
@@ -3325,21 +3330,54 @@ export class LawnMowerCard extends LitElement {
     this._cancelTaskConfirmationOpen = true;
   }
 
-  private _closeCancelTaskConfirmation(): void {
+  private async _restoreActionFocus(trigger?: HTMLElement): Promise<void> {
+    await this.updateComplete;
+    if (!this.isConnected) return;
+
+    const available = (element?: HTMLElement | null) =>
+      Boolean(
+        element?.isConnected &&
+          !("disabled" in element && (element as HTMLButtonElement).disabled),
+      );
+    if (trigger && available(trigger)) {
+      trigger.focus();
+      return;
+    }
+
+    const focusable =
+      "button:not(:disabled), input:not(:disabled), select:not(:disabled), " +
+      'textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])';
+    const nearbyFallback = trigger?.parentElement?.querySelector<HTMLElement>(
+      focusable,
+    );
+    const fallback = available(nearbyFallback)
+      ? nearbyFallback
+      : this.shadowRoot?.querySelector<HTMLElement>(focusable);
+    if (fallback && available(fallback)) {
+      fallback.focus();
+      return;
+    }
+
+    if (!this.hasAttribute("tabindex")) this.tabIndex = -1;
+    this.focus();
+  }
+
+  private _closeCancelTaskConfirmation(
+    restoreFocus = true,
+  ): HTMLElement | undefined {
     this._cancelTaskConfirmationOpen = false;
     const trigger = this._cancelTaskTrigger;
     this._cancelTaskTrigger = undefined;
-    void this.updateComplete.then(() => {
-      if (trigger?.isConnected) trigger.focus();
-    });
+    if (restoreFocus) void this._restoreActionFocus(trigger);
+    return trigger;
   }
 
-  private _confirmCancelCurrentTask(): Promise<void> | undefined {
+  private async _confirmCancelCurrentTask(): Promise<void> {
     const mower = this._config
       ? this.hass.states[this._config.entity]
       : undefined;
     if (this._mutationInFlight) {
-      return undefined;
+      return;
     }
     if (
       !taskCancellationStillAvailable(
@@ -3348,10 +3386,14 @@ export class LawnMowerCard extends LitElement {
       )
     ) {
       this._closeCancelTaskConfirmation();
-      return undefined;
+      return;
     }
-    this._closeCancelTaskConfirmation();
-    return this._cancelCurrentTask();
+    const trigger = this._closeCancelTaskConfirmation(false);
+    try {
+      await this._cancelCurrentTask();
+    } finally {
+      await this._restoreActionFocus(trigger);
+    }
   }
 
   private _dockActionLabel(mower: HassEntity): string {
