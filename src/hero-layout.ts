@@ -28,6 +28,7 @@ export type HeroLayoutModel = {
   t: Translator;
   locale: SupportedLocale;
   title: string;
+  label?: string;
   subtitle: string;
   stateLabel: string;
   stateKey: string;
@@ -167,7 +168,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
 
           ${!model.dashboard ? html`<div class="hero-heading">
             <div class="hero-title-block">
-              <span class="hero-eyebrow">${model.t("hero.gardenMower")}</span>
+              ${model.label ? html`<span class="hero-eyebrow">${model.label}</span>` : nothing}
               <h2>${model.title}</h2>
               ${mainView !== "map" || model.subtitle.toLowerCase() !== model.stateLabel.toLowerCase()
                 ? html`<span class="hero-subtitle">${model.subtitle}</span>` : nothing}

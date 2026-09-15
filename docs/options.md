@@ -20,6 +20,10 @@
 - `hero_overlay`: photographic overview overlay strength, 0–100; default 100
 - `hero_layout`: optional `cinematic` (default) or `dashboard` composition
   when `layout: hero` is selected
+- `hero_label`: optional text shown above the card title in Cinematic Hero;
+  defaults to the translated `Garden mower` label
+- `show_hero_label`: optional boolean, defaults to `true`; set to `false` to
+  hide the Cinematic Hero label without changing the card title
 - `hero_image`: optional Hero overview background. Use an HTTPS URL or a
   `/local/...` path for a file stored under Home Assistant's `config/www`.
 - `hero_image_position`: optional image focus: `center` (default), `left`,

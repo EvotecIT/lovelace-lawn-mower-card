@@ -225,6 +225,20 @@ export class LawnMowerCardEditor extends LitElement {
             <option value="dashboard">${this._t("editor.heroDashboard")}</option>
           </select>
         </label>
+        ${config.hero_layout !== "dashboard" ? html`
+          ${this._toggle(
+            this._t("editor.showHeroLabel"),
+            config.show_hero_label ?? true,
+            "show_hero_label",
+          )}
+          ${config.show_hero_label !== false ? this._field(
+            this._t("editor.heroLabel"),
+            config.hero_label,
+            "hero_label",
+            this._t("hero.gardenMower"),
+            this._t("editor.heroLabelHint"),
+          ) : nothing}
+        ` : nothing}
         ${this._field(
           this._t("editor.backgroundImage"),
           config.hero_image,
@@ -325,6 +339,7 @@ export class LawnMowerCardEditor extends LitElement {
     key:
       | "show_map"
       | "show_point_cloud"
+      | "show_hero_label"
       | "show_default_actions"
       | "show_helper_actions"
       | "show_advanced_details",
@@ -523,6 +538,7 @@ export class LawnMowerCardEditor extends LitElement {
     const key = target.dataset.key as
       | "show_map"
       | "show_point_cloud"
+      | "show_hero_label"
       | "show_default_actions"
       | "show_helper_actions"
       | "show_advanced_details"

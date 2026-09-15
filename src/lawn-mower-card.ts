@@ -59,6 +59,7 @@ import {
 } from "./device-settings-controls";
 import { renderDeviceSettingsPanel } from "./device-settings-panel";
 import { renderHeroLayout, type HeroView } from "./hero-layout";
+import { resolveHeroLabel } from "./hero-label";
 import { availableHeroViews, resolveHeroView } from "./hero-views";
 import { lawnMowerCardStyles } from "./lawn-mower-card-styles";
 import {
@@ -751,6 +752,11 @@ export class LawnMowerCard extends LitElement {
       t: this._t,
       locale: this._locale,
       title,
+      label: resolveHeroLabel(
+        this._config.hero_label,
+        this._config.show_hero_label,
+        this._t("hero.gardenMower"),
+      ),
       subtitle,
       stateLabel: this._friendlyMowerState(mower.state),
       stateKey: mower.state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-"),
