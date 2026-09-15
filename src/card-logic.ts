@@ -119,6 +119,9 @@ export function taskCancellationStillAvailable(
   return Boolean(entity && supportsCancellation && mowerCanCancelTask(entity));
 }
 
+/** Home Assistant service domain registered by the Dreame entity platform. */
+export const DREAME_LAWN_MOWER_SERVICE_DOMAIN = "dreame_lawn_mower";
+
 /** Expose cancellation only for the integration and service that implement it. */
 export function supportsDreameTaskCancellation(
   mowerEntityId: string,
@@ -126,8 +129,10 @@ export function supportsDreameTaskCancellation(
   services: Record<string, Record<string, unknown> | undefined> | undefined,
 ): boolean {
   return (
-    entities?.[mowerEntityId]?.platform === "dreame_lawn_mower" &&
-    Boolean(services?.lawn_mower?.cancel_current_task)
+    entities?.[mowerEntityId]?.platform === DREAME_LAWN_MOWER_SERVICE_DOMAIN &&
+    Boolean(
+      services?.[DREAME_LAWN_MOWER_SERVICE_DOMAIN]?.cancel_current_task,
+    )
   );
 }
 

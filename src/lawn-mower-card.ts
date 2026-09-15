@@ -48,6 +48,7 @@ import {
   resolvedMowerMapSelector,
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
+  DREAME_LAWN_MOWER_SERVICE_DOMAIN,
   supportsDreameTaskCancellation,
   taskCancellationStillAvailable,
 } from "./card-logic";
@@ -3404,9 +3405,13 @@ export class LawnMowerCard extends LitElement {
       "cancel-current-task",
       this._t("action.cancelTask"),
       () =>
-        this.hass.callService("lawn_mower", "cancel_current_task", {
-          entity_id: this._config?.entity,
-        }),
+        this.hass.callService(
+          DREAME_LAWN_MOWER_SERVICE_DOMAIN,
+          "cancel_current_task",
+          {
+            entity_id: this._config?.entity,
+          },
+        ),
     );
   }
 

@@ -111,7 +111,7 @@ test("task cancellation follows active state and the registered integration serv
     "lawn_mower.garden": { platform: "dreame_lawn_mower" },
     "lawn_mower.other": { platform: "other_mower" },
   };
-  const services = { lawn_mower: { cancel_current_task: {} } };
+  const services = { dreame_lawn_mower: { cancel_current_task: {} } };
   assert.equal(
     supportsDreameTaskCancellation(
       "lawn_mower.garden",
@@ -126,6 +126,12 @@ test("task cancellation follows active state and the registered integration serv
   );
   assert.equal(
     supportsDreameTaskCancellation("lawn_mower.garden", entities, {}),
+    false,
+  );
+  assert.equal(
+    supportsDreameTaskCancellation("lawn_mower.garden", entities, {
+      lawn_mower: { cancel_current_task: {} },
+    }),
     false,
   );
 });

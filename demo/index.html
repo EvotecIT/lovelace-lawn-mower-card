@@ -1196,8 +1196,6 @@
         services: {
           dreame_lawn_mower: {
             start_zone_mowing: {},
-          },
-          lawn_mower: {
             cancel_current_task: {},
           },
         },
@@ -1289,7 +1287,10 @@
               }
             }
           }
-          if (domain === "lawn_mower" && service === "cancel_current_task") {
+          if (
+            domain === "dreame_lawn_mower" &&
+            service === "cancel_current_task"
+          ) {
             const mower = stateStore["lawn_mower.backyard_mower"];
             mower.state = "idle";
             mower.attributes.activity = "idle";
