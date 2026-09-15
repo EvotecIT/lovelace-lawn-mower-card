@@ -53,6 +53,9 @@
   alongside `coverage_entity`
 - `show_default_actions`: optional boolean, defaults to `true`
 - `show_helper_actions`: optional boolean, defaults to `true`
+- `show_custom_action_label`: optional boolean, defaults to `true`; set to
+  `false` to hide the translated heading above custom actions while keeping the
+  actions and their accessible section name
 - `show_advanced_details`: optional boolean, defaults to `false`; shows the
   Planned Run and Live Session panels
 - `control_entities`: optional list of `select`, `number`, `switch`, or `time`

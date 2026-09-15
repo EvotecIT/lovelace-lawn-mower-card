@@ -67,6 +67,7 @@ export const ru = {
   "editor.heroLabel": "Надпись над заголовком",
   "editor.heroLabelHint": "Оставьте пустым, чтобы использовать переведённый текст по умолчанию.",
   "editor.showHeroLabel": "Показывать надпись над заголовком",
+  "editor.showCustomActionLabel": "Показывать надпись пользовательских действий",
   "dashboard.openCamera": "Открыть камеру",
   "dashboard.cameraOnDemand": "Камера запускается только по запросу",
   "dashboard.closeCamera": "Закрыть",

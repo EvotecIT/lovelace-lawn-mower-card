@@ -65,6 +65,7 @@ export const cs = {
   "editor.heroLabel": "Popisek nad názvem",
   "editor.heroLabelHint": "Prázdné pole použije přeložený výchozí text.",
   "editor.showHeroLabel": "Zobrazit popisek nad názvem",
+  "editor.showCustomActionLabel": "Zobrazit popisek vlastních akcí",
   "dashboard.openCamera": "Otevřít kameru",
   "dashboard.cameraOnDemand": "Kamera se spustí pouze při výběru",
   "dashboard.closeCamera": "Zavřít",

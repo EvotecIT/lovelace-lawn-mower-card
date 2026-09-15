@@ -2,7 +2,7 @@ import { cardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
 import "./action-confirmation";
 import { summaryItems, controlGroups, configuredTile, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
-import { renderSummary, renderTiles } from "./customization-view";
+import { renderSummary, renderTiles, visibleCustomActionTitle } from "./customization-view";
 import {
   homeAssistantAttributeValue,
   homeAssistantLocaleMatches,
@@ -617,7 +617,7 @@ export class LawnMowerCard extends LitElement {
                   ${actionGroups.map(
                     (group) => html`
                       <div class="action-group">
-                        ${actionGroups.length > 1
+                        ${actionGroups.length > 1 && group.title
                           ? html`<div class="action-group-title">${group.title}</div>`
                           : nothing}
                         <div class="actions">
@@ -798,6 +798,7 @@ export class LawnMowerCard extends LitElement {
       summary: this._buildHeaderSummary(),
       tiles: this._buildTiles(),
       customActions: this._buildCustomActions(mower),
+      showCustomActionLabel: this._config.show_custom_action_label,
       confirmation: this._renderActionConfirmation(),
       sections: heroSections(this._config.hero_sections),
       density: this._config.hero_density,
@@ -1525,7 +1526,7 @@ export class LawnMowerCard extends LitElement {
   private _buildActionGroups(
     mower: HassEntity,
   ): Array<{
-    title: string;
+    title?: string;
     actions: Array<{
       label: string;
       icon?: string;
@@ -1600,7 +1601,13 @@ export class LawnMowerCard extends LitElement {
     return [
       { title: this._t("action.controls"), actions: defaultActions },
       { title: this._t("action.helpers"), actions: helperActions },
-      { title: this._t("action.custom"), actions: customActions },
+      {
+        title: visibleCustomActionTitle(
+          this._t("action.custom"),
+          this._config.show_custom_action_label,
+        ),
+        actions: customActions,
+      },
     ].filter((group) => group.actions.length);
   }
 

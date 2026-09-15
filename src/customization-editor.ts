@@ -133,6 +133,17 @@ export class CustomizationEditor extends LitElement {
         ["legacy", this.t("custom.existingDefault")], ["auto", this.t("common.automatic")], ["append", this.t("custom.append")], ["custom", this.t("custom.only")], ["hidden", this.t("custom.hidden")],
       ], value => { const next = { ...this.config }; if (value === "legacy") delete next[modeKey]; else next[modeKey] = value as LawnMowerCardConfig[typeof modeKey]; this.change(next); }) : nothing}
       ${modeKey ? html`<span class="hint">${this.t("custom.modeHint")}</span>` : nothing}
+      ${key === "actions" ? html`<label class="toggle">
+        <span>${this.t("editor.showCustomActionLabel")}</span>
+        <input
+          type="checkbox"
+          .checked=${this.config.show_custom_action_label ?? true}
+          @change=${(event: Event) => this.change({
+            ...this.config,
+            show_custom_action_label: (event.currentTarget as HTMLInputElement).checked,
+          })}
+        />
+      </label>` : nothing}
       ${!items.length ? html`<span class="hint">${this.t("custom.empty")}</span>` : nothing}
       <div class="collection">${items.map((item, index) => html`<div class="row">
         ${key === "control_entities" ? this.textField(this.t("editor.controlEntity"), String(item), value => this.updateItem(key, index, value), "custom-controls")

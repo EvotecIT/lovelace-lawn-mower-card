@@ -18,9 +18,24 @@ export function renderTiles(items: DisplayTile[], columns?: number) {
   </div>` : nothing;
 }
 
-export function renderCustomActions(actions: DisplayAction[], title: string, confirmation?: TemplateResult) {
+export function visibleCustomActionTitle(title: string, showTitle?: boolean): string | undefined {
+  return showTitle === false ? undefined : title;
+}
+
+type CustomActionRenderOptions = {
+  confirmation?: TemplateResult;
+  showTitle?: boolean;
+};
+
+export function renderCustomActions(
+  actions: DisplayAction[],
+  title: string,
+  options: CustomActionRenderOptions = {},
+) {
+  const { confirmation, showTitle } = options;
+  const visibleTitle = visibleCustomActionTitle(title, showTitle);
   return actions.length ? html`<section class="custom-action-section" aria-label=${title}>
-    <div class="custom-section-title">${title}</div>
+    ${visibleTitle ? html`<div class="custom-section-title">${visibleTitle}</div>` : nothing}
     <div class="custom-actions">${actions.map(action => html`<button type="button" ?disabled=${action.disabled} @click=${action.handler}>
       ${action.icon ? html`<ha-icon .icon=${action.icon} aria-hidden="true"></ha-icon>` : nothing}<span>${action.label}</span>
     </button>`)}</div>${confirmation || nothing}

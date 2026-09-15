@@ -67,6 +67,7 @@ export const uk = {
   "editor.heroLabel": "Напис над заголовком",
   "editor.heroLabelHint": "Залиште порожнім, щоб використати перекладений текст за замовчуванням.",
   "editor.showHeroLabel": "Показувати напис над заголовком",
+  "editor.showCustomActionLabel": "Показувати напис власних дій",
   "dashboard.openCamera": "Відкрити камеру",
   "dashboard.cameraOnDemand": "Камера запускається лише за запитом",
   "dashboard.closeCamera": "Закрити",

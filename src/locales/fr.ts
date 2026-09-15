@@ -67,6 +67,7 @@ export const fr = {
   "editor.heroLabel": "Libellé au-dessus du titre",
   "editor.heroLabelHint": "Laissez vide pour utiliser le texte traduit par défaut.",
   "editor.showHeroLabel": "Afficher le libellé au-dessus du titre",
+  "editor.showCustomActionLabel": "Afficher le libellé des actions personnalisées",
   "dashboard.openCamera": "Ouvrir la caméra",
   "dashboard.cameraOnDemand": "La caméra démarre uniquement sur demande",
   "dashboard.closeCamera": "Fermer",
