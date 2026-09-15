@@ -182,6 +182,17 @@ actions:
 The editor accepts service data as a JSON object and keeps incomplete or invalid
 JSON out of the saved configuration.
 
+The translated **Custom** heading above these buttons is visible by default. To
+hide only that heading, turn off **Show custom actions label** in the visual
+editor or set:
+
+```yaml
+show_custom_action_label: false
+```
+
+The action buttons remain available, and assistive technology still receives a
+translated name for the action section.
+
 ## Arrange Hero content
 
 Under **Content appearance**, select spacing, tile columns, and either the

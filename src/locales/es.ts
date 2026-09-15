@@ -67,6 +67,7 @@ export const es = {
   "editor.heroLabel": "Etiqueta sobre el título",
   "editor.heroLabelHint": "Déjalo vacío para usar el texto predeterminado traducido.",
   "editor.showHeroLabel": "Mostrar la etiqueta sobre el título",
+  "editor.showCustomActionLabel": "Mostrar la etiqueta de acciones personalizadas",
   "dashboard.openCamera": "Abrir cámara",
   "dashboard.cameraOnDemand": "La cámara se inicia solo al seleccionarla",
   "dashboard.closeCamera": "Cerrar",

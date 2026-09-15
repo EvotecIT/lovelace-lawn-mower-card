@@ -78,6 +78,7 @@ export const en = {
   "editor.heroLabel": "Label above title",
   "editor.heroLabelHint": "Leave blank to use the translated default.",
   "editor.showHeroLabel": "Show label above title",
+  "editor.showCustomActionLabel": "Show custom actions label",
   "dashboard.openCamera": "Open camera",
   "dashboard.cameraOnDemand": "Camera starts only when selected",
   "dashboard.closeCamera": "Close",

@@ -67,6 +67,7 @@ export const pl = {
   "editor.heroLabel": "Etykieta nad tytułem",
   "editor.heroLabelHint": "Pozostaw puste, aby użyć przetłumaczonej wartości domyślnej.",
   "editor.showHeroLabel": "Pokaż etykietę nad tytułem",
+  "editor.showCustomActionLabel": "Pokaż etykietę własnych akcji",
   "dashboard.openCamera": "Otwórz kamerę",
   "dashboard.cameraOnDemand": "Kamera uruchamia się dopiero po wybraniu",
   "dashboard.closeCamera": "Zamknij",

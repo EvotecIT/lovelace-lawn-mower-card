@@ -64,6 +64,7 @@ export type HeroLayoutModel = {
   summary: DisplayTile[];
   tiles: DisplayTile[];
   customActions: DisplayAction[];
+  showCustomActionLabel?: boolean;
   confirmation?: TemplateResult;
   sections: HeroSection[];
   details?: TemplateResult;
@@ -225,7 +226,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
         ${model.sections.some(section => section === "tiles" ? model.tiles.length : section === "actions" ? model.customActions.length : section === "controls" ? model.customSectionOrder && model.controls : model.details)
           ? html`<div class="hero-customization">${model.sections.map(section => {
             if (section === "tiles") return renderTiles(model.tiles, model.tileColumns);
-            if (section === "actions") return renderCustomActions(model.customActions, model.t("action.custom"));
+            if (section === "actions") return renderCustomActions(model.customActions, model.t("action.custom"), { showTitle: model.showCustomActionLabel });
             if (section === "details") return model.details || nothing;
             return model.customSectionOrder && model.controls ? html`<div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>` : nothing;
           })}</div>` : nothing}

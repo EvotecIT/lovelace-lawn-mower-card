@@ -67,6 +67,7 @@ export const de = {
   "editor.heroLabel": "Beschriftung über dem Titel",
   "editor.heroLabelHint": "Leer lassen, um den übersetzten Standardtext zu verwenden.",
   "editor.showHeroLabel": "Beschriftung über dem Titel anzeigen",
+  "editor.showCustomActionLabel": "Beschriftung für benutzerdefinierte Aktionen anzeigen",
   "dashboard.openCamera": "Kamera öffnen",
   "dashboard.cameraOnDemand": "Die Kamera startet erst nach Auswahl",
   "dashboard.closeCamera": "Schließen",

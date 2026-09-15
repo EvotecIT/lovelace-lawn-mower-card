@@ -2,7 +2,7 @@ import { cardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
 import "./action-confirmation";
 import { summaryItems, controlGroups, configuredTile, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
-import { renderSummary, renderTiles } from "./customization-view";
+import { customActionLabels, renderSummary, renderTiles } from "./customization-view";
 import {
   homeAssistantAttributeValue,
   homeAssistantLocaleMatches,
@@ -616,8 +616,8 @@ export class LawnMowerCard extends LitElement {
               ? html`
                   ${actionGroups.map(
                     (group) => html`
-                      <div class="action-group">
-                        ${actionGroups.length > 1
+                      <div class="action-group" role="group" aria-label=${group.title}>
+                        ${actionGroups.length > 1 && group.showTitle !== false
                           ? html`<div class="action-group-title">${group.title}</div>`
                           : nothing}
                         <div class="actions">
@@ -798,6 +798,7 @@ export class LawnMowerCard extends LitElement {
       summary: this._buildHeaderSummary(),
       tiles: this._buildTiles(),
       customActions: this._buildCustomActions(mower),
+      showCustomActionLabel: this._config.show_custom_action_label,
       confirmation: this._renderActionConfirmation(),
       sections: heroSections(this._config.hero_sections),
       density: this._config.hero_density,
@@ -1526,6 +1527,7 @@ export class LawnMowerCard extends LitElement {
     mower: HassEntity,
   ): Array<{
     title: string;
+    showTitle?: boolean;
     actions: Array<{
       label: string;
       icon?: string;
@@ -1596,11 +1598,19 @@ export class LawnMowerCard extends LitElement {
     }
 
     const customActions = this._buildCustomActions(mower);
+    const customLabels = customActionLabels(
+      this._t("action.custom"),
+      this._config.show_custom_action_label,
+    );
 
     return [
       { title: this._t("action.controls"), actions: defaultActions },
       { title: this._t("action.helpers"), actions: helperActions },
-      { title: this._t("action.custom"), actions: customActions },
+      {
+        title: customLabels.accessibleTitle,
+        showTitle: Boolean(customLabels.visibleTitle),
+        actions: customActions,
+      },
     ].filter((group) => group.actions.length);
   }
 

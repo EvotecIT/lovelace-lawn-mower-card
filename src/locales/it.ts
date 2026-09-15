@@ -67,6 +67,7 @@ export const it = {
   "editor.heroLabel": "Etichetta sopra il titolo",
   "editor.heroLabelHint": "Lascia vuoto per usare il testo predefinito tradotto.",
   "editor.showHeroLabel": "Mostra l'etichetta sopra il titolo",
+  "editor.showCustomActionLabel": "Mostra l'etichetta delle azioni personalizzate",
   "dashboard.openCamera": "Apri videocamera",
   "dashboard.cameraOnDemand": "La videocamera si avvia solo su richiesta",
   "dashboard.closeCamera": "Chiudi",
