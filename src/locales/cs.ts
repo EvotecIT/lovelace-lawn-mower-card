@@ -63,6 +63,7 @@ export const cs = {
   "editor.heroCinematic": "Filmové",
   "editor.heroDashboard": "Panel",
   "editor.heroDefaultTab": "Výchozí záložka",
+  "editor.dashboardPanels": "Postranní panely přehledu",
   "editor.heroLabel": "Popisek nad názvem",
   "editor.heroLabelHint": "Prázdné pole použije přeložený výchozí text.",
   "editor.showHeroLabel": "Zobrazit popisek nad názvem",

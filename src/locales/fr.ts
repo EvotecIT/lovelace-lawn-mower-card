@@ -65,6 +65,7 @@ export const fr = {
   "editor.heroCinematic": "Cinématique",
   "editor.heroDashboard": "Tableau de bord",
   "editor.heroDefaultTab": "Onglet initial",
+  "editor.dashboardPanels": "Panneaux latéraux du tableau de bord",
   "editor.heroLabel": "Libellé au-dessus du titre",
   "editor.heroLabelHint": "Laissez vide pour utiliser le texte traduit par défaut.",
   "editor.showHeroLabel": "Afficher le libellé au-dessus du titre",

@@ -65,6 +65,7 @@ export const it = {
   "editor.heroCinematic": "Cinematografica",
   "editor.heroDashboard": "Pannello",
   "editor.heroDefaultTab": "Scheda iniziale",
+  "editor.dashboardPanels": "Riquadri laterali del pannello",
   "editor.heroLabel": "Etichetta sopra il titolo",
   "editor.heroLabelHint": "Lascia vuoto per usare il testo predefinito tradotto.",
   "editor.showHeroLabel": "Mostra l'etichetta sopra il titolo",

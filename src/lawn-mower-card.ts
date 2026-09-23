@@ -805,6 +805,7 @@ export class LawnMowerCard extends LitElement {
       tiles: this._buildTiles(),
       customActions: this._buildCustomActions(mower),
       showCustomActionLabel: this._config.show_custom_action_label,
+      dashboardPanels: this._config.dashboard_panels,
       confirmation: this._renderActionConfirmation(),
       sections: heroSections(this._config.hero_sections),
       density: this._config.hero_density,

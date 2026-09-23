@@ -233,6 +233,15 @@ export class LawnMowerCardEditor extends LitElement {
             <option value="map">${this._t("hero.map")}</option>
           </select>
         </label>
+        ${config.hero_layout === "dashboard" ? html`
+          <div class="dashboard-panel-options" role="group" aria-label=${this._t("editor.dashboardPanels")}>
+            <strong>${this._t("editor.dashboardPanels")}</strong>
+            ${(["camera", "mission"] as const).map(panel => html`<label class="toggle">
+              <span>${this._t(panel === "camera" ? "hero.camera" : "hero.mission")}</span>
+              <input type="checkbox" .checked=${config.dashboard_panels?.includes(panel) !== false}
+                @change=${(event: Event) => this._dashboardPanelChanged(panel, (event.currentTarget as HTMLInputElement).checked)} />
+            </label>`)}
+          </div>` : nothing}
         ${config.hero_layout !== "dashboard" ? html`
           ${this._toggle(
             this._t("editor.showHeroLabel"),
@@ -564,6 +573,16 @@ export class LawnMowerCardEditor extends LitElement {
       next.entity = getStubConfig().entity;
     }
 
+    this._emitConfigChanged(next);
+  }
+
+  private _dashboardPanelChanged(panel: "camera" | "mission", checked: boolean) {
+    const next = { ...(this._config || getStubConfig()) };
+    const panels = new Set(next.dashboard_panels ?? ["camera", "mission"]);
+    if (checked) panels.add(panel);
+    else panels.delete(panel);
+    if (panels.size === 2) delete next.dashboard_panels;
+    else next.dashboard_panels = (["camera", "mission"] as const).filter(item => panels.has(item));
     this._emitConfigChanged(next);
   }
 

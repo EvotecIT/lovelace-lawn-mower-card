@@ -76,6 +76,7 @@ export const en = {
   "editor.heroCinematic": "Cinematic",
   "editor.heroDashboard": "Dashboard",
   "editor.heroDefaultTab": "Starting tab",
+  "editor.dashboardPanels": "Dashboard side panels",
   "editor.heroLabel": "Label above title",
   "editor.heroLabelHint": "Leave blank to use the translated default.",
   "editor.showHeroLabel": "Show label above title",

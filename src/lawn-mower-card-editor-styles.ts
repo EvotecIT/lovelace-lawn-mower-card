@@ -66,6 +66,15 @@ export const lawnMowerCardEditorStyles = css`
       border-radius: 8px;
     }
 
+    .dashboard-panel-options {
+      display: grid;
+      gap: 8px;
+    }
+
+    .dashboard-panel-options strong {
+      font-size: 0.9rem;
+    }
+
     .section-header {
       display: flex;
       align-items: start;
