@@ -65,6 +65,7 @@ export const de = {
   "editor.heroCinematic": "Kinoansicht",
   "editor.heroDashboard": "Dashboard",
   "editor.heroDefaultTab": "Startansicht",
+  "editor.dashboardPanels": "Dashboard-Seitenbereiche",
   "editor.heroLabel": "Beschriftung über dem Titel",
   "editor.heroLabelHint": "Leer lassen, um den übersetzten Standardtext zu verwenden.",
   "editor.showHeroLabel": "Beschriftung über dem Titel anzeigen",

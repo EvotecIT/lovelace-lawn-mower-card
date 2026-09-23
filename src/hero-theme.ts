@@ -39,6 +39,11 @@ export const heroThemeStyles = css`
   .theme-auto .dashboard-panel-heading, .theme-auto .mowing-stat { border-color:var(--mower-border); }
   .theme-auto .dashboard-camera-start strong, .theme-auto .dashboard-camera-start ha-icon { color:var(--mower-accent); }
   .theme-auto .dashboard-mower-icon { background:var(--mower-surface); box-shadow:none; border-color:var(--mower-border); }
+  .dashboard-card.theme-auto .dashboard-panel-heading { color:var(--mower-text); font-size:14px; }
+  .dashboard-card.theme-auto .dashboard-camera-stage { background:color-mix(in srgb,var(--mower-accent) 4%,var(--mower-surface)); }
+  .dashboard-card.theme-auto .hero-action:not(:disabled):not(:hover):not(.active) { background:color-mix(in srgb,var(--mower-accent) 4%,var(--mower-surface)); }
+  .dashboard-card.theme-auto .hero-action.primary:not(:disabled):not(:hover):not(.active) { background:color-mix(in srgb,var(--mower-accent) 14%,var(--mower-surface)); }
+  .dashboard-card.theme-auto .dashboard-camera-toggle { background:var(--mower-surface); }
   .theme-auto .view-map.interactive-map .hero-heading { background:var(--mower-surface); color:var(--mower-text); }
   .theme-auto .view-map.interactive-map .hero-heading h2,
   .theme-auto .view-map.interactive-map .hero-subtitle { color:var(--mower-text); }

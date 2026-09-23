@@ -10,6 +10,7 @@ export const dashboardStyles = css`
     background:#081c2a; box-shadow:inset 0 1px 0 #4186a329,0 14px 36px #020e1826;
   }
   .dashboard-card .hero-shell { background:radial-gradient(ellipse at 0 0,#12527033,transparent 60%),#081c2a; padding:18px; gap:16px; }
+  .dashboard-card .custom-summary { justify-content:flex-start; }
   .dashboard-header { display:flex; align-items:center; justify-content:space-between; gap:16px; min-width:0; }
   .dashboard-identity { display:flex; align-items:center; gap:14px; min-width:0; }
   .dashboard-mower-icon { display:grid; place-items:center; flex:none; width:70px; height:70px; border:1px solid #337b9b; border-radius:50%; color:#77d4f4; background:linear-gradient(145deg,#15415a,#0a2637); box-shadow:inset 0 0 20px #0c202b; }
@@ -45,7 +46,7 @@ export const dashboardStyles = css`
   .dashboard-command-panel { display:grid; align-content:start; gap:10px; min-width:0; }
   .dashboard-card .hero-actions:has(.hero-action:nth-child(5)) { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .dashboard-card .hero-actions:has(.hero-action:nth-child(7)) { grid-template-columns:repeat(4,minmax(0,1fr)); }
-  .dashboard-card .hero-action { min-height:82px; gap:8px; padding:12px 8px; border:1px solid #2a6683; border-radius:12px; background:linear-gradient(155deg,#153b50,#0c293b); color:#d9effb; font-size:13px; font-weight:550; line-height:1.2; cursor:pointer; box-shadow:inset 0 1px 0 #8bdfff0d; }
+  .dashboard-card .hero-action { min-height:82px; gap:8px; padding:12px 8px; border:1px solid #2a6683; border-radius:12px; background:linear-gradient(155deg,#153b50,#0c293b); color:#d9effb; font-size:13px; font-weight:600; line-height:1.2; cursor:pointer; box-shadow:inset 0 1px 0 #8bdfff0d; }
   .dashboard-card .hero-action ha-icon { --mdc-icon-size:28px; color:#83d9fb; }
   .dashboard-card .hero-action span { min-width:0; max-width:100%; overflow-wrap:anywhere; hyphens:auto; }
   .dashboard-card .hero-action.primary:not(:disabled) { border-color:#4cb97f; background:linear-gradient(150deg,#194636,#0d322b); color:#b7f7d0; }
@@ -77,9 +78,10 @@ export const dashboardStyles = css`
   @container (min-width:720px) {
     .dashboard-card .hero-shell { grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr); grid-template-rows:auto max-content minmax(340px,1fr); padding:22px; gap:16px; }
     .dashboard-header { grid-column:1/-1; grid-row:1; margin-bottom:2px; }
-    .dashboard-command-panel { grid-column:1; grid-row:2; }
+    .dashboard-command-panel { grid-column:1/-1; grid-row:2; }
     .dashboard-card .hero-stage { grid-column:1; grid-row:3; align-self:stretch; }
-    .dashboard-aside { grid-column:2; grid-row:2/span 2; }
+    .dashboard-aside { grid-column:2; grid-row:3; }
+    .dashboard-card.dashboard-no-aside .hero-shell { grid-template-columns:minmax(0,1fr); }
     .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-action-feedback { grid-column:1/-1; }
     .dashboard-card .view-map.interactive-map .hero-mowing-map { height:340px; flex:1 1 340px; min-height:340px; }
   }
@@ -96,9 +98,10 @@ export const dashboardStyles = css`
     .dashboard-battery-icon { width:30px; height:24px; }
     .dashboard-battery strong { font-size:20px; }
     .dashboard-battery span { font-size:10px; }
-    .dashboard-card .hero-actions { gap:7px; }
-    .dashboard-card .hero-actions:has(.hero-action:nth-child(5)) { grid-template-columns:repeat(3,minmax(0,1fr)); }
-    .dashboard-card .hero-action { min-height:72px; padding:9px 5px; font-size:12px; }
+    .dashboard-card .hero-actions,
+    .dashboard-card .hero-actions:has(.hero-action:nth-child(5)),
+    .dashboard-card .hero-actions:has(.hero-action:nth-child(7)) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .dashboard-card .hero-action { min-height:72px; padding:9px 5px; font-size:13px; }
     .dashboard-card .hero-action ha-icon { --mdc-icon-size:25px; }
     .dashboard-card .hero-tab { padding:8px 4px; gap:5px; font-size:12px; }
     .dashboard-card .view-map.interactive-map .hero-mowing-map { height:350px; }

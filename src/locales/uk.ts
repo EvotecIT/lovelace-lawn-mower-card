@@ -65,6 +65,7 @@ export const uk = {
   "editor.heroCinematic": "Кінематографічне",
   "editor.heroDashboard": "Панель",
   "editor.heroDefaultTab": "Початкова вкладка",
+  "editor.dashboardPanels": "Бічні панелі огляду",
   "editor.heroLabel": "Напис над заголовком",
   "editor.heroLabelHint": "Залиште порожнім, щоб використати перекладений текст за замовчуванням.",
   "editor.showHeroLabel": "Показувати напис над заголовком",

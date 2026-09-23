@@ -25,6 +25,9 @@
   interactive map exists, otherwise Overview). If Map is unavailable, the card
   shows Overview. A clicked tab takes precedence during normal updates and brief
   same-dashboard remounts; a full page reload reapplies the starting choice.
+- `dashboard_panels`: optional list of `camera` and `mission` side panels in
+  Dashboard composition. Omit it to show both, or use `[]` to give the map the
+  full card width. Hiding the camera side panel keeps the Camera tab available.
 - `hero_label`: optional text shown above the card title in Cinematic Hero;
   defaults to the translated `Garden mower` label
 - `show_hero_label`: optional boolean, defaults to `true`; set to `false` to

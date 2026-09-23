@@ -41,10 +41,12 @@ export function renderDashboardHeader(model: HeroLayoutModel) {
 
 /** Composition only: camera activation and warm-stream lifetime remain in the card. */
 export function renderDashboardAside(model: HeroLayoutModel) {
-  const camera = model.availableViews.includes("camera");
+  const camera = model.dashboardPanels?.includes("camera") !== false && model.availableViews.includes("camera");
+  const mission = model.dashboardPanels?.includes("mission") !== false;
+  if (!camera && !mission) return nothing;
   const watching = model.activeView === "camera";
   return html`
-    <aside class="dashboard-aside" aria-label=${model.t("hero.mission")}>
+    <aside class="dashboard-aside" aria-label=${model.t("editor.heroDashboard")}>
       ${camera ? html`
         <section class="dashboard-camera-panel">
           <div class="dashboard-panel-heading">
@@ -63,9 +65,9 @@ export function renderDashboardAside(model: HeroLayoutModel) {
               </button>` : nothing}
           </div>
         </section>` : nothing}
-      <div class="dashboard-mission-panel">
+      ${mission ? html`<div class="dashboard-mission-panel">
         <div class="dashboard-panel-heading"><span><ha-icon icon="mdi:grass"></ha-icon>${model.t("hero.mission")}</span></div>
         ${renderMowingMission({ ...model, showBattery: false })}
-      </div>
+      </div>` : nothing}
     </aside>`;
 }

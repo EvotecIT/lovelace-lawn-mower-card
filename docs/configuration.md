@@ -30,12 +30,17 @@ for a map/media panel beside an on-demand camera and mission totals. On narrow
 cards, the panels stack vertically. The existing cinematic composition remains
 the default.
 
+Under **Dashboard side panels**, turn off Camera or Mission to give the
+remaining content more room. Turn off both for a full-width map. The Camera
+tab remains usable when its side panel is hidden.
+
 ```yaml
 type: custom:lawn-mower-card
 entity: lawn_mower.my_mower
 layout: hero
 hero_layout: dashboard
 hero_default_tab: map
+dashboard_panels: [mission] # Optional: show mission beside the map, with camera in its tab
 ```
 
 Opening the camera keeps the map visible when one is available. Video still
