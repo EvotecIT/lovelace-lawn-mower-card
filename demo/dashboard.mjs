@@ -72,7 +72,7 @@ entity("camera.demo","idle",{friendly_name:"Mower camera",supported_features:2,.
 hass.states["camera.demo"].attributes.entity_picture=png;
 delete hass.states["camera.demo"].last_updated;
 const card=document.getElementById("mower");
-card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",name:"Garden mower",locale:query.get("locale") || "en",
+card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",hero_default_tab:query.get("defaultTab") || undefined,name:"Garden mower",locale:query.get("locale") || "en",
   status_entity:query.get("status")?"sensor.demo_status":undefined,
   map_entity:query.get("map")==="none"?undefined:"image.demo_map",show_map:query.get("map")!=="none",show_point_cloud:false,
   camera_entity:query.get("camera")==="none"?undefined:"camera.demo",progress_entity:"sensor.demo_progress",coverage_entity:"sensor.demo_area",coverage_total_entity:"sensor.demo_total",control_entities:[],show_helper_actions:query.get("helpers")==="true"});

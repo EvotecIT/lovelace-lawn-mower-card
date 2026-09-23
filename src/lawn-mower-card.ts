@@ -60,7 +60,7 @@ import {
 import { renderDeviceSettingsPanel } from "./device-settings-panel";
 import { renderHeroLayout, type HeroView } from "./hero-layout";
 import { resolveHeroLabel } from "./hero-label";
-import { availableHeroViews, resolveHeroView } from "./hero-views";
+import { availableHeroViews, initialHeroView, resolveHeroView } from "./hero-views";
 import { lawnMowerCardStyles } from "./lawn-mower-card-styles";
 import {
   normalizeHeroImage,
@@ -739,8 +739,14 @@ export class LawnMowerCard extends LitElement {
       camera: Boolean(cameraEntity),
     });
     const activeView = resolveHeroView(
-      !this._heroViewChosen && this._heroView === "overview" && mower.state === "mowing" && scenePath
-        ? "map" : this._heroView,
+      !this._heroViewChosen && this._heroView === "overview"
+        ? initialHeroView(
+            this._config.hero_default_tab,
+            mower.state === "mowing",
+            Boolean(scenePath),
+            availableViews,
+          )
+        : this._heroView,
       availableViews,
     );
     const cameraBlockedReason = cameraEntity

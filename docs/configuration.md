@@ -35,12 +35,19 @@ type: custom:lawn-mower-card
 entity: lawn_mower.my_mower
 layout: hero
 hero_layout: dashboard
+hero_default_tab: map
 ```
 
 Opening the camera keeps the map visible when one is available. Video still
 starts only when selected; closing the camera uses the same short reconnection
 grace period as the cinematic layout. Mission totals come from the mower, and
 the map route shows observed movement—not an inferred cut-area mask.
+
+Set **Hero appearance → Starting tab → Map** in the visual editor, or use
+`hero_default_tab: map`, to open either Hero composition on its Map tab. The
+card shows Overview if no map is available. Leave the setting on Automatic to
+keep the current behavior: the interactive map opens while mowing, and other
+states open on Overview.
 
 ## Custom Hero background
 

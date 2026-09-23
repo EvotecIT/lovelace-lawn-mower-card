@@ -225,6 +225,14 @@ export class LawnMowerCardEditor extends LitElement {
             <option value="dashboard">${this._t("editor.heroDashboard")}</option>
           </select>
         </label>
+        <label>
+          <span>${this._t("editor.heroDefaultTab")}</span>
+          <select data-key="hero_default_tab" .value=${config.hero_default_tab || ""} @change=${this._valueChanged}>
+            <option value="">${this._t("common.automatic")}</option>
+            <option value="overview">${this._t("hero.overview")}</option>
+            <option value="map">${this._t("hero.map")}</option>
+          </select>
+        </label>
         ${config.hero_layout !== "dashboard" ? html`
           ${this._toggle(
             this._t("editor.showHeroLabel"),
