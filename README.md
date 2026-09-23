@@ -1,6 +1,8 @@
 # Lawn Mower Card for Home Assistant
 
-![Lawn Mower Card for Home Assistant](assets/lawn-mower-card-social.png)
+![Illustrative Lawn Mower Card banner](assets/lawn-mower-card-social.png)
+
+The banner is illustrative. The card previews below show the current UI.
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://hacs.xyz/)
 [![CI](https://img.shields.io/github/actions/workflow/status/EvotecIT/lovelace-lawn-mower-card/validate.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/EvotecIT/lovelace-lawn-mower-card/actions/workflows/validate.yml)
@@ -22,7 +24,10 @@ entities are available. The card works with standard mower integrations; the
 provides the most extensively exercised pairing. See
 [integration compatibility](docs/integration-compatibility.md) for details.
 
-![Dashboard layout running in Home Assistant with a real Dreame A2](assets/lawn-mower-card-dashboard-live.png)
+![Current Dashboard layout in a light Home Assistant theme](assets/lawn-mower-card-dashboard-preview-light.png)
+
+This Dashboard preview uses simulated mower data. The gallery includes a phone
+preview and real-device captures of the other layouts.
 
 See the [layout gallery](docs/gallery.md) for Hero, Compact, mobile, and 3D
 screenshots with configuration examples.
@@ -101,7 +106,9 @@ layout: hero
 
 For the side-by-side map/media and camera composition, select **Hero → Hero
 appearance → Composition → Dashboard**, or add `hero_layout: dashboard`.
-Narrow cards stack those panels vertically.
+Narrow cards stack those panels vertically. In **Dashboard side panels**, show
+Camera, Mission, both, or neither; `dashboard_panels: []` gives the map the full
+card width while keeping the Camera tab available.
 
 For narrow desktop dashboard columns, prefer **Hero**, **Default**, or
 **Compact**. The older **Wide** preset has a known container-resizing limitation.

@@ -1,6 +1,7 @@
 import { hass, entity, card } from "./dashboard.mjs";
 
 const query = new URLSearchParams(location.search);
+if (query.get("capture") === "1") document.documentElement.dataset.capture="true";
 const editor = document.getElementById("editor");
 const events = document.getElementById("events");
 let commands = 0;
@@ -27,9 +28,11 @@ for (const id of ["sensor.garden_temperature","binary_sensor.garden_rain","scrip
 
 const example = () => {
   const requestedColumns=Number(query.get("columns"));
+  const requestedPanels=query.get("panels");
   const base = {
   type:"custom:lawn-mower-card", entity:"lawn_mower.demo", name:"Backyard mower", layout:"hero",
   hero_layout:query.get("composition") === "dashboard" ? "dashboard" : "cinematic",
+  dashboard_panels:requestedPanels === "none" ? [] : requestedPanels === "camera" ? ["camera"] : requestedPanels === "mission" ? ["mission"] : undefined,
   locale:query.get("locale") || "en", hero_theme:"auto", hero_density:"comfortable", tile_columns:Number.isInteger(requestedColumns)&&requestedColumns>=1&&requestedColumns<=4?requestedColumns:3,
   appearance:query.get("preset") === "legacy" ? undefined : query.get("preset") || "native",
   surface:query.get("surface") || "solid",
@@ -92,6 +95,9 @@ function renderConfig() {
   document.getElementById("preset").value=config.appearance || "legacy";
   document.getElementById("surface").value=config.surface || "solid";
   document.getElementById("surface").disabled=!config.appearance;
+  const panels=config.dashboard_panels;
+  document.getElementById("panels").value=panels === undefined || panels.length === 2 ? "both" : panels.length === 0 ? "none" : panels[0];
+  document.getElementById("panels").disabled=config.layout !== "hero" || config.hero_layout !== "dashboard";
 }
 
 function updateState(id, state) {
@@ -111,6 +117,13 @@ card.addEventListener("hass-more-info", event => { events.textContent=`More info
 editor.addEventListener("config-changed", event => { config=event.detail.config; renderConfig(); });
 document.getElementById("layout").addEventListener("change", event => {
   const value=event.target.value; config={...config,layout:value === "default" ? "default" : "hero",hero_layout:value === "dashboard" ? "dashboard" : "cinematic"};renderConfig();
+});
+document.getElementById("panels").addEventListener("change", event => {
+  config={...config};
+  const value=event.target.value;
+  if (value === "both") delete config.dashboard_panels;
+  else config.dashboard_panels=value === "none" ? [] : [value];
+  renderConfig();
 });
 document.getElementById("width").addEventListener("change", event => document.documentElement.style.setProperty("--preview-width",`${Number(event.target.value)}px`));
 document.getElementById("theme").addEventListener("change", event => document.documentElement.classList.toggle("light",event.target.value === "light"));

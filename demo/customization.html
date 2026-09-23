@@ -28,6 +28,11 @@
     details.config { margin-top:18px; color:var(--secondary-text-color); }
     pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }
     @media(max-width:480px) { body { padding:12px; } h1 { font-size:20px; } .toolbar { gap:8px; } }
+    :root[data-capture="true"] body { width:var(--preview-width); max-width:100%; padding:0; background:transparent; }
+    :root[data-capture="true"] main, :root[data-capture="true"] .preview { width:100%; max-width:none; margin:0; }
+    :root[data-capture="true"] header, :root[data-capture="true"] .toolbar,
+    :root[data-capture="true"] #events, :root[data-capture="true"] #editor-panel,
+    :root[data-capture="true"] details.config { display:none; }
   </style>
 </head>
 <body>
@@ -38,6 +43,7 @@
       <label>Surface<select id="surface"><option value="solid">Solid</option><option value="tinted">Tinted</option><option value="translucent">Translucent</option></select></label>
       <label>Dashboard background<select id="backdrop"><option value="plain">Plain</option><option value="pattern">Pattern</option><option value="photo">Photo</option></select></label>
       <label>Layout<select id="layout"><option value="cinematic">Hero · Cinematic</option><option value="dashboard">Hero · Dashboard</option><option value="default">Traditional</option></select></label>
+      <label>Dashboard panels<select id="panels"><option value="both">Camera + mission</option><option value="camera">Camera only</option><option value="mission">Mission only</option><option value="none">Full-width map</option></select></label>
       <label>Card width<select id="width"><option value="1080">Wide · 1080 px</option><option value="680">Medium · 680 px</option><option value="390">Phone · 390 px</option><option value="320">Narrow · 320 px</option></select></label>
       <label>Page theme<select id="theme"><option value="dark">Dark</option><option value="light">Light</option></select></label>
       <label>Language<select id="locale"><option value="en">English</option><option value="pl">Polski</option></select></label>

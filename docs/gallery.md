@@ -3,10 +3,10 @@
 [Back to the README](../README.md) · [Configuration](configuration.md) ·
 [Maps, video, and 3D](media.md)
 
-These screenshots show Lawn Mower Card running in Home Assistant with a Dreame
-A2 and its real companion entities. The mower is docked, so mission values are
-blank and no live position is shown. The Hero overview uses the card's built-in
-background image; the Camera tab opens the separate video feed.
+The Dashboard images show the current card using simulated Home Assistant data
+from the local preview. The Cinematic Hero, 3D, Default, and Compact images are
+real Dreame A2 captures. In those captures the mower is docked, so mission
+values are blank and no live position is shown.
 
 Replace the example entity IDs with yours. Optional maps, schedules, settings,
 and 3D require an integration that exposes those capabilities.
@@ -17,7 +17,7 @@ Dashboard puts the main actions above the media view, with a separate camera
 panel and mission summary beside it on wide cards. Schedules and settings stay
 below. The camera starts only when opened.
 
-![Dashboard layout with the real garden map, battery, schedules, and settings](../assets/lawn-mower-card-dashboard-live.png)
+![Current Dashboard layout with map, camera, mission, actions, and controls in a light theme](../assets/lawn-mower-card-dashboard-preview-light.png)
 
 ```yaml
 type: custom:lawn-mower-card
@@ -29,10 +29,15 @@ map_entity: camera.my_mower_map
 show_helper_actions: false
 ```
 
-On a phone, the same layout stacks the media, camera, and mission panels. This
-capture shows the upper portion; schedules and settings continue below it.
+On a phone, the same layout stacks the map, camera, and mission panels. The
+complete simulated card is shown here in a dark theme.
 
-<img src="../assets/lawn-mower-card-dashboard-mobile.png" alt="Dashboard layout on a narrow Home Assistant screen" width="390">
+<img src="../assets/lawn-mower-card-dashboard-preview-mobile.png" alt="Current Dashboard card on a 390-pixel screen in a dark theme" width="390">
+
+To give the map the full card width, turn off both **Dashboard side panels** in
+the editor or set `dashboard_panels: []`. The Camera tab remains available.
+
+![Dashboard layout with both side panels hidden and a full-width map](../assets/lawn-mower-card-dashboard-preview-map.png)
 
 ## Cinematic Hero
 

@@ -3,6 +3,7 @@ import "./ha-icon.mjs";
 
 // Deliberately local fixture: no authentication, device connection or live video.
 const query = new URLSearchParams(location.search);
+if (query.get("theme")==="light") document.documentElement.classList.add("light");
 document.documentElement.style.setProperty("--preview-width", `${Math.max(280, Math.min(1200, Number(query.get("width")) || 1080))}px`);
 customElements.define("ha-card", class extends HTMLElement {
   connectedCallback() { this.style.display="block"; }
@@ -72,7 +73,8 @@ entity("camera.demo","idle",{friendly_name:"Mower camera",supported_features:2,.
 hass.states["camera.demo"].attributes.entity_picture=png;
 delete hass.states["camera.demo"].last_updated;
 const card=document.getElementById("mower");
-card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",hero_default_tab:query.get("defaultTab") || undefined,name:"Garden mower",locale:query.get("locale") || "en",
+card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",hero_default_tab:query.get("defaultTab") || undefined,name:"Garden mower",locale:query.get("locale") || "en",appearance:query.get("preset")==="legacy"?undefined:"native",
+  dashboard_panels:query.get("panels")==="none"?[]:query.get("panels")==="camera"?["camera"]:query.get("panels")==="mission"?["mission"]:undefined,
   status_entity:query.get("status")?"sensor.demo_status":undefined,
   map_entity:query.get("map")==="none"?undefined:"image.demo_map",show_map:query.get("map")!=="none",show_point_cloud:false,
   camera_entity:query.get("camera")==="none"?undefined:"camera.demo",progress_entity:"sensor.demo_progress",coverage_entity:"sensor.demo_area",coverage_total_entity:"sensor.demo_total",control_entities:[],show_helper_actions:query.get("helpers")==="true"});
