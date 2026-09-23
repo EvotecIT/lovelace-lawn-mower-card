@@ -119,7 +119,7 @@ const HERO_VIEW_RECONNECT_TTL_MS = 30_000;
 
 const transientHeroViews = new Map<
   string,
-  { view: Exclude<HeroView, "overview">; route: string; storedAt: number }
+  { view: HeroView; route: string; storedAt: number }
 >();
 
 function transientHeroViewKey(
@@ -352,7 +352,7 @@ export class LawnMowerCard extends LitElement {
     });
     this._heroViewSlot = connectedCardSlot(this);
     if (
-      this._heroView !== "overview" &&
+      this._heroViewChosen &&
       this._heroViewRoute !== window.location.pathname
     ) {
       this._resetHeroMediaState();
@@ -374,7 +374,7 @@ export class LawnMowerCard extends LitElement {
     if (
       entityId &&
       this._heroViewSlot &&
-      this._heroView !== "overview" &&
+      this._heroViewChosen &&
       this._heroViewRoute === window.location.pathname
     ) {
       const key = transientHeroViewKey(
@@ -856,8 +856,7 @@ export class LawnMowerCard extends LitElement {
     const previous = this._heroView;
     const pointCloudGeneration = ++this._heroPointCloudGeneration;
     this._heroView = view;
-    this._heroViewRoute =
-      view === "overview" ? undefined : window.location.pathname;
+    this._heroViewRoute = window.location.pathname;
     if (view === "point-cloud") {
       if (!this._currentPointCloudPath()) {
         this._pointCloudMounted = false;
