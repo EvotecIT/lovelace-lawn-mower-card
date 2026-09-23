@@ -40,6 +40,20 @@ fixture—never real garden geometry—for testing the 3D tab and load controls.
 can switch mower states, toggle rain delay, and focus on a single layout preset
 or compare all of them side by side.
 
+For a focused Dashboard preview, open
+`http://localhost:4173/demo/customization.html?composition=dashboard`. Its
+toolbar switches themes, card widths, and Camera/Mission side panels. Add
+`&capture=1` to hide the toolbar and show only the card for screenshots. The
+checked-in Dashboard images use this capture mode at 1080 px (light theme,
+both panels), 390 px (dark theme, both panels), and 1080 px (light theme,
+`panels=none`). These are simulated previews, not live mower captures.
+
+| Image | Preview URL after `localhost:4173` | Viewport |
+| --- | --- | --- |
+| Light Dashboard | `/demo/customization.html?composition=dashboard&theme=light&width=1080&capture=1` | 1080 px wide |
+| Dark phone Dashboard | `/demo/customization.html?composition=dashboard&theme=dark&width=390&capture=1` | 390 px wide |
+| Full-width map | `/demo/customization.html?composition=dashboard&theme=light&width=1080&panels=none&capture=1` | 1080 px wide |
+
 ## Releases
 
 Merged pull requests drive releases. Add one release label before merging when
