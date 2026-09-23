@@ -75,6 +75,7 @@ export type LawnMowerCardConfig = {
   show_hero_label?: boolean;
   hero_image?: string;
   hero_layout?: "cinematic" | "dashboard";
+  hero_default_tab?: "overview" | "map";
   hero_image_position?: HeroImagePosition;
   map_entity?: string;
   map_fit?: MapFit;

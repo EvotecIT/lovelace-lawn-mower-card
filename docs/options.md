@@ -20,6 +20,10 @@
 - `hero_overlay`: photographic overview overlay strength, 0–100; default 100
 - `hero_layout`: optional `cinematic` (default) or `dashboard` composition
   when `layout: hero` is selected
+- `hero_default_tab`: optional `overview` or `map` starting tab for either Hero
+  composition. Omit it to keep automatic behavior (Map while mowing when an
+  interactive map exists, otherwise Overview). If Map is unavailable, the card
+  shows Overview. Clicking a tab still takes precedence until the card resets.
 - `hero_label`: optional text shown above the card title in Cinematic Hero;
   defaults to the translated `Garden mower` label
 - `show_hero_label`: optional boolean, defaults to `true`; set to `false` to

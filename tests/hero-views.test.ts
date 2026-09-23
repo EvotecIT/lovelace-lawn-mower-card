@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   availableHeroViews,
+  initialHeroView,
   isHeroViewAvailable,
   resolveHeroView,
   showHeroViewTabs,
@@ -39,4 +40,13 @@ test("Hero views follow the optional companion capabilities", () => {
 test("a disappearing companion returns Hero to overview", () => {
   assert.equal(resolveHeroView("camera", ["overview", "map"]), "overview");
   assert.equal(resolveHeroView("map", ["overview", "map"]), "map");
+});
+
+test("Hero starting tab honors configuration and available map content", () => {
+  const withMap = ["overview", "map"] as const;
+  assert.equal(initialHeroView(undefined, true, true, withMap), "map");
+  assert.equal(initialHeroView(undefined, false, true, withMap), "overview");
+  assert.equal(initialHeroView("overview", true, true, withMap), "overview");
+  assert.equal(initialHeroView("map", false, false, withMap), "map");
+  assert.equal(initialHeroView("map", false, false, ["overview"]), "overview");
 });

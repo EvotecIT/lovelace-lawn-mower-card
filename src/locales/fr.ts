@@ -64,6 +64,7 @@ export const fr = {
   "editor.heroComposition": "Composition",
   "editor.heroCinematic": "Cinématique",
   "editor.heroDashboard": "Tableau de bord",
+  "editor.heroDefaultTab": "Onglet initial",
   "editor.heroLabel": "Libellé au-dessus du titre",
   "editor.heroLabelHint": "Laissez vide pour utiliser le texte traduit par défaut.",
   "editor.showHeroLabel": "Afficher le libellé au-dessus du titre",

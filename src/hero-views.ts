@@ -31,6 +31,19 @@ export function resolveHeroView(
   return isHeroViewAvailable(selected, availableViews) ? selected : "overview";
 }
 
+/** An explicit starting tab takes precedence over the live mowing shortcut. */
+export function initialHeroView(
+  configured: "overview" | "map" | undefined,
+  mowing: boolean,
+  interactiveMap: boolean,
+  availableViews: readonly HeroView[],
+): HeroView {
+  const preferred = configured === "overview" || configured === "map"
+    ? configured
+    : mowing && interactiveMap ? "map" : "overview";
+  return resolveHeroView(preferred, availableViews);
+}
+
 export function showHeroViewTabs(availableViews: readonly HeroView[]): boolean {
   return availableViews.length > 1;
 }

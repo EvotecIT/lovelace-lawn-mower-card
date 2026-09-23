@@ -64,6 +64,7 @@ export const ru = {
   "editor.heroComposition": "Компоновка",
   "editor.heroCinematic": "Кинематографическая",
   "editor.heroDashboard": "Панель",
+  "editor.heroDefaultTab": "Начальная вкладка",
   "editor.heroLabel": "Надпись над заголовком",
   "editor.heroLabelHint": "Оставьте пустым, чтобы использовать переведённый текст по умолчанию.",
   "editor.showHeroLabel": "Показывать надпись над заголовком",
