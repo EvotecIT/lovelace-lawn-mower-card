@@ -52,8 +52,8 @@ show_helper_actions: true
 The explicit calendar takes precedence over discovery. If it does not exist in
 Home Assistant's states, the Schedule action is omitted instead of opening a
 different calendar. Clear the option to return to automatic detection.
-`show_helper_actions: false` hides it. In Hero, the `actions` section must also
-be included if you configure `hero_sections`.
+`show_helper_actions: false` hides it. Hero's built-in helpers remain available
+when `hero_sections` is used to customize the sections below the main actions.
 
 ## Cancel an active task
 
