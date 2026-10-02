@@ -82,6 +82,7 @@ export type LawnMowerCardConfig = {
   map_fit?: MapFit;
   map_position?: MapPosition;
   camera_entity?: string;
+  schedule_calendar_entity?: string;
   show_map?: boolean;
   show_point_cloud?: boolean;
   status_entity?: string;

@@ -390,5 +390,7 @@ export const pl = {
   "editor.serviceDataInvalid": "Wprowadź poprawny kod JSON, aby zapisać dane usługi.",
   "editor.serviceDataHint": "Opcjonalny obiekt JSON przekazywany do wywołania usługi.",
   "editor.removeAction": "Usuń czynność",
-  "editor.noActions": "Nie dodano własnych czynności."
+  "editor.noActions": "Nie dodano własnych czynności.",
+  "editor.scheduleCalendar": "Kalendarz harmonogramu",
+  "editor.scheduleCalendarHint": "Opcjonalny kalendarz dla akcji Harmonogram. Pozostaw puste, aby wykryć automatycznie."
 } satisfies TranslationCatalog;

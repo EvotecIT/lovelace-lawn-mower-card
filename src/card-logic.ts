@@ -524,7 +524,11 @@ function resolveMowerCompanionEntity(
     const namedMatches = entityIds.filter(
       (candidate) =>
         candidate.startsWith(`${domain}.`) &&
-        candidate.slice(domain.length + 1).endsWith(registrySuffix),
+        candidate.slice(domain.length + 1).endsWith(registrySuffix) &&
+        // Apply the same ownership guard as the exact-name path. A prefix
+        // must not turn a rejected registry owner into a valid companion.
+        (!mowerEntry || !entities?.[candidate] ||
+          registryOwnersMatch(mowerEntry, entities[candidate])),
     );
     if (namedMatches.length === 1) {
       return namedMatches[0];
@@ -944,6 +948,7 @@ export function defaultHelperEntities(
   states: HassStates,
   mowerEntityId: string,
   entities?: EntityRegistryEntries,
+  scheduleCalendarEntity?: string,
 ): HelperEntity[] {
   const objectId = mowerObjectId(mowerEntityId);
   if (!objectId) {
@@ -975,7 +980,11 @@ export function defaultHelperEntities(
       icon: "mdi:video-wireless-outline",
     },
     {
-      entityId: resolveCompanion("calendar", "schedule", "schedules"),
+      // An explicit selection is authoritative, including when it is missing.
+      entityId: scheduleCalendarEntity
+        ? (scheduleCalendarEntity.startsWith("calendar.") && states[scheduleCalendarEntity]
+          ? scheduleCalendarEntity : undefined)
+        : resolveCompanion("calendar", "schedule", "schedules", "mowing_schedule", "mowing_schedules"),
       label: "Schedule",
       icon: "mdi:calendar",
     },

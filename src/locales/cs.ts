@@ -446,5 +446,7 @@ export const cs = {
   "editor.serviceDataInvalid": "Před uložením těchto dat služby zadejte platný JSON.",
   "editor.serviceDataHint": "Volitelný JSON objekt předávaný volání služby.",
   "editor.removeAction": "Odebrat akci",
-  "editor.noActions": "Zatím žádné vlastní akce."
+  "editor.noActions": "Zatím žádné vlastní akce.",
+  "editor.scheduleCalendar": "Kalendář plánů",
+  "editor.scheduleCalendarHint": "Volitelný kalendář pro akci Plán. Nechte prázdné pro automatické rozpoznání."
 } satisfies TranslationCatalog;

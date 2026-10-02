@@ -1014,6 +1014,26 @@ test("summary labels prefer Home Assistant friendly names", () => {
 });
 
 
+test("prefixed companion names respect registry ownership across helper and control domains", () => {
+  const mower = "lawn_mower.garden";
+  const owner = { device_id: "garden-device", platform: "another_mower" };
+  for (const [domain, role] of [["calendar", "schedule"], ["camera", "all_maps"],
+    ["button", "go_to_maintenance_point"], ["select", "zone"]]) {
+    const companion = `${domain}.front_garden_${role}`;
+    const states = { [companion]: entity("off") };
+    for (const other of [
+      { ...owner, device_id: "other-device" },
+      { ...owner, platform: "other_integration" },
+    ]) {
+      assert.equal(resolvedMowerCompanionEntity(states, mower,
+        { [mower]: owner, [companion]: other }, domain, role), undefined);
+    }
+    assert.equal(resolvedMowerCompanionEntity(states, mower,
+      { [mower]: owner, [companion]: owner }, domain, role), companion);
+    assert.equal(resolvedMowerCompanionEntity(states, mower, { [mower]: owner }, domain, role), companion);
+  }
+});
+
 test("default helpers expose user features and omit diagnostics", () => {
   const states = {
     "camera.backyard_garden_live_video": entity("idle"),

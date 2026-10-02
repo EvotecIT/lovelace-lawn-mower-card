@@ -80,6 +80,10 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
             : nothing}
           ${model.showHelperActions
             ? html`
+                ${(model.helperActions || []).map((action) => renderAction(
+                  action.label, action.icon || "mdi:information-outline", action.handler,
+                  { disabled: action.disabled },
+                ))}
                 ${isHeroViewAvailable("camera", model.availableViews)
                   ? renderAction(
                       model.t("action.camera"),

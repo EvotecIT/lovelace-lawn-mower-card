@@ -3,7 +3,7 @@ import type { HomeAssistant, LawnMowerCardConfig } from "./card-config";
 
 function configuredEntities(config: LawnMowerCardConfig): Set<string> {
   return new Set([
-    config.entity, config.map_entity, config.camera_entity, config.status_entity,
+    config.entity, config.map_entity, config.camera_entity, config.schedule_calendar_entity, config.status_entity,
     config.battery_entity, config.progress_entity, config.coverage_entity,
     config.coverage_total_entity, ...(config.control_entities || []),
     ...(config.summary_entities || []).flatMap(item => { const tile = summaryConfig(item); return [tile.entity, tile.visibility?.entity]; }),

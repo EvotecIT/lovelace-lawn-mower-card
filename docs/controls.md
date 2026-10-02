@@ -4,9 +4,9 @@
 
 ## Smart Helper Actions
 
-When `show_helper_actions` is enabled, the card will look for companion
-entities that share the mower entity object id and expose helper chips when
-they exist. This is especially useful with `homeassistant-dreamelawnmower`.
+When `show_helper_actions` is enabled (the default), the card discovers companion
+entities and exposes helper actions in every layout, including both Hero
+compositions. This is especially useful with `homeassistant-dreamelawnmower`.
 
 Current auto-detected helpers include:
 
@@ -18,6 +18,42 @@ Current auto-detected helpers include:
 
 Diagnostic probes remain available on the Home Assistant device page rather
 than appearing as everyday card actions.
+
+### Schedule calendar
+
+The **Schedule** action opens the calendar's Home Assistant more-info dialog.
+It uses a normal `calendar` entity; no special event attributes, active event,
+or schedule-list sensor are required. A calendar with state `off` still appears.
+This action is separate from the inline schedule switches exposed by compatible
+integrations.
+
+For `lawn_mower.mowgli`, automatic detection checks the roles `schedule`,
+`schedules`, `mowing_schedule`, and `mowing_schedules`, in that order. For each
+role, it prefers the exact entity id, such as `calendar.mowgli_schedule`.
+It also accepts a unique prefixed name such as
+`calendar.tuin_voor_mowgli_mowing_schedule`. Renamed calendars can be matched
+through Home Assistant's entity registry when they share the mower's device
+and integration platform and their translation key, registry name, or friendly
+name ends with the role. An ambiguous match is left unselected.
+When both entities have registry entries, automatic matching also requires
+the same device and integration platform, including for prefixed names.
+
+Use **Schedule calendar** in the visual editor or set `schedule_calendar_entity`
+for an arbitrary name, a calendar from another integration, or an ambiguous
+automatic match:
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.mowgli
+schedule_calendar_entity: calendar.garden_mowing
+show_helper_actions: true
+```
+
+The explicit calendar takes precedence over discovery. If it does not exist in
+Home Assistant's states, the Schedule action is omitted instead of opening a
+different calendar. Clear the option to return to automatic detection.
+`show_helper_actions: false` hides it. In Hero, the `actions` section must also
+be included if you configure `hero_sections`.
 
 ## Cancel an active task
 

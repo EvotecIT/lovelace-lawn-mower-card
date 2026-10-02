@@ -36,6 +36,7 @@ import {
   configuredCameraCanBePresented,
   dedicatedTaskCancellationVisible,
   defaultHelperEntities,
+  type HelperEntity,
   entitySummaryLabel,
   firstAvailableEntity,
   heroViewRestorationAllowed,
@@ -318,6 +319,12 @@ export class LawnMowerCard extends LitElement {
   public setConfig(config: LawnMowerCardConfig): void {
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
+    }
+    if (config.schedule_calendar_entity && (
+      typeof config.schedule_calendar_entity !== "string" ||
+      !/^calendar\.[a-z0-9_]+$/.test(config.schedule_calendar_entity)
+    )) {
+      throw new Error("The 'schedule_calendar_entity' option must be a calendar entity id.");
     }
     if (config !== this._config) {
       this._pendingCustomAction = undefined;
@@ -716,11 +723,13 @@ export class LawnMowerCard extends LitElement {
           ))
         ? candidateCameraEntity
         : undefined;
-    const maintenancePointButton = defaultHelperEntities(
+    const helperEntities = defaultHelperEntities(
       this.hass.states,
       this._config.entity,
       this.hass.entities,
-    ).find((helper) => helper.action === "press");
+      this._config.schedule_calendar_entity,
+    );
+    const maintenancePointButton = helperEntities.find((helper) => helper.action === "press");
     const configuredMapEntity = this._config.map_entity
       ? this.hass.states[this._config.map_entity]
       : undefined;
@@ -804,6 +813,9 @@ export class LawnMowerCard extends LitElement {
       summary: this._buildHeaderSummary(),
       tiles: this._buildTiles(),
       customActions: this._buildCustomActions(mower),
+      helperActions: this._buildHelperActions(helperEntities.filter(
+        (helper) => helper.label === "Schedule" || helper.label === "All Maps",
+      )),
       showCustomActionLabel: this._config.show_custom_action_label,
       dashboardPanels: this._config.dashboard_panels,
       confirmation: this._renderActionConfirmation(),
@@ -1757,7 +1769,7 @@ export class LawnMowerCard extends LitElement {
     return undefined;
   }
 
-  private _buildHelperActions(): Array<{
+  private _buildHelperActions(helpers?: HelperEntity[]): Array<{
     label: string;
     icon?: string;
     disabled: boolean;
@@ -1766,11 +1778,12 @@ export class LawnMowerCard extends LitElement {
     if (!this._config) {
       return [];
     }
-    return defaultHelperEntities(
+    return (helpers ?? defaultHelperEntities(
       this.hass.states,
       this._config.entity,
       this.hass.entities,
-    ).map((helper) => ({
+      this._config.schedule_calendar_entity,
+    )).map((helper) => ({
       label: this._t(({
         "Live Video": "action.liveVideo",
         Schedule: "action.schedule",

@@ -100,6 +100,14 @@ export class LawnMowerCardEditor extends LitElement {
           this._t("editor.videoCameraHint"),
           ["camera"],
         )}
+        ${this._field(
+          this._t("editor.scheduleCalendar"),
+          config.schedule_calendar_entity,
+          "schedule_calendar_entity",
+          "calendar.my_mower_schedule",
+          this._t("editor.scheduleCalendarHint"),
+          ["calendar"],
+        )}
         ${this._toggle(
           this._t("editor.showMap"),
           config.show_map ?? Boolean(config.map_entity),

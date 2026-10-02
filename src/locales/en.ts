@@ -443,7 +443,9 @@ export const en = {
   "editor.serviceDataInvalid": "Enter valid JSON before this service data can be saved.",
   "editor.serviceDataHint": "Optional JSON object passed to the service call.",
   "editor.removeAction": "Remove action",
-  "editor.noActions": "No custom actions yet."
+  "editor.noActions": "No custom actions yet.",
+  "editor.scheduleCalendar": "Schedule calendar",
+  "editor.scheduleCalendarHint": "Optional calendar for the Schedule helper. Leave empty for automatic detection."
 } as const satisfies Record<string, TranslationMessage>;
 
 export type TranslationKey = keyof typeof en;
