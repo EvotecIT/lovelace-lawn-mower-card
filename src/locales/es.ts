@@ -384,5 +384,7 @@ export const es = {
   "editor.serviceDataInvalid": "Introduce un JSON válido para poder guardar estos datos de servicio.",
   "editor.serviceDataHint": "Objeto JSON opcional que se pasa a la llamada del servicio.",
   "editor.removeAction": "Eliminar acción",
-  "editor.noActions": "Todavía no hay acciones personalizadas."
+  "editor.noActions": "Todavía no hay acciones personalizadas.",
+  "editor.scheduleCalendar": "Calendario de horarios",
+  "editor.scheduleCalendarHint": "Calendario opcional para la acción Horario. Déjalo vacío para la detección automática."
 } satisfies TranslationCatalog;

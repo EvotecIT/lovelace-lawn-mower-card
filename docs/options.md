@@ -48,6 +48,8 @@
   it is most noticeable with `map_fit: cover`
 - `camera_entity`: optional live-video camera used by the Hero Camera view. A
   compatible companion camera is detected automatically when this is omitted.
+- `schedule_calendar_entity`: optional `calendar` entity for the Schedule helper
+  in every layout. Overrides automatic detection; see [matching rules](controls.md#schedule-calendar).
 - `show_map`: optional boolean override for the map section
 - `show_point_cloud`: optional boolean override for the 3D point-cloud viewer;
   defaults to visible when `map_entity` advertises a supported local endpoint

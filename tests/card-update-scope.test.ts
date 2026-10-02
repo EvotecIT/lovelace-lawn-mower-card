@@ -35,6 +35,18 @@ test("configured and registry-renamed helpers remain reactive", () => {
   assert.equal(mowerHassChanged({ ...old, entities: registry }, { ...next, entities: registry }, config), true);
 });
 
+test("an explicitly selected calendar reacts to addition, updates and removal", () => {
+  const old = base();
+  const calendarId = "calendar.front_garden";
+  const selected = { ...config, schedule_calendar_entity: calendarId };
+  const added = { ...old, states: { ...old.states, [calendarId]: entity(calendarId) } };
+  const updated = { ...added, states: { ...added.states, [calendarId]: { ...entity(calendarId), state: "off" } } };
+  assert.equal(mowerHassChanged(old, added, selected), true);
+  assert.equal(mowerHassChanged(added, updated, selected), true);
+  assert.equal(mowerHassChanged(updated, old, selected), true);
+  assert.equal(mowerHassChanged(old, added, config), false);
+});
+
 test("discovery, removal, locale and service changes update the card", () => {
   const old = base();
   const removed = { ...old.states };

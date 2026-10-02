@@ -65,6 +65,7 @@ export type HeroLayoutModel = {
   summary: DisplayTile[];
   tiles: DisplayTile[];
   customActions: DisplayAction[];
+  helperActions?: DisplayAction[];
   showCustomActionLabel?: boolean;
   confirmation?: TemplateResult;
   sections: HeroSection[];
