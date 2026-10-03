@@ -6,6 +6,7 @@ import { css } from "lit";
 import { deviceSettingsPanelStyles } from "./device-settings-panel";
 import { heroLayoutStyles } from "./hero-layout";
 import { schedulePanelStyles } from "./schedule-panel";
+import { recentConditionsStyles } from "./recent-conditions-panel";
 
 export const lawnMowerCardStyles = [css`
     :host {
@@ -675,4 +676,4 @@ export const lawnMowerCardStyles = [css`
         grid-template-columns: 1fr;
       }
     }
-  `, schedulePanelStyles, deviceSettingsPanelStyles, heroLayoutStyles, customizationStyles, heroThemeStyles, cardAppearanceStyles];
+  `, schedulePanelStyles, recentConditionsStyles, deviceSettingsPanelStyles, heroLayoutStyles, customizationStyles, heroThemeStyles, cardAppearanceStyles];

@@ -59,6 +59,14 @@ test("discovery, removal, locale and service changes update the card", () => {
   }, config), true);
 });
 
+test("explicit condition history updates redraw even when mower activity is unchanged", () => {
+  const old = base();
+  const id = "sensor.renamed_history";
+  const next = { ...old, states: { ...old.states, [id]: entity(id) } };
+  assert.equal(mowerHassChanged(old, next, { ...config, notification_entity: id }), true);
+  assert.equal(mowerHassChanged(old, next, config), false);
+});
+
 test("custom summary values and visibility conditions react to unrelated garden entities", () => {
   const old = base();
   const next = { ...old, states: { ...old.states, "sensor.kitchen":entity("sensor.kitchen") } };

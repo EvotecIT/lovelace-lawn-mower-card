@@ -61,6 +61,7 @@ export type HeroLayoutModel = {
   cameraBlockReason?: string;
   cameraPreviewUrl?: string;
   controls?: TemplateResult;
+  recentConditions?: TemplateResult | typeof nothing;
   customSectionOrder?: boolean;
   summary: DisplayTile[];
   tiles: DisplayTile[];
@@ -228,6 +229,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
         ${!model.customSectionOrder && model.controls ? html`<div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>` : nothing}
         ${!model.dashboard ? renderHeroActionFeedback(model) : nothing}
         ${!model.dashboard ? renderHeroActions(model) : nothing}
+        ${model.recentConditions || nothing}
         ${model.sections.some(section => section === "tiles" ? model.tiles.length : section === "actions" ? model.customActions.length : section === "controls" ? model.customSectionOrder && model.controls : model.details)
           ? html`<div class="hero-customization">${model.sections.map(section => {
             if (section === "tiles") return renderTiles(model.tiles, model.tileColumns);

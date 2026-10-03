@@ -98,6 +98,6 @@ function createDemoPointCloud(pointCount) {
   return Buffer.concat([header, payload]);
 }
 
-server.listen(port, () => {
+server.listen(port, "127.0.0.1", () => {
   console.log(`Lawn mower card preview available at http://localhost:${port}/`);
 });

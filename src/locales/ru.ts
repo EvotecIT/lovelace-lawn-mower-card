@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const ru = {
+  "conditions.recent": "Последние события",
+  "conditions.active": "Активно",
+  "conditions.cleared": "Устранено",
+  "conditions.unknown": "Текущее состояние неизвестно",
+  "conditions.show": "Показывать последние события",
+  "conditions.sensor": "Датчик истории событий",
   "pointCloud.unverifiedDescription": "Экспорт 3D для этой косилки не подтверждён. Карта 2D или LiDAR не подтверждают поддержку. Нажмите загрузку, только если хотите попробовать генерацию; карта 2D остаётся доступной.",
   "pointCloud.notPublishedHint": "Автоматические повторы приостановлены. Проверьте, предлагает ли официальное приложение карту 3D для этой косилки. Перед новой попыткой сохраните диагностику интеграции.",
   "appearance.preset": "Стиль",

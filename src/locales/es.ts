@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const es = {
+  "conditions.recent": "Eventos recientes",
+  "conditions.active": "Activo",
+  "conditions.cleared": "Resuelto",
+  "conditions.unknown": "Estado actual desconocido",
+  "conditions.show": "Mostrar eventos recientes",
+  "conditions.sensor": "Sensor del historial de eventos",
   "pointCloud.unverifiedDescription": "La exportación 3D no está verificada para este cortacésped. Un mapa 2D o LiDAR no confirma su compatibilidad. Carga solo si quieres intentar generar un mapa; el mapa 2D sigue disponible.",
   "pointCloud.notPublishedHint": "Los reintentos automáticos están en pausa. Comprueba si la aplicación oficial ofrece un mapa 3D para este cortacésped. Guarda los diagnósticos de la integración antes de volver a intentarlo.",
   "appearance.preset": "Estilo",

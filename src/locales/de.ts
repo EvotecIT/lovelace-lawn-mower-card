@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const de = {
+  "conditions.recent": "Letzte Meldungen",
+  "conditions.active": "Aktiv",
+  "conditions.cleared": "Behoben",
+  "conditions.unknown": "Aktueller Status unbekannt",
+  "conditions.show": "Letzte Meldungen anzeigen",
+  "conditions.sensor": "Sensor für den Meldungsverlauf",
   "pointCloud.unverifiedDescription": "Der 3D-Export ist für diesen Mäher nicht bestätigt. Eine 2D-Karte oder LiDAR bestätigt die Unterstützung nicht. Laden Sie nur, wenn Sie eine Generierung versuchen möchten; die 2D-Karte bleibt verfügbar.",
   "pointCloud.notPublishedHint": "Automatische Wiederholungen sind pausiert. Prüfen Sie, ob die offizielle App für diesen Mäher eine 3D-Karte anbietet. Speichern Sie vor einem neuen Versuch die Integrationsdiagnose.",
   "appearance.preset": "Stilvorlage",

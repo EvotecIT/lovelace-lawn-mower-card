@@ -17,6 +17,7 @@ Optional UI follows optional entities:
 | live-video camera | Adds Camera |
 | related sensors, calendars, selects, switches, and buttons | Adds the matching summaries, schedules, controls, and helpers |
 | Dreame mower plus `dreame_lawn_mower.cancel_current_task` | Adds a confirmed **Cancel task** action while keeping Pause and Dock separate |
+| same-device Last Mower Notification sensor with a `recent` array | Adds a collapsed condition history with observation time and active, cleared, or unknown state |
 
 Richer automatic setup works best when companion entities belong to the same
 Home Assistant device and use stable translation keys such as `live_video`,

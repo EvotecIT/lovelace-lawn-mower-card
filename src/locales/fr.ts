@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const fr = {
+  "conditions.recent": "Événements récents",
+  "conditions.active": "Actif",
+  "conditions.cleared": "Résolu",
+  "conditions.unknown": "État actuel inconnu",
+  "conditions.show": "Afficher les événements récents",
+  "conditions.sensor": "Capteur d’historique des événements",
   "pointCloud.unverifiedDescription": "L’export 3D n’est pas vérifié pour cette tondeuse. Une carte 2D ou un LiDAR ne confirme pas sa prise en charge. Chargez uniquement pour tenter une génération ; la carte 2D reste disponible.",
   "pointCloud.notPublishedHint": "Les nouvelles tentatives automatiques sont suspendues. Vérifiez si l’application officielle propose une carte 3D pour cette tondeuse. Enregistrez le diagnostic de l’intégration avant de réessayer.",
   "appearance.preset": "Style",
