@@ -12,6 +12,12 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "conditions.recent": "Recent conditions",
+  "conditions.active": "Active",
+  "conditions.cleared": "Cleared",
+  "conditions.unknown": "Current status unknown",
+  "conditions.show": "Show recent conditions",
+  "conditions.sensor": "Condition history sensor",
   "pointCloud.unverifiedDescription": "3D export is unverified for this mower. A 2D map or LiDAR does not confirm support. Load only if you want to try a generation request; the 2D map remains available.",
   "pointCloud.notPublishedHint": "Automatic retries are paused. Check whether the official app offers a 3D map for this mower. Save the integration diagnostics before trying again.",
   "appearance.preset": "Style preset",

@@ -16,6 +16,14 @@ entity("select.demo_mowing_height", "45 mm", { friendly_name:"Cutting height", o
 entity("switch.demo_evening_schedule", "on", { friendly_name:"Evening schedule" });
 entity("script.mower_evening", "off", { friendly_name:"Evening routine" });
 entity("sensor.mower_state_name", query.get("stateName") || "charging_completed", { friendly_name:"State" });
+if (query.get("conditions") === "1") {
+  // Synthetic condition evidence for layout and offline-history validation.
+  entity("sensor.demo_last_mower_notification", "Wheel blocked", { recent: [
+    { severity:"error", message:"Wheel blocked — check the mower and the surrounding grass before continuing.", active:true, observed_at:"2026-10-03T12:00:00Z" },
+    { severity:"warning", message:"Rain protection ended", active:false, observed_at:"2026-10-03T11:00:00Z" },
+    { severity:"warning", message:"Human detected", active:null, observed_at:"2026-10-03T10:00:00Z" },
+  ] });
+}
 entity("select.mower_mowing_action", "All area", { friendly_name:"Akcja koszenia", options:["All area","Edge","Zone","Spot"] });
 entity("select.mower_selected_map_display_rotation", "0 degrees", { friendly_name:"Obrót mapy", options:["0 degrees","90 degrees clockwise","180 degrees","270 degrees clockwise"] });
 entity("select.mower_rain_delay", "2 hours", { friendly_name:"Opóźnienie po deszczu", options:["Until manually started","1 hour","2 hours","12 hours"] });
@@ -38,6 +46,7 @@ const example = () => {
   surface:query.get("surface") || "solid",
   map_entity:"image.demo_map", show_map:true, show_point_cloud:false, camera_entity:"camera.demo",
   progress_entity:"sensor.demo_progress", coverage_entity:"sensor.demo_area", coverage_total_entity:"sensor.demo_total",
+  notification_entity:query.get("conditions") === "1" ? "sensor.demo_last_mower_notification" : undefined,
   show_helper_actions:false, controls_mode:"custom", summary_mode:"custom", hero_sections:["tiles","actions","controls","details"],
   control_entities:["select.demo_mowing_height","switch.demo_evening_schedule"],
   summary_entities:[

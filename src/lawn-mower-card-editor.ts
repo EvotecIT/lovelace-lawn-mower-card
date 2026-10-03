@@ -101,6 +101,19 @@ export class LawnMowerCardEditor extends LitElement {
           ["camera"],
         )}
         ${this._field(
+          this._t("conditions.sensor"),
+          config.notification_entity,
+          "notification_entity",
+          "sensor.my_mower_last_mower_notification",
+          "",
+          ["sensor"],
+        )}
+        ${this._toggle(
+          this._t("conditions.show"),
+          config.show_recent_conditions ?? true,
+          "show_recent_conditions",
+        )}
+        ${this._field(
           this._t("editor.scheduleCalendar"),
           config.schedule_calendar_entity,
           "schedule_calendar_entity",
@@ -367,7 +380,8 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_hero_label"
       | "show_default_actions"
       | "show_helper_actions"
-      | "show_advanced_details",
+      | "show_advanced_details"
+      | "show_recent_conditions",
   ) {
     return html`
       <label class="toggle">
@@ -567,6 +581,7 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_default_actions"
       | "show_helper_actions"
       | "show_advanced_details"
+      | "show_recent_conditions"
       | undefined;
     if (!key) {
       return;

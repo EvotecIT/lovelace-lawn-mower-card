@@ -101,6 +101,8 @@ import {
   type ScheduleControl,
 } from "./schedule-controls";
 import { renderSchedulePanel } from "./schedule-panel";
+import { recentMowerConditions } from "./recent-conditions";
+import { renderRecentConditions } from "./recent-conditions-panel";
 import {
   normalizedZoneSelection,
   reconciledZoneSelectionKeys,
@@ -667,6 +669,7 @@ export class LawnMowerCard extends LitElement {
                 `
               : nothing}
 
+            ${this._renderRecentConditions()}
             ${renderTiles(statTiles, tileColumns(this._config.tile_columns))}
           </div>
         </div>
@@ -809,6 +812,7 @@ export class LawnMowerCard extends LitElement {
         ? cameraImageUrl(cameraEntity.entity_id, cameraEntity)
         : undefined,
       controls,
+      recentConditions: this._renderRecentConditions(),
       customSectionOrder: this._config.hero_sections !== undefined,
       summary: this._buildHeaderSummary(),
       tiles: this._buildTiles(),
@@ -995,6 +999,13 @@ export class LawnMowerCard extends LitElement {
         this._heroViewRoute || window.location.pathname,
         this._heroViewSlot,
       ),
+    );
+  }
+
+  private _renderRecentConditions() {
+    if (!this.hass || !this._config) return nothing;
+    return renderRecentConditions(
+      recentMowerConditions(this.hass, this._config), this._t, this._locale,
     );
   }
 

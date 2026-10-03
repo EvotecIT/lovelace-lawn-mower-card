@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const it = {
+  "conditions.recent": "Eventi recenti",
+  "conditions.active": "Attivo",
+  "conditions.cleared": "Risolto",
+  "conditions.unknown": "Stato attuale sconosciuto",
+  "conditions.show": "Mostra eventi recenti",
+  "conditions.sensor": "Sensore della cronologia degli eventi",
   "pointCloud.unverifiedDescription": "L’esportazione 3D non è verificata per questo rasaerba. Una mappa 2D o il LiDAR non ne confermano il supporto. Carica solo se vuoi tentare una generazione; la mappa 2D resta disponibile.",
   "pointCloud.notPublishedHint": "I tentativi automatici sono sospesi. Verifica se l’app ufficiale offre una mappa 3D per questo rasaerba. Salva la diagnostica dell’integrazione prima di riprovare.",
   "appearance.preset": "Stile",

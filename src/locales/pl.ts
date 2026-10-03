@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const pl = {
+  "conditions.recent": "Ostatnie zdarzenia",
+  "conditions.active": "Aktywne",
+  "conditions.cleared": "Zakończone",
+  "conditions.unknown": "Bieżący stan nieznany",
+  "conditions.show": "Pokaż ostatnie zdarzenia",
+  "conditions.sensor": "Czujnik historii zdarzeń",
   "pointCloud.unverifiedDescription": "Eksport 3D nie został potwierdzony dla tej kosiarki. Mapa 2D ani LiDAR nie potwierdzają obsługi. Wczytaj, jeśli chcesz spróbować wygenerować mapę; mapa 2D pozostaje dostępna.",
   "pointCloud.notPublishedHint": "Automatyczne ponawianie zostało wstrzymane. Sprawdź, czy oficjalna aplikacja oferuje mapę 3D dla tej kosiarki. Przed kolejną próbą zapisz diagnostykę integracji.",
   "appearance.preset": "Styl",

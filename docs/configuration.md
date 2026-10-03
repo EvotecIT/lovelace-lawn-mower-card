@@ -23,6 +23,27 @@ The editor also supports explicit companion entities, control selectors,
 summary chips, extra tiles, custom actions, and advanced planning and telemetry
 without requiring raw configuration changes.
 
+## Recent conditions
+
+When a same-device **Last Mower Notification** sensor exposes a `recent` history,
+the card adds a collapsed **Recent conditions** panel in every layout. It shows
+up to five faults or warnings with their observation time and recorded active,
+cleared, or unknown status. Older integration versions that omit status show
+**Current status unknown**. Mower activity does not establish clearance.
+
+Select a **Condition history sensor** in the visual editor if automatic discovery
+cannot identify the companion. Turn off **Show recent conditions** to hide it.
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.my_mower
+notification_entity: sensor.my_mower_last_mower_notification
+show_recent_conditions: true
+```
+
+History remains readable while the mower is offline. The integration owns its
+retention and condition state; opening the panel sends no mower command.
+
 ## Dashboard composition
 
 In the visual editor, choose **Hero → Hero appearance → Composition → Dashboard**

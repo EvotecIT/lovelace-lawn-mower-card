@@ -50,6 +50,10 @@
   compatible companion camera is detected automatically when this is omitted.
 - `schedule_calendar_entity`: optional `calendar` entity for the Schedule helper
   in every layout. Overrides automatic detection; see [matching rules](controls.md#schedule-calendar).
+- `notification_entity`: optional condition-history sensor with a `recent` array;
+  otherwise the card looks for one companion on the same mower device
+- `show_recent_conditions`: optional boolean, defaults to `true`; history appears
+  only when the selected sensor has usable fault or warning entries
 - `show_map`: optional boolean override for the map section
 - `show_point_cloud`: optional boolean override for the 3D point-cloud viewer;
   defaults to visible when `map_entity` advertises a supported local endpoint
