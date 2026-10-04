@@ -1,6 +1,7 @@
 import { cardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
 import "./action-confirmation";
+import { actionErrorDetail } from "./action-error";
 import { summaryItems, controlGroups, configuredTile, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
 import { customActionLabels, renderSummary, renderTiles } from "./customization-view";
 import {
@@ -2903,10 +2904,7 @@ export class LawnMowerCard extends LitElement {
       if (generation !== this._actionGeneration) {
         return;
       }
-      const detail =
-        error instanceof Error && error.message
-          ? error.message.replace(/[\r\n\t]+/g, " ").slice(0, 240)
-          : this._t("card.actionUnconfirmed");
+      const detail = actionErrorDetail(error) || this._t("card.actionUnconfirmed");
       this._actionFeedback = {
         message: this._t("card.notConfirmed", { action: label, detail }),
         error: true,
