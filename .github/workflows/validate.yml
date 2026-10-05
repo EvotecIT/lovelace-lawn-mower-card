@@ -44,3 +44,6 @@ jobs:
 
       - name: Pack release payload
         run: npm run pack
+
+      - name: Verify committed HACS resource
+        run: git diff --exit-code -- lawn-mower-card.js

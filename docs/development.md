@@ -2,6 +2,9 @@
 
 [Back to the README](../README.md) · [Integration compatibility](integration-compatibility.md)
 
+The [quality ledger](quality.md) tracks acceptance criteria, evidence boundaries,
+and the remaining browser and installed-artifact checks.
+
 ```bash
 npm install
 npm test
