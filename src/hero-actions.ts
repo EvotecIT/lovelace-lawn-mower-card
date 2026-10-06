@@ -28,12 +28,13 @@ function renderAction(
   label: string,
   icon: string,
   handler: () => void | Promise<void>,
-  options: { disabled?: boolean; active?: boolean; primary?: boolean } = {},
+  options: { disabled?: boolean; active?: boolean; primary?: boolean; expanded?: boolean } = {},
 ): TemplateResult {
   return html`
     <button
       class=${`hero-action${options.active ? " active" : ""}${options.primary ? " primary" : ""}`}
       aria-label=${label}
+      aria-expanded=${options.expanded === undefined ? nothing : String(options.expanded)}
       title=${label}
       ?disabled=${options.disabled}
       @click=${handler}
@@ -51,9 +52,15 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
           ${model.showDefaultActions
             ? html`
                 ${model.supportsStart
-                  ? renderAction(model.t("action.start"), "mdi:play", model.onStart, {
-                      disabled: !model.canStart, primary: true,
-                    })
+                  ? renderAction(
+                      model.startMenuOpen ? model.t("custom.cancel") : model.t("action.start"),
+                      model.startMenuOpen ? "mdi:chevron-down" : "mdi:play",
+                      model.onStart,
+                      {
+                        disabled: !model.canStart, primary: true,
+                        expanded: model.startMenuOpen,
+                      },
+                    )
                   : nothing}
                 ${model.supportsPause
                   ? renderAction(model.t("action.pause"), "mdi:pause", model.onPause, {

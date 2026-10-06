@@ -440,5 +440,10 @@ export const nl = {
   "editor.removeAction": "Actie verwijderen",
   "editor.noActions": "Nog geen eigen acties.",
   "editor.scheduleCalendar": "Schemakalender",
-  "editor.scheduleCalendarHint": "Optionele kalender voor de schemahelper. Laat leeg voor automatische detectie."
+  "editor.scheduleCalendarHint": "Optionele kalender voor de schemahelper. Laat leeg voor automatische detectie.",
+  "area.menuLabel": "Start maaien",
+  "area.allAreas": "Alle gebieden maaien",
+  "area.chooseArea": "Of kies een gebied",
+  "area.startArea": "Start {area}",
+  "area.startSelected": "Gebied starten"
 } satisfies TranslationCatalog;

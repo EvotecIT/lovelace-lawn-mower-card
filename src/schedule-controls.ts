@@ -48,7 +48,7 @@ export function discoverScheduleControls(
     });
 }
 
-function matchingMowerObjectId(
+export function matchingMowerObjectId(
   switchObjectId: string,
   mowerObjectIds: string[],
 ): string | undefined {

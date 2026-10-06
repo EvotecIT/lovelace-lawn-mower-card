@@ -39,7 +39,7 @@ export function renderCustomActions(
   const labels = customActionLabels(title, showTitle);
   return actions.length ? html`<section class="custom-action-section" aria-label=${labels.accessibleTitle}>
     ${labels.visibleTitle ? html`<div class="custom-section-title">${labels.visibleTitle}</div>` : nothing}
-    <div class="custom-actions">${actions.map(action => html`<button type="button" ?disabled=${action.disabled} @click=${action.handler}>
+    <div class="custom-actions">${actions.map(action => html`<button type="button" ?disabled=${action.disabled} aria-expanded=${action.expanded === undefined ? nothing : String(action.expanded)} @click=${action.handler}>
       ${action.icon ? html`<ha-icon .icon=${action.icon} aria-hidden="true"></ha-icon>` : nothing}<span>${action.label}</span>
     </button>`)}</div>${confirmation || nothing}
   </section>` : nothing;

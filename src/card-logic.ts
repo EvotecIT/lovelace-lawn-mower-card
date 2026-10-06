@@ -438,7 +438,8 @@ function normalizedEntityRole(value: unknown): string | undefined {
     .replace(/^_+|_+$/g, "");
 }
 
-function registryOwnersMatch(
+/** Match a companion only when its device and integration ownership are known. */
+export function registryOwnersMatch(
   mowerEntry: EntityRegistryEntry | undefined,
   candidateEntry: EntityRegistryEntry | undefined,
 ): boolean {
