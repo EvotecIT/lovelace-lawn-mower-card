@@ -1,6 +1,8 @@
 import { cardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
 import "./action-confirmation";
+import "./area-start-menu";
+import { discoverAreaStartControl, type AreaStartControl } from "./area-controls";
 import { actionErrorDetail } from "./action-error";
 import { summaryItems, controlGroups, configuredTile, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
 import { customActionLabels, renderSummary, renderTiles } from "./customization-view";
@@ -256,8 +258,10 @@ export class LawnMowerCard extends LitElement {
   @state() private _config?: LawnMowerCardConfig;
   @state() private _pendingCustomAction?: LawnMowerActionConfig;
   @state() private _cancelTaskConfirmationOpen = false;
+  @state() private _areaMenuOpen = false;
   private _customActionTrigger?: HTMLElement;
   private _cancelTaskTrigger?: HTMLElement;
+  private _areaMenuTrigger?: HTMLElement;
   @state() private _heroView: HeroView = "overview";
   @state() private _heroViewChosen = false;
   @state() private _pointCloudMounted = false;
@@ -341,6 +345,8 @@ export class LawnMowerCard extends LitElement {
       this._actionFeedback = undefined;
       this._clearActionFeedbackTimer();
       this._zoneSelection = undefined;
+      this._areaMenuOpen = false;
+      this._areaMenuTrigger = undefined;
       this._resetTraditionalPointCloudState();
       this._resetHeroMediaState();
     } else if (previousLayout === "hero" && nextLayout !== "hero") {
@@ -379,6 +385,8 @@ export class LawnMowerCard extends LitElement {
     this._customActionTrigger = undefined;
     this._cancelTaskConfirmationOpen = false;
     this._cancelTaskTrigger = undefined;
+    this._areaMenuOpen = false;
+    this._areaMenuTrigger = undefined;
     this._mediaVisibility.disconnect();
     const entityId = this._config?.entity;
     if (
@@ -857,7 +865,7 @@ export class LawnMowerCard extends LitElement {
       showHelperActions: this._config.show_helper_actions ?? true,
       actionFeedback: this._actionFeedback || this._connectionFeedback(mower),
       onView: (view) => this._selectHeroView(view),
-      onStart: () => this._startMowing(),
+      onStart: () => this._requestStart(),
       onPause: () => this._pauseMowing(),
       onDock: () => this._dockMower(),
       onCancelTask: () => this._requestCancelCurrentTask(),
@@ -1585,7 +1593,7 @@ export class LawnMowerCard extends LitElement {
             Boolean(this._mutationInFlight) ||
             !this._canStart(mower.state) ||
             !this._canStartSelectedTarget(),
-          handler: () => this._startMowing(),
+          handler: () => this._requestStart(),
         });
       }
       if (mowerSupportsFeature(mower, LawnMowerFeature.PAUSE)) {
@@ -1651,6 +1659,7 @@ export class LawnMowerCard extends LitElement {
       if (!built) return [];
       return [{ ...built, handler: () => {
         if (action.confirmation) {
+          this._closeAreaMenu(false);
           this._cancelTaskConfirmationOpen = false;
           this._cancelTaskTrigger = undefined;
           this._customActionTrigger = this.shadowRoot?.activeElement as HTMLElement | undefined;
@@ -1695,6 +1704,10 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _renderActionConfirmation() {
+    const areaMenu = this._renderAreaStartMenu();
+    if (areaMenu) {
+      return areaMenu;
+    }
     if (!this._cancelTaskConfirmationOpen) {
       return this._renderCustomConfirmation();
     }
@@ -1730,7 +1743,7 @@ export class LawnMowerCard extends LitElement {
         disabled:
           Boolean(this._mutationInFlight) ||
           !this._canStart(mower.state) || !this._canStartSelectedTarget(),
-        handler: () => this._startMowing(),
+        handler: () => this._requestStart(),
       };
     }
 
@@ -3368,6 +3381,7 @@ export class LawnMowerCard extends LitElement {
       return;
     }
     this._pendingCustomAction = undefined;
+    this._closeAreaMenu(false);
     this._cancelTaskTrigger = this.shadowRoot?.activeElement as
       | HTMLElement
       | undefined;
@@ -3446,6 +3460,89 @@ export class LawnMowerCard extends LitElement {
       !this._showsDedicatedCancelAction()
       ? this._t("action.cancelTask")
       : this._t("action.dock");
+  }
+
+  /** Mowers with a choice of areas get the Start menu; others start right away. */
+  private _requestStart(): void | Promise<void> {
+    if (!this._areaStartControl()) {
+      return this._startMowing();
+    }
+    if (this._areaMenuOpen) {
+      this._closeAreaMenu();
+      return;
+    }
+    this._pendingCustomAction = undefined;
+    this._customActionTrigger = undefined;
+    this._cancelTaskConfirmationOpen = false;
+    this._cancelTaskTrigger = undefined;
+    this._areaMenuTrigger = this.shadowRoot?.activeElement as
+      | HTMLElement
+      | undefined;
+    this._areaMenuOpen = true;
+  }
+
+  private _areaStartControl(): AreaStartControl | undefined {
+    if (!this._config || this._multiZoneCandidateContext()) {
+      return undefined;
+    }
+    return discoverAreaStartControl(this.hass.states, this._config.entity);
+  }
+
+  private _closeAreaMenu(restoreFocus = true): HTMLElement | undefined {
+    this._areaMenuOpen = false;
+    const trigger = this._areaMenuTrigger;
+    this._areaMenuTrigger = undefined;
+    if (restoreFocus) void this._restoreActionFocus(trigger);
+    return trigger;
+  }
+
+  private _renderAreaStartMenu() {
+    if (!this._areaMenuOpen || !this._config) {
+      return undefined;
+    }
+    const control = this._areaStartControl();
+    const mower = this.hass.states[this._config.entity];
+    if (!control || !mower || !this._canStart(mower.state)) {
+      return undefined;
+    }
+    return html`<lawn-mower-area-start-menu
+      .areas=${control.areas}
+      .locale=${this._locale}
+      .disabled=${Boolean(this._mutationInFlight)}
+      .onCancel=${() => this._closeAreaMenu()}
+      .onStartAll=${() => this._startFromAreaMenu(() => this._startMowing())}
+      .onStartArea=${(area: string) =>
+        this._startFromAreaMenu(() => this._startArea(control, area))}
+    ></lawn-mower-area-start-menu>`;
+  }
+
+  private async _startFromAreaMenu(start: () => Promise<void>): Promise<void> {
+    if (this._mutationInFlight) {
+      return;
+    }
+    const trigger = this._closeAreaMenu(false);
+    try {
+      await start();
+    } finally {
+      await this._restoreActionFocus(trigger);
+    }
+  }
+
+  /** Picks the area on the integration's selector, then presses its start button. */
+  private async _startArea(control: AreaStartControl, area: string) {
+    await this._runMowerAction(
+      "start",
+      this._t("area.startArea", { area }),
+      async () => {
+        await this.hass.callService("select", "select_option", {
+          entity_id: control.selectEntityId,
+          option: area,
+        });
+        await this.hass.callService("button", "press", {
+          entity_id: control.startEntityId,
+        });
+      },
+    );
   }
 
   private async _startMowing() {

@@ -140,6 +140,27 @@ mower-native request. The most recently checked zone remains the preference
 scope for the controls below the selector. Other integrations and older Dreame
 versions keep the original single-zone selector and standard start action.
 
+## Area Start Menu
+
+When a mower can mow one area at a time, `Start` opens a small menu instead of
+starting right away: `Mow all areas` starts the mower as usual, or pick an area
+and press `Start <area>` to mow only that one.
+
+The card finds the areas the same way it finds schedule switches: an
+integration marks a `select` entity of the mower with these attributes:
+
+```yaml
+area_control: true                                  # this select lists the mower's areas
+start_entity: button.my_mower_start_selected_area   # starts the picked area
+options: [Back Garden, Front Lawn]                  # the areas, as the select's options
+```
+
+Starting an area calls `select.select_option` with the area on that select,
+then `button.press` on `start_entity`. The menu only appears when there are at
+least two areas and the start button is available; otherwise `Start` keeps its
+single-press behavior. The [MowgliNext](https://github.com/arcidodo/mowglinext-ha)
+integration exposes these attributes on its `Area to start` select.
+
 ## Planned Run Preview
 
 When `show_advanced_details` is enabled and the mower exposes current selection
