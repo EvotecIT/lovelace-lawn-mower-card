@@ -3,6 +3,7 @@ import { de } from "./locales/de.ts";
 import { en, type TranslationCatalog, type TranslationKey, type TranslationMessage, type TranslationParams } from "./locales/en.ts";
 import { fr } from "./locales/fr.ts";
 import { it } from "./locales/it.ts";
+import { nl } from "./locales/nl.ts";
 import { pl } from "./locales/pl.ts";
 import { ru } from "./locales/ru.ts";
 import { uk } from "./locales/uk.ts";
@@ -10,7 +11,7 @@ import { es } from "./locales/es.ts";
 
 export type { TranslationKey } from "./locales/en.ts";
 
-export const SUPPORTED_LOCALES = ["en", "cs", "de", "fr", "it", "pl", "ru", "uk", "es"] as const;
+export const SUPPORTED_LOCALES = ["en", "cs", "de", "fr", "it", "pl", "ru", "uk", "es", "nl"] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 export type LocalePreference = SupportedLocale | "auto";
 
@@ -25,6 +26,7 @@ export const LOCALE_OPTIONS: ReadonlyArray<{ value: LocalePreference; label: str
   { value: "ru", label: "Русский" },
   { value: "uk", label: "Українська" },
   { value: "es", label: "Español" },
+  { value: "nl", label: "Nederlands" },
 ];
 
 const catalogs: Readonly<Record<SupportedLocale, TranslationCatalog>> = {
@@ -37,6 +39,7 @@ const catalogs: Readonly<Record<SupportedLocale, TranslationCatalog>> = {
   ru,
   uk,
   es,
+  nl,
 };
 
 export function normalizeLocale(value: unknown): SupportedLocale | undefined {
