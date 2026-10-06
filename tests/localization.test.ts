@@ -26,6 +26,7 @@ test("locale resolution accepts Home Assistant BCP-47 languages and falls back s
   assert.equal(resolveLocale("fr", "pl-PL"), "fr");
   assert.equal(resolveLocale("auto", "es-ES", "pl-PL"), "es");
   assert.equal(resolveLocale("auto", "es-ES"), "es");
+  assert.equal(resolveLocale("auto", "nl-NL"), "nl");
   assert.equal(normalizeLocale("pt-BR"), undefined);
   assert.equal(resolveLocale("pt", "pt-BR"), "en");
   assert.equal(resolveLocale("auto", "pt-BR", "ja-JP"), "en");
@@ -46,6 +47,16 @@ test("every supported catalog is complete, non-empty, and preserves placeholders
       assert.deepEqual(placeholders(message), placeholders(english[key]), `${locale}:${key} placeholders`);
     }
   }
+});
+
+test("Dutch uses native wording and Dutch plural rules", () => {
+  const t = createTranslator("nl");
+  assert.equal(t("action.startMowing"), "Start maaien");
+  assert.equal(t("state.docked"), "In het dock");
+  assert.equal(t("custom.cancel"), "Annuleren");
+  assert.equal(t("schedule.count", { count: 1 }), "1 schema");
+  assert.equal(t("schedule.count", { count: 2 }), "2 schema's");
+  assert.equal(t("card.zoneSelection", { count: 3 }), "3 zones geselecteerd. Start maait alleen deze zones.");
 });
 
 test("Polish uses native wording and Polish plural rules", () => {

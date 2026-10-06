@@ -1,4 +1,5 @@
 import { entityIndex } from "./entity-index.ts";
+import { registryOwnersMatch, type EntityRegistryEntries } from "./card-logic.ts";
 import { matchingMowerObjectId } from "./schedule-controls.ts";
 
 export type AreaEntity = {
@@ -22,6 +23,7 @@ export type AreaStartControl = {
 export function discoverAreaStartControl(
   states: Record<string, AreaEntity>,
   mowerEntityId: string,
+  entities?: EntityRegistryEntries,
 ): AreaStartControl | undefined {
   const objectId = mowerEntityId.split(".", 2)[1];
   if (!objectId) {
@@ -33,21 +35,37 @@ export function discoverAreaStartControl(
     .map((entityId) => entityId.split(".", 2)[1])
     .filter((candidate): candidate is string => Boolean(candidate))
     .sort((left, right) => right.length - left.length);
+  const mowerEntry = entities?.[mowerEntityId];
+  const owned: AreaStartControl[] = [];
+  const named: AreaStartControl[] = [];
   for (const entityId of index.byDomain("select")) {
     const entity = states[entityId];
     if (entity?.attributes?.area_control !== true) {
       continue;
     }
+    const selectEntry = entities?.[entityId];
+    const selectorOwned = registryOwnersMatch(mowerEntry, selectEntry);
     const selectObjectId = entityId.split(".", 2)[1] || "";
-    if (matchingMowerObjectId(selectObjectId, mowerObjectIds) !== objectId) {
+    if (
+      (mowerEntry && selectEntry && !selectorOwned) ||
+      (!selectorOwned && matchingMowerObjectId(selectObjectId, mowerObjectIds) !== objectId)
+    ) {
       continue;
     }
     const control = areaStartControl(entityId, entity, states);
-    if (control) {
-      return control;
+    if (!control) continue;
+    const buttonEntry = entities?.[control.startEntityId];
+    if (mowerEntry && buttonEntry) {
+      if (!registryOwnersMatch(mowerEntry, buttonEntry)) continue;
+    } else if (selectEntry && buttonEntry) {
+      if (!registryOwnersMatch(selectEntry, buttonEntry)) continue;
+    } else if (matchingMowerObjectId(control.startEntityId.split(".", 2)[1] || "", mowerObjectIds) !== objectId) {
+      continue;
     }
+    (selectorOwned ? owned : named).push(control);
   }
-  return undefined;
+  const candidates = owned.length ? owned : named;
+  return candidates.length === 1 ? candidates[0] : undefined;
 }
 
 function areaStartControl(

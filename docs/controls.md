@@ -147,8 +147,7 @@ starting right away: `Mow all areas` starts the mower as usual, or pick an area
 and press `Start <area>` to mow only that one. While the menu is open, the
 `Start` button reads `Cancel` with a down arrow; pressing it closes the menu.
 
-The card finds the areas the same way it finds schedule switches: an
-integration marks a `select` entity of the mower with these attributes:
+An integration marks the mower's area `select` entity with these attributes:
 
 ```yaml
 area_control: true                                  # this select lists the mower's areas
@@ -161,6 +160,17 @@ then `button.press` on `start_entity`. The menu only appears when there are at
 least two areas and the start button is available; otherwise `Start` keeps its
 single-press behavior. The [MowgliNext](https://github.com/arcidodo/mowglinext-ha)
 integration exposes these attributes on its `Area to start` select.
+
+The area menu uses Home Assistant's entity registry to match its selector and
+start button to the mower's device and integration, including renamed entities.
+When registry entries are absent, both controls must retain the mower's object
+ID in their entity names. Conflicting ownership or multiple matching selectors
+disable the menu.
+
+A configured Start action keeps its confirmation and visibility checks. Its
+Cancel button closes the area menu directly. Changes to the action, mower state,
+or available area controls close the menu; it stays closed after recovery until
+Start is pressed again.
 
 ## Planned Run Preview
 

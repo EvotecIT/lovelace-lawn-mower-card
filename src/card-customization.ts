@@ -1,4 +1,4 @@
-import type { ContentMode, DisplayCondition, HassEntity, HomeAssistant, LawnMowerCardConfig, LawnMowerTileConfig } from "./card-config.ts";
+import type { ContentMode, DisplayCondition, HassEntity, HomeAssistant, LawnMowerActionConfig, LawnMowerCardConfig, LawnMowerTileConfig } from "./card-config.ts";
 import { isPreferenceControlEntity } from "./card-logic.ts";
 import { isDeviceSettingControlEntity } from "./device-settings-controls.ts";
 
@@ -24,6 +24,15 @@ export function conditionMatches(condition: DisplayCondition | undefined, states
   return state !== undefined && state !== "unavailable" && state !== "unknown" && state === condition.state;
 }
 
+/** Revalidate the originating action after confirmation or area selection. */
+export function configuredActionStillAvailable(
+  action: LawnMowerActionConfig,
+  config: LawnMowerCardConfig | undefined,
+  states: Record<string, HassEntity>,
+): boolean {
+  return Boolean(config?.actions?.includes(action) && conditionMatches(action.visibility, states));
+}
+
 export function heroSections(configured: LawnMowerCardConfig["hero_sections"]): HeroSection[] {
   return configured === undefined ? [...HERO_SECTIONS] : [...new Set(configured.filter(item => HERO_SECTIONS.includes(item)))];
 }
@@ -34,7 +43,7 @@ export function tileColumns(value: unknown): number | undefined {
 }
 
 export type DisplayTile = { label: string; value: string; icon?: string; unavailable?: boolean };
-export type DisplayAction = { label: string; icon?: string; disabled: boolean; handler: () => Promise<void> | void };
+export type DisplayAction = { label: string; icon?: string; disabled: boolean; expanded?: boolean; handler: () => Promise<void> | void };
 
 /** Keep all configured chips, deduplicate repeated text, and retain the legacy automatic cap. */
 export function summaryItems(configured: DisplayTile[], automatic: DisplayTile[], mode: ContentMode, limitAutomatic = false): DisplayTile[] {

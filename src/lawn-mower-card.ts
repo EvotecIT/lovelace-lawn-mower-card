@@ -3,8 +3,9 @@ import { styleMap } from "lit/directives/style-map.js";
 import "./action-confirmation";
 import "./area-start-menu";
 import { discoverAreaStartControl, type AreaStartControl } from "./area-controls";
+import { areaStartContextMatches, type AreaStartContext } from "./area-start-context";
 import { actionErrorDetail } from "./action-error";
-import { summaryItems, controlGroups, configuredTile, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
+import { summaryItems, controlGroups, configuredTile, configuredActionStillAvailable, conditionMatches, contentMode, selectContent, summaryConfig, heroSections, tileColumns, type DisplayTile, type DisplayAction } from "./card-customization";
 import { customActionLabels, renderSummary, renderTiles } from "./customization-view";
 import {
   homeAssistantAttributeValue,
@@ -258,7 +259,7 @@ export class LawnMowerCard extends LitElement {
   @state() private _config?: LawnMowerCardConfig;
   @state() private _pendingCustomAction?: LawnMowerActionConfig;
   @state() private _cancelTaskConfirmationOpen = false;
-  @state() private _areaMenuOpen = false;
+  @state() private _areaMenuContext?: AreaStartContext;
   private _customActionTrigger?: HTMLElement;
   private _cancelTaskTrigger?: HTMLElement;
   private _areaMenuTrigger?: HTMLElement;
@@ -336,6 +337,7 @@ export class LawnMowerCard extends LitElement {
     if (config !== this._config) {
       this._pendingCustomAction = undefined;
       this._cancelTaskConfirmationOpen = false;
+      this._closeAreaMenu(false);
     }
     const previousEntity = this._config?.entity;
     const previousLayout = this._config?.layout || "default";
@@ -345,7 +347,7 @@ export class LawnMowerCard extends LitElement {
       this._actionFeedback = undefined;
       this._clearActionFeedbackTimer();
       this._zoneSelection = undefined;
-      this._areaMenuOpen = false;
+      this._areaMenuContext = undefined;
       this._areaMenuTrigger = undefined;
       this._resetTraditionalPointCloudState();
       this._resetHeroMediaState();
@@ -385,7 +387,7 @@ export class LawnMowerCard extends LitElement {
     this._customActionTrigger = undefined;
     this._cancelTaskConfirmationOpen = false;
     this._cancelTaskTrigger = undefined;
-    this._areaMenuOpen = false;
+    this._areaMenuContext = undefined;
     this._areaMenuTrigger = undefined;
     this._mediaVisibility.disconnect();
     const entityId = this._config?.entity;
@@ -429,6 +431,14 @@ export class LawnMowerCard extends LitElement {
     this._mutationSubscription?.();
     this._mutationSubscription = undefined;
     super.disconnectedCallback();
+  }
+
+  protected willUpdate(): void {
+    const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
+    if (this._areaMenuContext && (!mower || !this._areaMenuShown(mower))) {
+      const menuHadFocus = this.shadowRoot?.activeElement?.tagName === "LAWN-MOWER-AREA-START-MENU";
+      this._closeAreaMenu(menuHadFocus);
+    }
   }
 
   protected updated(): void {
@@ -641,7 +651,7 @@ export class LawnMowerCard extends LitElement {
                         <div class="actions">
                           ${group.actions.map(
                             (action) => html`
-                              <button @click=${action.handler} ?disabled=${action.disabled}>
+                              <button @click=${action.handler} ?disabled=${action.disabled} aria-expanded=${action.expanded === undefined ? nothing : String(action.expanded)}>
                                 <span class="button-content">
                                   ${action.icon ? html`<ha-icon .icon=${action.icon}></ha-icon>` : nothing}
                                   <span>${action.label}</span>
@@ -1567,23 +1577,13 @@ export class LawnMowerCard extends LitElement {
   ): Array<{
     title: string;
     showTitle?: boolean;
-    actions: Array<{
-      label: string;
-      icon?: string;
-      disabled: boolean;
-      handler: () => Promise<void> | void;
-    }>;
+    actions: DisplayAction[];
   }> {
     if (!this._config) {
       return [];
     }
 
-    const defaultActions: Array<{
-      label: string;
-      icon?: string;
-      disabled: boolean;
-      handler: () => Promise<void> | void;
-    }> = [];
+    const defaultActions: DisplayAction[] = [];
 
     if (this._config.show_default_actions ?? true) {
       if (mowerSupportsFeature(mower, LawnMowerFeature.START_MOWING)) {
@@ -1591,6 +1591,7 @@ export class LawnMowerCard extends LitElement {
         defaultActions.push({
           label: menuOpen ? this._t("custom.cancel") : this._t("action.start"),
           icon: menuOpen ? "mdi:chevron-down" : "mdi:play",
+          expanded: menuOpen,
           disabled:
             Boolean(this._mutationInFlight) ||
             !this._canStart(mower.state) ||
@@ -1627,12 +1628,7 @@ export class LawnMowerCard extends LitElement {
       }
     }
 
-    const helperActions: Array<{
-      label: string;
-      icon?: string;
-      disabled: boolean;
-      handler: () => Promise<void> | void;
-    }> = [];
+    const helperActions: DisplayAction[] = [];
     if (this._config.show_helper_actions ?? true) {
       helperActions.push(...this._buildHelperActions());
     }
@@ -1659,6 +1655,7 @@ export class LawnMowerCard extends LitElement {
       if (!conditionMatches(action.visibility, this.hass.states)) return [];
       const built = this._buildConfiguredAction(action, mower);
       if (!built) return [];
+      if (action.type === "start" && this._areaMenuShown(mower)) return [built];
       return [{ ...built, handler: () => {
         if (action.confirmation) {
           this._closeAreaMenu(false);
@@ -1673,7 +1670,8 @@ export class LawnMowerCard extends LitElement {
 
   private _executeCustomAction(action: LawnMowerActionConfig) {
     // A changed configuration, state, or mutation lock invalidates a pending action.
-    if (!this._config?.actions?.includes(action) || !conditionMatches(action.visibility, this.hass.states)) return;
+    if (!configuredActionStillAvailable(action, this._config, this.hass.states)) return;
+    if (!this._config) return;
     const mower = this.hass.states[this._config.entity];
     if (!mower) return;
     const current = this._buildConfiguredAction(action, mower);
@@ -1700,7 +1698,8 @@ export class LawnMowerCard extends LitElement {
         try {
           await this._executeCustomAction(action);
         } finally {
-          await this._restoreActionFocus(trigger);
+          if (this._areaMenuContext) this._areaMenuTrigger = trigger;
+          else await this._restoreActionFocus(trigger);
         }
       }}></lawn-mower-action-confirmation>`;
   }
@@ -1725,14 +1724,7 @@ export class LawnMowerCard extends LitElement {
   private _buildConfiguredAction(
     action: LawnMowerActionConfig,
     mower: HassEntity,
-  ):
-    | {
-        label: string;
-        icon?: string;
-        disabled: boolean;
-        handler: () => Promise<void> | void;
-      }
-    | undefined {
+  ): DisplayAction | undefined {
     const type = action.type || "more-info";
 
     if (type === "start") {
@@ -1743,17 +1735,19 @@ export class LawnMowerCard extends LitElement {
         return {
           label: this._t("custom.cancel"),
           icon: "mdi:chevron-down",
+          expanded: true,
           disabled: Boolean(this._mutationInFlight),
-          handler: () => this._requestStart(),
+          handler: () => { this._closeAreaMenu(); },
         };
       }
       return {
         label: action.label || this._t("action.start"),
         icon: action.icon || "mdi:play",
+        expanded: false,
         disabled:
           Boolean(this._mutationInFlight) ||
           !this._canStart(mower.state) || !this._canStartSelectedTarget(),
-        handler: () => this._requestStart(),
+        handler: () => this._requestStart(action),
       };
     }
 
@@ -1804,12 +1798,7 @@ export class LawnMowerCard extends LitElement {
     return undefined;
   }
 
-  private _buildHelperActions(helpers?: HelperEntity[]): Array<{
-    label: string;
-    icon?: string;
-    disabled: boolean;
-    handler: () => Promise<void> | void;
-  }> {
+  private _buildHelperActions(helpers?: HelperEntity[]): DisplayAction[] {
     if (!this._config) {
       return [];
     }
@@ -3473,14 +3462,18 @@ export class LawnMowerCard extends LitElement {
   }
 
   /** Mowers with a choice of areas get the Start menu; others start right away. */
-  private _requestStart(): void | Promise<void> {
-    if (!this._areaStartControl()) {
-      return this._startMowing();
-    }
-    if (this._areaMenuOpen) {
+  private _requestStart(action?: LawnMowerActionConfig): void | Promise<void> {
+    if (this._areaMenuContext) {
       this._closeAreaMenu();
       return;
     }
+    const config = this._config;
+    if (!config) return;
+    const mower = this.hass.states[config.entity];
+    if (!mower || this._mutationInFlight || !this._canStart(mower.state) ||
+        !mowerSupportsFeature(mower, LawnMowerFeature.START_MOWING) || !this._canStartSelectedTarget()) return;
+    const control = this._areaStartControl();
+    if (!control) return this._startMowing();
     this._pendingCustomAction = undefined;
     this._customActionTrigger = undefined;
     this._cancelTaskConfirmationOpen = false;
@@ -3488,15 +3481,25 @@ export class LawnMowerCard extends LitElement {
     this._areaMenuTrigger = this.shadowRoot?.activeElement as
       | HTMLElement
       | undefined;
-    this._areaMenuOpen = true;
+    while (this._areaMenuTrigger?.shadowRoot?.activeElement) {
+      this._areaMenuTrigger = this._areaMenuTrigger.shadowRoot.activeElement as HTMLElement;
+    }
+    this._areaMenuContext = {
+      mowerEntityId: config.entity,
+      selectEntityId: control.selectEntityId,
+      startEntityId: control.startEntityId,
+      action,
+    };
   }
 
   /** True while the area menu is on screen, so Start can read as its Cancel. */
   private _areaMenuShown(mower: HassEntity): boolean {
-    return (
-      this._areaMenuOpen &&
+    return Boolean(
+      this._areaMenuContext &&
       this._canStart(mower.state) &&
-      Boolean(this._areaStartControl())
+      mowerSupportsFeature(mower, LawnMowerFeature.START_MOWING) &&
+      this._canStartSelectedTarget() &&
+      areaStartContextMatches(this._areaMenuContext, this._config, this.hass.states, this._areaStartControl())
     );
   }
 
@@ -3504,11 +3507,11 @@ export class LawnMowerCard extends LitElement {
     if (!this._config || this._multiZoneCandidateContext()) {
       return undefined;
     }
-    return discoverAreaStartControl(this.hass.states, this._config.entity);
+    return discoverAreaStartControl(this.hass.states, this._config.entity, this.hass.entities);
   }
 
   private _closeAreaMenu(restoreFocus = true): HTMLElement | undefined {
-    this._areaMenuOpen = false;
+    this._areaMenuContext = undefined;
     const trigger = this._areaMenuTrigger;
     this._areaMenuTrigger = undefined;
     if (restoreFocus) void this._restoreActionFocus(trigger);
@@ -3516,12 +3519,12 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _renderAreaStartMenu() {
-    if (!this._areaMenuOpen || !this._config) {
+    if (!this._areaMenuContext || !this._config) {
       return undefined;
     }
     const control = this._areaStartControl();
     const mower = this.hass.states[this._config.entity];
-    if (!control || !mower || !this._canStart(mower.state)) {
+    if (!control || !mower || !this._areaMenuShown(mower)) {
       return undefined;
     }
     return html`<lawn-mower-area-start-menu
@@ -3531,12 +3534,18 @@ export class LawnMowerCard extends LitElement {
       .onCancel=${() => this._closeAreaMenu()}
       .onStartAll=${() => this._startFromAreaMenu(() => this._startMowing())}
       .onStartArea=${(area: string) =>
-        this._startFromAreaMenu(() => this._startArea(control, area))}
+        this._startFromAreaMenu(() => this._startArea(control, area), area)}
     ></lawn-mower-area-start-menu>`;
   }
 
-  private async _startFromAreaMenu(start: () => Promise<void>): Promise<void> {
+  private async _startFromAreaMenu(start: () => Promise<void>, area?: string): Promise<void> {
     if (this._mutationInFlight) {
+      return;
+    }
+    const mower = this._config ? this.hass.states[this._config.entity] : undefined;
+    const control = this._areaStartControl();
+    if (!mower || !this._areaMenuShown(mower) || (area !== undefined && !control?.areas.includes(area))) {
+      this._closeAreaMenu();
       return;
     }
     const trigger = this._closeAreaMenu(false);

@@ -73,3 +73,46 @@ test("needs an existing, available start button", () => {
   };
   assert.equal(discoverAreaStartControl(unavailable, "lawn_mower.mowgli"), undefined);
 });
+
+test("registry ownership discovers renamed area controls", () => {
+  const owner = { device_id: "mower-device", platform: "mowglinext" };
+  const states = {
+    ...baseStates(),
+    "button.run_selected": { state: "unknown" },
+    "select.garden_area": areaSelect(["A", "B"], { start_entity: "button.run_selected" }),
+  };
+  assert.equal(discoverAreaStartControl(states, "lawn_mower.mowgli", {
+    "lawn_mower.mowgli": owner,
+    "select.garden_area": owner,
+    "button.run_selected": owner,
+  })?.selectEntityId, "select.garden_area");
+});
+
+test("a matching name cannot override a different registry owner", () => {
+  const owner = { device_id: "mower-device", platform: "mowglinext" };
+  const other = { device_id: "other-device", platform: "mowglinext" };
+  const states = { ...baseStates(), "select.mowgli_start_area": areaSelect(["A", "B"]) };
+  for (const [selectOwner, buttonOwner] of [[other, owner], [owner, other]]) {
+    assert.equal(discoverAreaStartControl(states, "lawn_mower.mowgli", {
+      "lawn_mower.mowgli": owner,
+      "select.mowgli_start_area": selectOwner,
+      "button.tuin_mowgli_start_selected_area": buttonOwner,
+    }), undefined);
+  }
+});
+
+test("naming fallback rejects a start button belonging to another mower", () => {
+  assert.equal(discoverAreaStartControl({
+    ...baseStates(),
+    "button.other_mower_start": { state: "unknown" },
+    "select.mowgli_start_area": areaSelect(["A", "B"], { start_entity: "button.other_mower_start" }),
+  }, "lawn_mower.mowgli"), undefined);
+});
+
+test("ambiguous area selectors do not choose an arbitrary control", () => {
+  assert.equal(discoverAreaStartControl({
+    ...baseStates(),
+    "select.mowgli_start_area": areaSelect(["A", "B"]),
+    "select.mowgli_alternative_area": areaSelect(["C", "D"]),
+  }, "lawn_mower.mowgli"), undefined);
+});
