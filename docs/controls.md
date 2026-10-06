@@ -144,7 +144,8 @@ versions keep the original single-zone selector and standard start action.
 
 When a mower can mow one area at a time, `Start` opens a small menu instead of
 starting right away: `Mow all areas` starts the mower as usual, or pick an area
-and press `Start <area>` to mow only that one.
+and press `Start <area>` to mow only that one. While the menu is open, the
+`Start` button reads `Cancel` with a down arrow; pressing it closes the menu.
 
 The card finds the areas the same way it finds schedule switches: an
 integration marks a `select` entity of the mower with these attributes:

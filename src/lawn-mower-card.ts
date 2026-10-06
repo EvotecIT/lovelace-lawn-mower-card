@@ -852,6 +852,7 @@ export class LawnMowerCard extends LitElement {
         !this._mutationInFlight &&
         this._canStart(mower.state) &&
         this._canStartSelectedTarget(),
+      startMenuOpen: this._areaMenuShown(mower),
       canPause: !this._mutationInFlight && this._canPause(mower.state),
       canDock: !this._mutationInFlight && this._canDock(mower),
       canCancelTask:
@@ -1586,9 +1587,10 @@ export class LawnMowerCard extends LitElement {
 
     if (this._config.show_default_actions ?? true) {
       if (mowerSupportsFeature(mower, LawnMowerFeature.START_MOWING)) {
+        const menuOpen = this._areaMenuShown(mower);
         defaultActions.push({
-          label: this._t("action.start"),
-          icon: "mdi:play",
+          label: menuOpen ? this._t("custom.cancel") : this._t("action.start"),
+          icon: menuOpen ? "mdi:chevron-down" : "mdi:play",
           disabled:
             Boolean(this._mutationInFlight) ||
             !this._canStart(mower.state) ||
@@ -1736,6 +1738,14 @@ export class LawnMowerCard extends LitElement {
     if (type === "start") {
       if (!mowerSupportsFeature(mower, LawnMowerFeature.START_MOWING)) {
         return undefined;
+      }
+      if (this._areaMenuShown(mower)) {
+        return {
+          label: this._t("custom.cancel"),
+          icon: "mdi:chevron-down",
+          disabled: Boolean(this._mutationInFlight),
+          handler: () => this._requestStart(),
+        };
       }
       return {
         label: action.label || this._t("action.start"),
@@ -3479,6 +3489,15 @@ export class LawnMowerCard extends LitElement {
       | HTMLElement
       | undefined;
     this._areaMenuOpen = true;
+  }
+
+  /** True while the area menu is on screen, so Start can read as its Cancel. */
+  private _areaMenuShown(mower: HassEntity): boolean {
+    return (
+      this._areaMenuOpen &&
+      this._canStart(mower.state) &&
+      Boolean(this._areaStartControl())
+    );
   }
 
   private _areaStartControl(): AreaStartControl | undefined {

@@ -81,6 +81,8 @@ export type HeroLayoutModel = {
   supportsDock: boolean;
   supportsCancelTask: boolean;
   canStart: boolean;
+  /** The Start button has opened the area menu; it then reads as Cancel. */
+  startMenuOpen?: boolean;
   canPause: boolean;
   canDock: boolean;
   canCancelTask: boolean;
