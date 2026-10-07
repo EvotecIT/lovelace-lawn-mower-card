@@ -146,3 +146,37 @@ APIs and remove the test element afterward.
 
 These checks do not qualify long-running polling, real HA signed endpoints,
 background-tab behavior, camera streams, 3D workers/GPU resources, or heap retention.
+
+
+## Packaged 3D lifecycle evidence
+
+The same resource identified above was checked on 2026-10-07 in Chromium 154
+on Windows. The 3D tab in `/demo/index.html` loaded the embedded viewer module;
+the synthetic 120,000-point fixture rendered visibly and produced no browser
+warnings or errors in the completed-load check.
+
+A separate `lawn-mower-point-cloud` element used the preview server's
+`/api/dreame_lawn_mower/point-cloud/demo-entry/0` route. It was loaded and removed
+three times, reusing the same element. Each cycle created one parser worker,
+which terminated on completion. The loaded viewer owned one ResizeObserver and
+one live WebGL context, with no remaining tracked object URLs. After each removal,
+the observer count was zero and the recorded context reported `isContextLost()`.
+No tracked workers or object URLs remained.
+
+A separate cancellation check removed the element in a microtask immediately
+after the parser worker received its input. One worker was created and terminated;
+no worker or rendered canvas remained after removal. This checks cleanup with
+parser work pending, without relying on how fast a particular machine parses.
+
+To repeat, activate the preview's 3D tab to load the packaged module. Create a
+separate viewer with `active` and `autoLoad` enabled, the fixture path above,
+and synthetic HA signing that returns the requested local path. Instrument Worker
+construction/termination, ResizeObserver observe/disconnect, object URL creation/
+revocation, and canvas WebGL context creation. Wait for a rendered canvas and
+worker completion before recording loaded counts, then remove and inspect the
+recorded contexts. Restore instrumented APIs and remove the viewer afterward.
+
+These checks establish the observed browser resource lifecycle for this fixture.
+They do not measure physical GPU memory reclamation, JavaScript heap retention,
+large-cloud performance, camera streams, background-tab behavior, or other browser
+engines and devices.
