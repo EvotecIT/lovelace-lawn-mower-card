@@ -51,6 +51,11 @@
       <button id="availability" type="button" aria-pressed="false">Simulate unavailable sensor</button>
       <button id="reset" type="button">Reset example</button>
     </nav>
+    <div id="pending-responses" hidden>
+      <p>Synthetic service responses · no device connection</p>
+      <button id="complete-response" type="button" disabled>Complete pending action</button>
+      <button id="fail-response" type="button" disabled>Fail pending action</button>
+    </div>
     <div class="preview"><lawn-mower-card id="mower"></lawn-mower-card><div id="events" role="status">No simulated actions yet.</div></div>
     <div id="editor-panel" hidden><lawn-mower-card-editor id="editor"></lawn-mower-card-editor></div>
     <details class="config"><summary>Current example configuration</summary><pre id="config"></pre></details>

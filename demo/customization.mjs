@@ -6,6 +6,18 @@ const editor = document.getElementById("editor");
 const events = document.getElementById("events");
 let commands = 0;
 let currentHass = hass;
+const pendingResponses = [];
+const completeResponse = document.getElementById("complete-response");
+const failResponse = document.getElementById("fail-response");
+document.getElementById("pending-responses").hidden = query.get("action") !== "pending";
+function settleResponses(failed) {
+  const responses = pendingResponses.splice(0);
+  completeResponse.disabled = failResponse.disabled = true;
+  for (const response of responses)
+    failed ? response.reject(new Error("Simulated delayed connection failure")) : response.resolve();
+}
+completeResponse.addEventListener("click", () => settleResponses(false));
+failResponse.addEventListener("click", () => settleResponses(true));
 
 entity("sensor.garden_temperature", "21", { friendly_name:"Garden", unit_of_measurement:"°C", icon:"mdi:thermometer" });
 entity("sensor.mower_blade_life", "78", { friendly_name:"Blade life", unit_of_measurement:"%", icon:"mdi:content-cut", remaining_hours:46 });
@@ -118,6 +130,12 @@ hass.callService = async (domain, service, data) => {
   if (query.get("action") === "error") throw new Error("Simulated connection failure");
   commands++;
   events.textContent=`Simulated actions: ${commands} · ${domain}.${service} · ${JSON.stringify(data || {})} · No device connection.`;
+  if (query.get("action") === "pending") {
+    await new Promise((resolve, reject) => {
+      pendingResponses.push({ resolve, reject });
+      completeResponse.disabled = failResponse.disabled = false;
+    });
+  }
   if (domain === "select") updateState(data.entity_id, data.option);
   if (domain === "switch") updateState(data.entity_id, service === "turn_on" ? "on" : "off");
   if (domain === "lawn_mower") updateState("lawn_mower.demo", service === "pause" ? "paused" : service === "dock" ? "returning" : "mowing");

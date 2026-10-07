@@ -15,7 +15,7 @@ it does not award this card a tier. A passing source build is one evidence layer
 | Layout | Narrow, wide, short landscape, zoomed, dense, and long-label states retain usable controls. | Preview supplies multiple layouts and widths. Complete the browser matrix below with screenshots. |
 | Accessibility | Keyboard, touch, focus, screen-reader names, contrast, reduced motion, and non-color status cues remain usable. | Map keyboard labels and named controls exist. Automated accessibility checks and manual focus/contrast proof remain open. |
 | Data states | Loading, missing entities, unavailable devices, unsupported capabilities, partial failure, and stale responses have distinct outcomes. | State/capability tests exist. Verify rendered transitions and recovery. |
-| Actions | Requests respect capability and availability checks, prevent duplicate mutation, and show useful failures. | Mutation-lock, action-error, schedule, and control tests exist. Synthetic custom-service browser checks verify Escape cancellation makes no call, confirmation makes one call, failure restores trigger focus, and the confirmation can reopen. Pending-request/duplicate-action and approved live-action proof remain open. |
+| Actions | Requests respect capability and availability checks, prevent duplicate mutation, and show useful failures. | Mutation-lock, action-error, schedule, and control tests exist. Synthetic browser checks cover confirmation cancellation/success, disabled mutation controls while a response is pending, delayed failure with focus restoration, successful retry, and a standard Pause action/state update. Actual HA and approved live-action proof remain open. |
 | Media | Map, camera, and 3D load only when needed, handle errors, and retain safe resource bounds. | Worker, preview, media timing, and presentation tests exist. Verify actual browser worker/WebGL/video lifecycle and integration versions. |
 | Cleanup | Removal and hiding stop owned streams, timers, workers, observers, and GPU resources; reopening works. | Measure repeated attach/detach and tab transitions in the browser. Unit tests alone do not prove retained-resource behaviour. |
 | Performance | Bounded unrelated-HA-update work, requests, geometry, memory, and cold/warm rendering costs. | Update-scope and point-cloud tests exist; rendering limits are documented. Establish measured device/browser budgets before enforcing them. |
@@ -73,6 +73,14 @@ After confirmation, the card displays the simulated connection failure, restores
 trigger focus, and allows the confirmation to reopen. Repeat with **Narrow ·
 320 px** to inspect the wrapped error and usable Cancel/Confirm controls.
 
-These are inline confirmations, not modal dialogs; surrounding controls remain
-available. The preview has no device connection. This evidence does not establish
-pending-request behavior, actual HA webview compatibility, or physical actions.
+Use `/demo/customization.html?action=pending` to hold synthetic service responses.
+Confirm Evening routine and check that its button, Pause, Dock, selection and
+switch controls cannot issue another mutation while the request is pending. The
+preview displays the number of service calls received. Choose **Fail pending
+action**, verify the error and restored controls, then retry and choose **Complete
+pending action**. A standard Pause action also waits for completion before the
+simulated mower changes state. The response buttons affect only the local fixture.
+
+These are inline confirmations, not modal dialogs; surrounding non-mutation
+controls remain available. The preview has no device connection. This evidence
+does not establish actual HA webview compatibility or physical actions.
