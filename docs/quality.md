@@ -113,3 +113,36 @@ This verifies the measured overview resources and reattachment in the synthetic
 preview. It does not establish garbage collection, mutation subscription counts,
 media stream or worker shutdown, GPU release, tab hiding, actual HA installation,
 or other browser engines. Those acceptance gates remain open.
+
+
+## Packaged map lifecycle evidence
+
+The same resource identified above was checked on 2026-10-07 in Chromium 154
+on Windows at 1280 x 720. A separate `lawn-mower-mowing-map` element used a
+synthetic 32 x 32 PNG and a valid scene delivered through local data URLs.
+This exercised browser fetching, PNG decoding, rendering, and object URL ownership
+without an HA connection or mower commands.
+
+Across 20 load/remove cycles on the same element, each load rendered an SVG image
+and owned one ResizeObserver, two timeouts, and one image object URL. All tracked
+counts returned to zero after every removal. There were 40 synthetic signing
+calls: one scene and one background per attachment. Measurement delays and
+pre-existing preview resources were excluded from the counters.
+
+Two additional checks held the signing response or fetch response pending while
+the element was removed. Releasing a late signing response caused no URL resolution
+or fetch. Removal aborted the pending fetch signal; a late response did not render
+an image or start another signing request. The simulated fetch honored the abort
+signal, so this establishes the cancellation contract rather than real network
+transport behavior. Browser warnings and errors were empty.
+
+To repeat, instrument ResizeObserver observe/disconnect, timeout creation/firing/
+cancellation, and object URL creation/revocation around the separate map element.
+Supply `path`, `active`, and a synthetic `hass` with `callWS` and `hassUrl`; wait for
+the rendered SVG image before measuring the loaded state. For cancellation, hold
+`callWS` or an abort-aware fetch at its boundary, remove the element, then release
+the held response and inspect calls and rendered state. Restore all instrumented
+APIs and remove the test element afterward.
+
+These checks do not qualify long-running polling, real HA signed endpoints,
+background-tab behavior, camera streams, 3D workers/GPU resources, or heap retention.
