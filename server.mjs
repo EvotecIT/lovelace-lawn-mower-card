@@ -1,5 +1,5 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, sep } from "node:path";
 import http from "node:http";
 
 const root = process.cwd();
@@ -19,17 +19,23 @@ const contentTypes = {
 };
 
 function safePath(urlPath) {
-  const decoded = decodeURIComponent(urlPath.split("?")[0]);
   const relative =
-    decoded === "/"
+    urlPath === "/"
         ? "/demo/index.html"
-        : decoded;
+        : urlPath;
   const fullPath = normalize(join(root, relative));
-  return fullPath.startsWith(root) ? fullPath : null;
+  return fullPath.startsWith(root + sep) ? fullPath : null;
 }
 
 const server = http.createServer((request, response) => {
-  const requestPath = decodeURIComponent((request.url || "").split("?")[0]);
+  let requestPath;
+  try {
+    requestPath = decodeURIComponent((request.url || "").split("?")[0]);
+  } catch {
+    response.writeHead(400, { "content-type": "text/plain; charset=utf-8" });
+    response.end("Invalid path");
+    return;
+  }
   const pointCloudMatch = requestPath.match(
     /^\/api\/dreame_lawn_mower\/point-cloud\/demo-entry\/([0-2])$/,
   );
@@ -50,7 +56,7 @@ const server = http.createServer((request, response) => {
     response.end(demoPointCloud);
     return;
   }
-  const path = safePath(request.url || "/");
+  const path = safePath(requestPath);
   if (!path || !existsSync(path) || statSync(path).isDirectory()) {
     response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
     response.end("Not found");
