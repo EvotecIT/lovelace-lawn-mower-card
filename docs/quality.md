@@ -180,3 +180,24 @@ These checks establish the observed browser resource lifecycle for this fixture.
 They do not measure physical GPU memory reclamation, JavaScript heap retention,
 large-cloud performance, camera streams, background-tab behavior, or other browser
 engines and devices.
+
+
+## Packaged camera element lifecycle evidence
+
+The same resource identified above was checked on 2026-10-07 in Chromium 154
+using `/demo/customization.html`. Selecting Camera mounted the simulated
+`ha-camera-stream` element. Switching to Overview retained that exact element
+during the grace period; returning immediately to Camera reused it. Staying on
+Overview for 16 seconds removed the element, and returning to Camera created a
+new one. Removing the card disconnected the camera element; reattaching the card
+restored a camera element. Browser warnings and errors were empty.
+
+To repeat, compare element identity while switching Camera / Overview / Camera,
+then leave Overview selected beyond the 15-second grace period and inspect the
+shadow DOM before returning. Remove the card, await its update, and reattach it
+at the same location to verify reconnection.
+
+The preview camera is a simulated custom element. This checks the card's mounting
+and grace-period contract, not actual HA video transport, stream termination,
+recovery timers, hidden-tab behavior, or camera/device commands. Those runtime
+gates remain open.
