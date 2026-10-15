@@ -40,6 +40,8 @@ export type HeroLayoutModel = {
   coverageLabel?: string;
   area?: MowingAreaProgress;
   mowingMapPath?: string;
+  /** Mower entity whose saved photos the Photos view lists. */
+  photoEntityId?: string;
   mapSavedPreview?: boolean;
   heroImage?: string;
   heroImagePosition?: HeroImagePosition;
@@ -164,6 +166,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
       label: model.t("hero.camera"),
       icon: "mdi:video-wireless-outline",
     },
+    { view: "photos", label: model.t("hero.photos"), icon: "mdi:image-multiple-outline" },
   ];
   return html`
     <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.dashboard && !hasAside ? " dashboard-no-aside" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
@@ -171,7 +174,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
         ${model.dashboard ? html`${renderDashboardHeader(model)}
           <div class="dashboard-command-panel">${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>` : nothing}
         <section class=${`hero-stage view-${mainView}${model.mowingMapPath ? " interactive-map" : ""}`}>
-          ${renderHeroMedia(mainModel, model.dashboard && cameraAside ? ["overview", "map", "point-cloud"] : undefined)}
+          ${renderHeroMedia(mainModel, model.dashboard && cameraAside ? ["overview", "map", "point-cloud", "photos"] : undefined)}
           ${mainView === "map" && !model.mowingMapPath ? model.mapStatus : nothing}
           <div class="hero-scrim" aria-hidden="true"></div>
 
