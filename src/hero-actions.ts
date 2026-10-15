@@ -83,6 +83,10 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                       { disabled: !model.canDock },
                     )
                   : nothing}
+                ${(model.patrolActions || []).map((action) => renderAction(
+                  action.label, action.icon || "mdi:shield-outline", action.handler,
+                  { disabled: action.disabled },
+                ))}
               `
             : nothing}
           ${model.showHelperActions

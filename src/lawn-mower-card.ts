@@ -46,6 +46,7 @@ import {
   heroViewRestorationAllowed,
   mowerCanCancelTask,
   mowerCanDock,
+  mowerCanPatrol,
   mowerSessionActive,
   numberControlSettings,
   resolvedControlEntities,
@@ -54,8 +55,10 @@ import {
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
   DREAME_LAWN_MOWER_SERVICE_DOMAIN,
+  supportsDreamePatrol,
   supportsDreameTaskCancellation,
   taskCancellationStillAvailable,
+  type DreamePatrolKind,
 } from "./card-logic";
 import {
   timeInputStep,
@@ -553,6 +556,7 @@ export class LawnMowerCard extends LitElement {
                     ${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
+                          .background=${this._config.map_background}
                           .path=${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)}
                           .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
                           .active=${this._mediaVisible}></lawn-mower-mowing-map>`
@@ -804,6 +808,7 @@ export class LawnMowerCard extends LitElement {
       coverageLabel: coverage.label,
       area: coverage.area,
       mowingMapPath: scenePath,
+      mapBackground: this._config.map_background,
       mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,
       heroImage: normalizeHeroImage(this._config.hero_image),
       heroImagePosition: normalizeHeroImagePosition(this._config.hero_image_position),
@@ -883,6 +888,8 @@ export class LawnMowerCard extends LitElement {
       onMaintenancePoint: maintenancePointButton
         ? () => this._pressButton(maintenancePointButton.entityId)
         : undefined,
+      patrolActions: (this._config.show_default_actions ?? true)
+        ? this._patrolActions(mower) : [],
       onMoreInfo: () => this._showMoreInfo(),
     });
   }
@@ -1626,6 +1633,7 @@ export class LawnMowerCard extends LitElement {
           handler: () => this._dockMower(),
         });
       }
+      defaultActions.push(...this._patrolActions(mower));
     }
 
     const helperActions: DisplayAction[] = [];
@@ -3623,6 +3631,36 @@ export class LawnMowerCard extends LitElement {
             entity_id: this._config?.entity,
           },
         ),
+    );
+  }
+
+  private _patrolActions(mower: HassEntity): DisplayAction[] {
+    if (!this._config || !(this._config.show_patrol_actions ?? true)) {
+      return [];
+    }
+    const patrols: Array<[DreamePatrolKind, string, string]> = [
+      ["point", this._t("action.pointPatrol"), "mdi:map-marker-path"],
+      ["edge", this._t("action.edgePatrol"), "mdi:vector-polyline"],
+    ];
+    return patrols
+      .filter(([kind]) => supportsDreamePatrol(
+        kind, this._config!.entity, this.hass.entities, this.hass.services,
+      ))
+      .map(([kind, label, icon]) => ({
+        label,
+        icon,
+        disabled: Boolean(this._mutationInFlight) || !mowerCanPatrol(mower),
+        handler: () => this._startPatrol(kind, label),
+      }));
+  }
+
+  private async _startPatrol(kind: DreamePatrolKind, label: string) {
+    await this._runMowerAction(`${kind}-patrol`, label, () =>
+      this.hass.callService(
+        DREAME_LAWN_MOWER_SERVICE_DOMAIN,
+        `start_${kind}_patrol`,
+        { entity_id: this._config?.entity },
+      ),
     );
   }
 

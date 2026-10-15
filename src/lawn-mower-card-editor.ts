@@ -32,6 +32,7 @@ import {
   type MapPosition,
 } from "./map-presentation";
 import { pointCloudPathFromEntity } from "./point-cloud-logic";
+import { normalizeMapBackground, type MapBackground } from "./mowing-map-logic";
 
 @customElement("lawn-mower-card-editor")
 export class LawnMowerCardEditor extends LitElement {
@@ -128,6 +129,7 @@ export class LawnMowerCardEditor extends LitElement {
         )}
         ${this._mapFitField(normalizeMapFit(config.map_fit))}
         ${this._mapPositionField(normalizeMapPosition(config.map_position))}
+        ${this._mapBackgroundField(normalizeMapBackground(config.map_background))}
         ${this._toggle(
           this._t("editor.showPointCloud"),
           config.show_point_cloud ??
@@ -189,6 +191,11 @@ export class LawnMowerCardEditor extends LitElement {
           this._t("editor.showHelperActions"),
           config.show_helper_actions ?? true,
           "show_helper_actions",
+        )}
+        ${this._toggle(
+          this._t("editor.showPatrolActions"),
+          config.show_patrol_actions ?? true,
+          "show_patrol_actions",
         )}
         ${this._toggle(
           this._t("editor.showAdvanced"),
@@ -291,6 +298,18 @@ export class LawnMowerCardEditor extends LitElement {
     `;
   }
 
+  private _mapBackgroundField(value: MapBackground) {
+    return html`
+      <label>
+        <span>${this._t("editor.mapBackground")}</span>
+        <select data-key="map_background" .value=${value} @change=${this._valueChanged}>
+          <option value="standard">${this._t("editor.mapBackgroundStandard")}</option>
+          <option value="real_scene">${this._t("editor.mapBackgroundRealScene")}</option>
+        </select>
+      </label>
+    `;
+  }
+
   private _mapFitField(value: MapFit) {
     return html`
       <label>
@@ -380,6 +399,7 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_hero_label"
       | "show_default_actions"
       | "show_helper_actions"
+      | "show_patrol_actions"
       | "show_advanced_details"
       | "show_recent_conditions",
   ) {
@@ -580,6 +600,7 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_hero_label"
       | "show_default_actions"
       | "show_helper_actions"
+      | "show_patrol_actions"
       | "show_advanced_details"
       | "show_recent_conditions"
       | undefined;

@@ -80,6 +80,7 @@ export type LawnMowerCardConfig = {
   hero_image_position?: HeroImagePosition;
   map_entity?: string;
   map_fit?: MapFit;
+  map_background?: "standard" | "real_scene";
   map_position?: MapPosition;
   camera_entity?: string;
   schedule_calendar_entity?: string;
@@ -94,6 +95,7 @@ export type LawnMowerCardConfig = {
   coverage_total_entity?: string;
   show_default_actions?: boolean;
   show_helper_actions?: boolean;
+  show_patrol_actions?: boolean;
   show_custom_action_label?: boolean;
   show_advanced_details?: boolean;
   control_entities?: string[];

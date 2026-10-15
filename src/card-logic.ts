@@ -122,6 +122,27 @@ export function taskCancellationStillAvailable(
 /** Home Assistant service domain registered by the Dreame entity platform. */
 export const DREAME_LAWN_MOWER_SERVICE_DOMAIN = "dreame_lawn_mower";
 
+export type DreamePatrolKind = "point" | "edge";
+
+/** Offer a patrol only for the integration and service that implement it. */
+export function supportsDreamePatrol(
+  kind: DreamePatrolKind,
+  mowerEntityId: string,
+  entities: EntityRegistryEntries | undefined,
+  services: Record<string, Record<string, unknown> | undefined> | undefined,
+): boolean {
+  return (
+    entities?.[mowerEntityId]?.platform === DREAME_LAWN_MOWER_SERVICE_DOMAIN &&
+    Boolean(services?.[DREAME_LAWN_MOWER_SERVICE_DOMAIN]?.[`start_${kind}_patrol`])
+  );
+}
+
+/** The integration starts patrols only from a docked or idle mower without a task. */
+export function mowerCanPatrol(entity: MinimalHassEntity): boolean {
+  const state = entity.state.trim().toLowerCase();
+  return ["docked", "idle"].includes(state) && !mowerSessionActive(entity);
+}
+
 /** Expose cancellation only for the integration and service that implement it. */
 export function supportsDreameTaskCancellation(
   mowerEntityId: string,
