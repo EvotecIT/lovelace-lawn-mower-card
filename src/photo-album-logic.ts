@@ -52,9 +52,17 @@ export function mediaChildren(value: unknown, limit = 500): MediaItem[] {
   return result;
 }
 
-/** The local media source is the root child whose id ends with "/.". */
-export function localMediaSource(children: readonly MediaItem[]): string | undefined {
-  const local = children.find((child) => child.id.endsWith("/.") && child.canExpand);
+/**
+ * Find the local media source. With a single source, Home Assistant returns
+ * that source itself for the root; otherwise it is the child ending in "/.".
+ */
+export function localMediaSource(root: unknown): string | undefined {
+  const id = typeof root === "object" && root !== null
+    ? (root as { media_content_id?: unknown }).media_content_id : undefined;
+  if (typeof id === "string" && id.startsWith(`${MEDIA_SOURCE_ROOT}/`) && id.endsWith("/.")) {
+    return id.slice(0, -2);
+  }
+  const local = mediaChildren(root).find((child) => child.id.endsWith("/.") && child.canExpand);
   return local ? local.id.slice(0, -2) : undefined;
 }
 

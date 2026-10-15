@@ -27,7 +27,15 @@ test("media browsing keeps only typed media-source children", () => {
       title: "1792026162.jpg", media_class: "image", can_expand: false },
   ] });
   assert.equal(children.length, 2);
-  assert.equal(localMediaSource(children), `${root}/media`);
+  // Several sources: the local one is a child ending in "/.".
+  assert.equal(localMediaSource({ media_content_id: root, children: [
+    { media_content_id: `${root}/media/.`, title: "My media", media_class: "directory", can_expand: true },
+  ] }), `${root}/media`);
+  // A single source: Home Assistant returns the source itself (seen live).
+  assert.equal(localMediaSource({ media_content_id: `${root}/media/.`, children: [
+    { media_content_id: `${root}/media/dreame_lawn_mower`, title: "dreame_lawn_mower", can_expand: true },
+  ] }), `${root}/media`);
+  assert.equal(localMediaSource({ media_content_id: root, children: [] }), undefined);
   assert.equal(albumFolderId(`${root}/media`, "lawn_mower.garden"),
     `${root}/media/dreame_lawn_mower/garden`);
   assert.deepEqual(mediaChildren(null), []);

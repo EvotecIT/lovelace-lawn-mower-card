@@ -63,7 +63,9 @@ export class LawnMowerPhotoAlbum extends LitElement {
     this._loading = true;
     if (!this._photos.length) this._status = "loading";
     try {
-      const source = localMediaSource(await this._browse(MEDIA_SOURCE_ROOT));
+      const source = localMediaSource(await this.hass.callWS<unknown>({
+        type: "media_source/browse_media", media_content_id: MEDIA_SOURCE_ROOT,
+      }));
       if (!source) throw new Error("No local media source");
       const folders = [albumFolderId(source, this.entityId)];
       const photos: AlbumPhoto[] = [];
