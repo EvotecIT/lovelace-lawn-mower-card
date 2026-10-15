@@ -200,6 +200,12 @@ export const heroLayoutStyles = css`
     height: 100%;
   }
 
+  .hero-stage.view-photos { display:flex; flex-direction:column; aspect-ratio:auto; height:auto; }
+  .view-photos .hero-heading { position:relative; order:1; }
+  .view-photos .hero-scrim { display:none; }
+  .hero-photos { position:absolute; inset:0; }
+  .view-photos .hero-photos { position:relative; order:2; flex:none; height:auto; }
+
   /* Keep capability guidance and errors clear of the mower heading. */
   .hero-stage.view-point-cloud {
     display: flex; flex-direction: column; aspect-ratio: auto; height: auto;

@@ -11,6 +11,8 @@ export type HassEntity = {
 };
 
 export type HomeAssistant = {
+  connection?: object;
+  user?: { id: string };
   language?: string;
   locale?: { language?: string };
   states: Record<string, HassEntity>;
@@ -96,6 +98,7 @@ export type LawnMowerCardConfig = {
   show_default_actions?: boolean;
   show_helper_actions?: boolean;
   show_patrol_actions?: boolean;
+  show_photos?: boolean;
   show_custom_action_label?: boolean;
   show_advanced_details?: boolean;
   control_entities?: string[];

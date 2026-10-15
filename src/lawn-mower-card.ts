@@ -20,6 +20,7 @@ import "./lawn-mower-card-editor";
 import { mowerHassChanged } from "./card-update-scope";
 import { MediaVisibility } from "./media-visibility";
 import { mowingMapPath } from "./mowing-map-logic";
+import { photoAlbumAvailable } from "./photo-album-logic";
 import { mowingAreaProgress, type MowingAreaProgress } from "./mowing-progress";
 
 import {
@@ -777,6 +778,8 @@ export class LawnMowerCard extends LitElement {
       map: Boolean(mapUrl || scenePath),
       pointCloud: Boolean(pointCloudPath),
       camera: Boolean(cameraEntity),
+      photos: (this._config.show_photos ?? true) &&
+        photoAlbumAvailable(this._config.entity, this.hass.entities, this.hass.services),
     });
     const activeView = resolveHeroView(
       !this._heroViewChosen && this._heroView === "overview"
@@ -814,6 +817,7 @@ export class LawnMowerCard extends LitElement {
       area: coverage.area,
       mowingMapPath: scenePath,
       mapBackground: this._config.map_background,
+      photoEntityId: this._config.entity,
       mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,
       heroImage: normalizeHeroImage(this._config.hero_image),
       heroImagePosition: normalizeHeroImagePosition(this._config.hero_image_position),

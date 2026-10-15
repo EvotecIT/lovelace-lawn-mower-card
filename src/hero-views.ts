@@ -1,9 +1,10 @@
-export type HeroView = "overview" | "map" | "point-cloud" | "camera";
+export type HeroView = "overview" | "map" | "point-cloud" | "camera" | "photos";
 
 export type HeroViewCapabilities = {
   map: boolean;
   pointCloud: boolean;
   camera: boolean;
+  photos?: boolean;
 };
 
 /** Returns only Hero views backed by content the current mower can present. */
@@ -19,6 +20,9 @@ export function availableHeroViews(
   }
   if (capabilities.camera) {
     views.push("camera");
+  }
+  if (capabilities.photos) {
+    views.push("photos");
   }
   return views;
 }
