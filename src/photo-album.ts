@@ -3,8 +3,8 @@ import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "./card-config";
 import { createTranslator, type SupportedLocale } from "./localization";
 import {
-  MEDIA_SOURCE_ROOT, albumFolderId, albumPhoto, localMediaSource, mediaChildren,
-  resolvedMediaUrl, sortAlbum, type AlbumPhoto,
+  MEDIA_SOURCE_ROOT, albumFolderId, collectAlbum, localMediaSource, mediaChildren,
+  resolvedMediaUrl, type AlbumPhoto,
 } from "./photo-album-logic";
 
 const PAGE_SIZE = 24;
@@ -67,25 +67,9 @@ export class LawnMowerPhotoAlbum extends LitElement {
         type: "media_source/browse_media", media_content_id: MEDIA_SOURCE_ROOT,
       }));
       if (!source) throw new Error("No local media source");
-      const folders = [albumFolderId(source, this.entityId)];
-      const photos: AlbumPhoto[] = [];
-      // The integration keeps each cloud object in its own folder.
-      for (let index = 0; index < folders.length && index < MAX_FOLDERS; index += 10) {
-        const batch = await Promise.all(
-          folders.slice(index, index + 10).map((id) => this._browse(id).catch(() => [])),
-        );
-        for (const children of batch) {
-          for (const child of children) {
-            if (child.canExpand) {
-              if (folders.length < MAX_FOLDERS) folders.push(child.id);
-            } else {
-              const photo = albumPhoto(child);
-              if (photo) photos.push(photo);
-            }
-          }
-        }
-      }
-      this._photos = sortAlbum(photos);
+      this._photos = await collectAlbum(
+        (id) => this._browse(id), albumFolderId(source, this.entityId), MAX_FOLDERS,
+      );
       this._status = "ready";
       await this._resolve();
     } catch {

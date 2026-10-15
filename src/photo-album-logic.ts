@@ -102,3 +102,33 @@ export function resolvedMediaUrl(value: unknown): string | undefined {
   return typeof url === "string" && url.startsWith("/") && !url.startsWith("//")
     ? url : undefined;
 }
+
+/**
+ * Walk the album folder breadth first, in batches, and return its photos.
+ * The integration keeps each cloud object in its own sub-folder.
+ */
+export async function collectAlbum(
+  browse: (id: string) => Promise<MediaItem[]>,
+  folder: string,
+  maxFolders = 300,
+  batchSize = 10,
+): Promise<AlbumPhoto[]> {
+  const folders = [folder];
+  const photos: AlbumPhoto[] = [];
+  for (let next = 0; next < folders.length;) {
+    const batch = folders.slice(next, next + batchSize);
+    next += batch.length;
+    const listings = await Promise.all(batch.map((id) => browse(id).catch(() => [])));
+    for (const children of listings) {
+      for (const child of children) {
+        if (child.canExpand) {
+          if (folders.length < maxFolders) folders.push(child.id);
+        } else {
+          const photo = albumPhoto(child);
+          if (photo) photos.push(photo);
+        }
+      }
+    }
+  }
+  return sortAlbum(photos);
+}

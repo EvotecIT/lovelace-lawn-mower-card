@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  albumFolderId, albumPhoto, localMediaSource, mediaChildren, photoAlbumAvailable,
+  albumFolderId, albumPhoto, collectAlbum, localMediaSource, mediaChildren, photoAlbumAvailable,
   resolvedMediaUrl, sortAlbum,
 } from "../src/photo-album-logic.ts";
 import { availableHeroViews } from "../src/hero-views.ts";
@@ -72,4 +72,25 @@ test("only Home Assistant-relative signed URLs are used", () => {
     assert.equal(resolvedMediaUrl({ url }), undefined);
   }
   assert.equal(resolvedMediaUrl(undefined), undefined);
+});
+
+test("the album walks every per-photo sub-folder, beyond the first batch", async () => {
+  const folder = `${root}/media/dreame_lawn_mower/garden`;
+  const item = (id: string, title: string, canExpand: boolean) => ({ id, title, mediaClass: "", canExpand });
+  // Mirrors a real archive: one folder per photo plus a person-photo folder.
+  const tree: Record<string, ReturnType<typeof item>[]> = {
+    [folder]: [
+      ...Array.from({ length: 7 }, (_, i) => item(`${folder}/h${i}`, `h${i}`, true)),
+      item(`${folder}/personnes`, "personnes", true),
+      item(`${folder}/-1234_0001.2026-10-15_275_202_3cm_processed.png`, "-1234_0001.2026-10-15_275_202_3cm_processed.png", false),
+    ],
+    [`${folder}/personnes`]: [item(`${folder}/personnes/1792074542_person.jpg`, "1792074542_person.jpg", false)],
+  };
+  for (let i = 0; i < 7; i += 1) {
+    tree[`${folder}/h${i}`] = [item(`${folder}/h${i}/17920261${60 + i}.jpg`, `17920261${60 + i}.jpg`, false)];
+  }
+  const photos = await collectAlbum(async (id) => tree[id] ?? [], folder, 300, 3);
+  assert.equal(photos.length, 8);
+  assert.equal(photos[0].title, "1792074542_person.jpg");
+  assert.equal(photos.at(-1)?.title, "1792026160.jpg");
 });
