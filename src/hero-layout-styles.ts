@@ -204,7 +204,7 @@ export const heroLayoutStyles = css`
   .view-photos .hero-heading { position:relative; order:1; }
   .view-photos .hero-scrim { display:none; }
   .hero-photos { position:absolute; inset:0; }
-  .view-photos .hero-photos { position:relative; order:2; flex:none; height:clamp(360px,60vh,640px); }
+  .view-photos .hero-photos { position:relative; order:2; flex:none; height:auto; }
 
   /* Keep capability guidance and errors clear of the mower heading. */
   .hero-stage.view-point-cloud {

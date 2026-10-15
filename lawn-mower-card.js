@@ -701,14 +701,15 @@ var Hn=Object.defineProperty;var Tn=Object.getOwnPropertyDescriptor;var g=(t,o,e
             </div>
           </div>`:l}
       </div>`}};E.styles=z`
-    :host { display:block; width:100%; height:100%; overflow:auto; box-sizing:border-box;
+    :host { display:block; width:100%; box-sizing:border-box;
       color:var(--mower-text, var(--primary-text-color)); }
     .album { position:relative; display:grid; gap:10px; padding:12px; }
     button { font:inherit; color:inherit; cursor:pointer; border:1px solid var(--mower-border, var(--divider-color));
       border-radius:10px; background:transparent; padding:0; overflow:hidden; position:relative; }
     button:focus-visible { outline:2px solid var(--mower-accent, var(--primary-color)); outline-offset:2px; }
     .latest { display:grid; }
-    .latest-image { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; }
+    .latest-image { width:100%; aspect-ratio:16/9; max-height:clamp(220px, 52vh, 560px);
+      object-fit:cover; display:block; }
     .caption { display:flex; gap:8px; align-items:center; padding:8px 10px; font-size:12px;
       color:var(--mower-muted, var(--secondary-text-color)); text-align:left; }
     .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px; }
@@ -719,8 +720,9 @@ var Hn=Object.defineProperty;var Tn=Object.getOwnPropertyDescriptor;var g=(t,o,e
       font-weight:600; background:rgba(0,0,0,.6); color:#fff; }
     .caption .badge { position:static; }
     .more { padding:8px 12px; justify-self:center; }
-    .viewer { position:absolute; inset:0; display:grid; grid-template-rows:1fr auto; background:rgba(0,0,0,.92);
-      z-index:2; }
+    .viewer { position:absolute; inset:0; min-height:280px; display:grid; grid-template-rows:1fr auto;
+      background:rgba(0,0,0,.92); z-index:2; }
+    .viewer-image { min-height:0; }
     .viewer-image { width:100%; height:100%; object-fit:contain; }
     .viewer-bar { display:flex; gap:8px; align-items:center; justify-content:center; padding:8px;
       font-size:12px; color:#fff; }
@@ -1364,7 +1366,7 @@ var Hn=Object.defineProperty;var Tn=Object.getOwnPropertyDescriptor;var g=(t,o,e
   .view-photos .hero-heading { position:relative; order:1; }
   .view-photos .hero-scrim { display:none; }
   .hero-photos { position:absolute; inset:0; }
-  .view-photos .hero-photos { position:relative; order:2; flex:none; height:clamp(360px,60vh,640px); }
+  .view-photos .hero-photos { position:relative; order:2; flex:none; height:auto; }
 
   /* Keep capability guidance and errors clear of the mower heading. */
   .hero-stage.view-point-cloud {
