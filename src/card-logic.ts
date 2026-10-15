@@ -137,6 +137,18 @@ export function supportsDreamePatrol(
   );
 }
 
+/** Service data for a patrol of the whole map or of one lawn zone. */
+export function patrolServiceData(
+  kind: DreamePatrolKind,
+  entityId: string,
+  zoneId?: number,
+): Record<string, unknown> {
+  if (zoneId === undefined) return { entity_id: entityId };
+  return kind === "point"
+    ? { entity_id: entityId, zone_ids: [zoneId] }
+    : { entity_id: entityId, contour_ids: [[zoneId, 0]] };
+}
+
 /** The integration starts patrols only from a docked or idle mower without a task. */
 export function mowerCanPatrol(entity: MinimalHassEntity): boolean {
   const state = entity.state.trim().toLowerCase();

@@ -31,6 +31,7 @@ import {
   resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
   mowerCanPatrol,
+  patrolServiceData,
   supportsDreamePatrol,
   supportsDreameTaskCancellation,
   taskCancellationStillAvailable,
@@ -1119,4 +1120,12 @@ test("patrol actions follow the Dreame services and an idle, task-free mower", (
   for (const state of ["mowing", "paused", "returning", "error", "unavailable"]) {
     assert.equal(mowerCanPatrol(mower(state)), false);
   }
+});
+
+test("zone patrols send zone ids to points and outer contours to edges", () => {
+  assert.deepEqual(patrolServiceData("point", "lawn_mower.garden"), { entity_id: "lawn_mower.garden" });
+  assert.deepEqual(patrolServiceData("point", "lawn_mower.garden", 2),
+    { entity_id: "lawn_mower.garden", zone_ids: [2] });
+  assert.deepEqual(patrolServiceData("edge", "lawn_mower.garden", 2),
+    { entity_id: "lawn_mower.garden", contour_ids: [[2, 0]] });
 });

@@ -14,6 +14,12 @@ export class AreaStartMenu extends LitElement {
   @property({ attribute:false }) onCancel!: () => void;
   @property({ attribute:false }) onStartAll!: () => void;
   @property({ attribute:false }) onStartArea!: (area: string) => void;
+  /** Optional wording so other area-scoped actions (patrols) can reuse the menu. */
+  @property({ attribute:false }) heading?: string;
+  @property({ attribute:false }) allLabel?: string;
+  @property({ attribute:false }) areaLabel?: (area: string) => string;
+  @property({ attribute:false }) selectedLabel?: string;
+  @property({ attribute:false }) icon?: string;
   @state() private _selected?: string;
   static styles = css`
     :host { display:block; margin-top:10px; }
@@ -37,11 +43,11 @@ export class AreaStartMenu extends LitElement {
     const t=createTranslator(this.locale);
     const selected=this._selected;
     return html`<section role="dialog" aria-labelledby="area-menu-title" @keydown=${(event: KeyboardEvent) => { if (event.key === "Escape") { event.stopPropagation(); this.onCancel(); } }}>
-      <h3 id="area-menu-title">${t("area.menuLabel")}</h3>
-      <div class="footer"><button type="button" class="primary" ?disabled=${this.disabled} @click=${this.onStartAll}><ha-icon icon="mdi:play"></ha-icon>${t("area.allAreas")}</button></div>
+      <h3 id="area-menu-title">${this.heading ?? t("area.menuLabel")}</h3>
+      <div class="footer"><button type="button" class="primary" ?disabled=${this.disabled} @click=${this.onStartAll}><ha-icon icon=${this.icon ?? "mdi:play"}></ha-icon>${this.allLabel ?? t("area.allAreas")}</button></div>
       <p id="area-menu-choose">${t("area.chooseArea")}</p>
       <div class="areas" role="group" aria-labelledby="area-menu-choose">${this.areas.map((area) => html`<button type="button" class="area" aria-pressed=${area === selected ? "true" : "false"} @click=${() => { this._selected = area; }}>${area}</button>`)}</div>
-      <div class="footer"><button type="button" @click=${this.onCancel}>${t("custom.cancel")}</button><button type="button" class="primary" ?disabled=${this.disabled || !selected} @click=${() => { if (selected) this.onStartArea(selected); }}><ha-icon icon="mdi:play-circle-outline"></ha-icon>${selected ? t("area.startArea", { area: selected }) : t("area.startSelected")}</button></div>
+      <div class="footer"><button type="button" @click=${this.onCancel}>${t("custom.cancel")}</button><button type="button" class="primary" ?disabled=${this.disabled || !selected} @click=${() => { if (selected) this.onStartArea(selected); }}><ha-icon icon=${this.icon ?? "mdi:play-circle-outline"}></ha-icon>${selected ? (this.areaLabel?.(selected) ?? t("area.startArea", { area: selected })) : (this.selectedLabel ?? t("area.startSelected"))}</button></div>
     </section>`;
   }
 }
