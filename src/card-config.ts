@@ -11,6 +11,8 @@ export type HassEntity = {
 };
 
 export type HomeAssistant = {
+  connection?: object;
+  user?: { id: string };
   language?: string;
   locale?: { language?: string };
   states: Record<string, HassEntity>;

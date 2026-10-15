@@ -31,13 +31,13 @@ export function photoAlbumAvailable(
   );
 }
 
-/** Read a media_source/browse_media response into bounded, typed children. */
-export function mediaChildren(value: unknown, limit = 500): MediaItem[] {
+/** Read the returned media_source children without silently dropping archives. */
+export function mediaChildren(value: unknown): MediaItem[] {
   const children = typeof value === "object" && value !== null
     ? (value as { children?: unknown }).children : undefined;
   if (!Array.isArray(children)) return [];
   const result: MediaItem[] = [];
-  for (const child of children.slice(0, limit)) {
+  for (const child of children) {
     if (typeof child !== "object" || child === null) continue;
     const item = child as Record<string, unknown>;
     const id = item.media_content_id;
@@ -62,7 +62,8 @@ export function localMediaSource(root: unknown): string | undefined {
   if (typeof id === "string" && id.startsWith(`${MEDIA_SOURCE_ROOT}/`) && id.endsWith("/.")) {
     return id.slice(0, -2);
   }
-  const local = mediaChildren(root).find((child) => child.id.endsWith("/.") && child.canExpand);
+  const sources = mediaChildren(root).filter((child) => child.id.endsWith("/.") && child.canExpand);
+  const local = sources.find((child) => child.id === `${MEDIA_SOURCE_ROOT}/local/.`) ?? sources[0];
   return local ? local.id.slice(0, -2) : undefined;
 }
 
@@ -83,14 +84,14 @@ export function albumPhoto(item: MediaItem): AlbumPhoto | undefined {
   };
 }
 
-/** Newest first; identical cloud names saved twice are shown once. */
+/** Newest first; a cloud object is identified by its full archive path. */
 export function sortAlbum(photos: readonly AlbumPhoto[]): AlbumPhoto[] {
   const seen = new Set<string>();
   return [...photos]
     .sort((a, b) => (b.takenAt ?? 0) - (a.takenAt ?? 0) || a.title.localeCompare(b.title))
     .filter((photo) => {
-      if (seen.has(photo.title)) return false;
-      seen.add(photo.title);
+      if (seen.has(photo.id)) return false;
+      seen.add(photo.id);
       return true;
     });
 }
@@ -110,25 +111,34 @@ export function resolvedMediaUrl(value: unknown): string | undefined {
 export async function collectAlbum(
   browse: (id: string) => Promise<MediaItem[]>,
   folder: string,
-  maxFolders = 300,
+  pageSize = 300,
   batchSize = 10,
+  current: () => boolean = () => true,
+  progress?: (photos: AlbumPhoto[]) => void,
 ): Promise<AlbumPhoto[]> {
   const folders = [folder];
+  const seen = new Set(folders);
   const photos: AlbumPhoto[] = [];
   for (let next = 0; next < folders.length;) {
+    if (!current()) return [];
     const batch = folders.slice(next, next + batchSize);
     next += batch.length;
-    const listings = await Promise.all(batch.map((id) => browse(id).catch(() => [])));
+    const listings = await Promise.all(batch.map((id) => browse(id)));
+    if (!current()) return [];
     for (const children of listings) {
       for (const child of children) {
         if (child.canExpand) {
-          if (folders.length < maxFolders) folders.push(child.id);
+          if (child.id.startsWith(`${folder}/`) && !seen.has(child.id)) {
+            seen.add(child.id);
+            folders.push(child.id);
+          }
         } else {
           const photo = albumPhoto(child);
           if (photo) photos.push(photo);
         }
       }
     }
+    if (next % pageSize < batch.length) progress?.(sortAlbum(photos));
   }
   return sortAlbum(photos);
 }

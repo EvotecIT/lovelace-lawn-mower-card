@@ -54,16 +54,56 @@ test("photo names give the capture time and person detections", () => {
   assert.equal(albumPhoto(item("1792026162.jpg", true)), undefined);
 });
 
-test("the album is newest first and shows a reused name once", () => {
+test("the album preserves distinct objects with a reused name and deduplicates full paths", () => {
   const photo = (title: string, id = title) => albumPhoto({
     id: `${root}/media/${id}`, title, mediaClass: "image", canExpand: false,
   })!;
   const sorted = sortAlbum([
     photo("1792026162.jpg"), photo("1792074542_person.jpg"),
     photo("1792026163.jpg", "a"), photo("1792026163.jpg", "b"),
+    photo("1792026163.jpg", "a"),
   ]);
   assert.deepEqual(sorted.map((item) => item.title),
-    ["1792074542_person.jpg", "1792026163.jpg", "1792026162.jpg"]);
+    ["1792074542_person.jpg", "1792026163.jpg", "1792026163.jpg", "1792026162.jpg"]);
+});
+
+test("the archive uses the configured local source ahead of other media directories", () => {
+  assert.equal(localMediaSource({ children: [
+    { media_content_id: `${root}/external/.`, can_expand: true },
+    { media_content_id: `${root}/local/.`, can_expand: true },
+  ] }), `${root}/local`);
+});
+
+test("large archives scan beyond a progress page and retain the newest final object", async () => {
+  const folder = `${root}/local/dreame_lawn_mower/garden`;
+  let active = 0, maximum = 0, progress = 0;
+  const children = Array.from({ length: 610 }, (_, i) => ({
+    media_content_id: `${folder}/h${i}`, title: `h${i}`, can_expand: true,
+  }));
+  const photos = await collectAlbum(async (id) => {
+    active++; maximum = Math.max(maximum, active);
+    await Promise.resolve(); active--;
+    if (id === folder) return mediaChildren({ children });
+    const index = Number(id.split("h").at(-1));
+    return [{ id: `${id}/${1792026160 + index}.jpg`, title: `${1792026160 + index}.jpg`,
+      mediaClass: "image", canExpand: false },
+      { id: folder, title: "parent", mediaClass: "directory", canExpand: true }];
+  }, folder, 300, 10, () => true, () => progress++);
+  assert.equal(photos.length, 610);
+  assert.equal(photos[0].title, "1792026769.jpg");
+  assert.ok(maximum <= 10);
+  assert.ok(progress >= 2);
+});
+
+test("an obsolete album scan stops before starting another folder batch", async () => {
+  const folder = `${root}/local/dreame_lawn_mower/garden`;
+  let current = true, calls = 0;
+  const photos = await collectAlbum(async (id) => {
+    calls++; current = false;
+    return [{ id: `${id}/child`, title: "child", mediaClass: "directory", canExpand: true }];
+  }, folder, 300, 10, () => current);
+  assert.equal(calls, 1);
+  assert.deepEqual(photos, []);
 });
 
 test("only Home Assistant-relative signed URLs are used", () => {
