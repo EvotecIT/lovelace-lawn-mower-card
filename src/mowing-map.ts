@@ -45,6 +45,7 @@ export class LawnMowerMowingMap extends LitElement {
   @state() private _size = { width: 500, height: 300 };
   private _resize?: ResizeObserver;
   private _abort?: AbortController;
+  private _photoAbort?: AbortController;
   private _timer?: number;
   private _expiryTimer?: number;
   private _pointers = new Map<number, MapPoint>();
@@ -97,6 +98,8 @@ export class LawnMowerMowingMap extends LitElement {
   }
 
   private _stop(): void {
+    this._photoAbort?.abort();
+    this._photoAbort = undefined;
     this._abort?.abort();
     this._abort = undefined;
     if (this._timer !== undefined) window.clearTimeout(this._timer);
@@ -138,12 +141,33 @@ export class LawnMowerMowingMap extends LitElement {
 
   private _togglePhoto = (): void => {
     this._showPhoto = !this._photoWanted;
-    if (this._showPhoto && !this._photo && !this._abort && this.active) {
-      if (this._timer !== undefined) window.clearTimeout(this._timer);
-      this._timer = undefined;
-      void this._refresh();
-    }
+    if (this._showPhoto && this._scene) void this._refreshPhoto(this._scene);
   };
+
+  /** Optional photography never delays delivery of the usable standard map. */
+  private async _refreshPhoto(scene: MowingMapScene): Promise<void> {
+    if (!this._photoWanted || !scene.real_scene_path || this._photoAbort ||
+        this._photoPath === scene.real_scene_path || !this.active || !this.isConnected) return;
+    const controller = new AbortController();
+    this._photoAbort = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 10_000);
+    let photo: string | undefined;
+    try {
+      photo = await this._loadPhoto(scene, controller.signal);
+      if (photo && this._photoAbort === controller && !controller.signal.aborted &&
+          this.active && this.isConnected && this._scene?.real_scene_path === scene.real_scene_path) {
+        this._releasePhoto();
+        this._photo = photo;
+        this._photoPath = scene.real_scene_path;
+        photo = undefined;
+      }
+    } catch { /* Optional photo failures leave the standard map available. */ }
+    finally {
+      window.clearTimeout(timeout);
+      if (photo) URL.revokeObjectURL(photo);
+      if (this._photoAbort === controller) this._photoAbort = undefined;
+    }
+  }
 
   /** Load the optional photo layer; any failure keeps the standard map. */
   private async _loadPhoto(
@@ -196,7 +220,6 @@ export class LawnMowerMowingMap extends LitElement {
     this._loading = !this._scene;
     const timeout = window.setTimeout(() => controller.abort(), 20_000);
     let image: string | undefined;
-    let photo: string | undefined;
     try {
       const response = await this._fetch(path, controller.signal);
       const scene = readMowingMapScene(await response.json(), path);
@@ -215,17 +238,10 @@ export class LawnMowerMowingMap extends LitElement {
           throw new Error("Map dimensions do not match");
         }
       }
-      const photoPath = this._photoWanted ? scene.real_scene_path : null;
-      if (photoPath && (photoPath !== this._photoPath || !this._photo)) {
-        photo = await this._loadPhoto(scene, controller.signal);
-      }
       if (this._abort !== controller || controller.signal.aborted || !this.active || !this.isConnected) return;
-      if (photo) {
-        this._releasePhoto();
-        this._photo = photo;
-        this._photoPath = photoPath ?? undefined;
-        photo = undefined;
-      } else if (!scene.real_scene_path) {
+      if (scene.real_scene_path !== this._scene?.real_scene_path) {
+        this._photoAbort?.abort();
+        this._photoAbort = undefined;
         this._releasePhoto();
       }
       if (image) {
@@ -237,6 +253,7 @@ export class LawnMowerMowingMap extends LitElement {
       this._scene = scene;
       this._expireOverlay(scene);
       this._error = false;
+      void this._refreshPhoto(scene);
     } catch {
       if (this._abort === controller) {
         this._clearExpiry();
@@ -245,7 +262,6 @@ export class LawnMowerMowingMap extends LitElement {
     } finally {
       window.clearTimeout(timeout);
       if (image) URL.revokeObjectURL(image);
-      if (photo) URL.revokeObjectURL(photo);
       if (this._abort === controller) {
         this._abort = undefined;
         this._loading = false;
@@ -375,7 +391,7 @@ export class LawnMowerMowingMap extends LitElement {
             @pointerdown=${this._down} @pointermove=${this._move} @pointerup=${this._up}
             @pointercancel=${this._up} @lostpointercapture=${this._up}
             @wheel=${this._wheel} @keydown=${this._key}>
-            ${this._photoWanted && this._photo ? svg`
+            ${this._photoWanted && this._photo && this._photoPath === scene.real_scene_path ? svg`
               <image class="real-scene" href=${this._photo} x="0" y="0"
                 width=${scene.width} height=${scene.height} />` : nothing}
             <image href=${this._image} x="0" y="0" width=${scene.width} height=${scene.height} />

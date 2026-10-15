@@ -263,7 +263,7 @@ export class LawnMowerCard extends LitElement {
   @state() private _config?: LawnMowerCardConfig;
   @state() private _pendingCustomAction?: LawnMowerActionConfig;
   @state() private _cancelTaskConfirmationOpen = false;
-  @state() private _patrolMenu?: DreamePatrolKind;
+  @state() private _patrolMenu?: { kind: DreamePatrolKind; keys: ZoneSelectionKeys };
   @state() private _areaMenuContext?: AreaStartContext;
   private _customActionTrigger?: HTMLElement;
   private _cancelTaskTrigger?: HTMLElement;
@@ -340,6 +340,7 @@ export class LawnMowerCard extends LitElement {
       throw new Error("The 'schedule_calendar_entity' option must be a calendar entity id.");
     }
     if (config !== this._config) {
+      this._patrolMenu = undefined;
       this._pendingCustomAction = undefined;
       this._cancelTaskConfirmationOpen = false;
       this._closeAreaMenu(false);
@@ -388,6 +389,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   public disconnectedCallback(): void {
+    this._patrolMenu = undefined;
     this._pendingCustomAction = undefined;
     this._customActionTrigger = undefined;
     this._cancelTaskConfirmationOpen = false;
@@ -439,6 +441,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   protected willUpdate(): void {
+    if (this._patrolMenu && !this._patrolMenuCurrent(this._patrolMenu)) this._patrolMenu = undefined;
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
     if (this._areaMenuContext && (!mower || !this._areaMenuShown(mower))) {
       const menuHadFocus = this.shadowRoot?.activeElement?.tagName === "LAWN-MOWER-AREA-START-MENU";
@@ -1667,6 +1670,7 @@ export class LawnMowerCard extends LitElement {
       if (!built) return [];
       if (action.type === "start" && this._areaMenuShown(mower)) return [built];
       return [{ ...built, handler: () => {
+        this._patrolMenu = undefined;
         if (action.confirmation) {
           this._closeAreaMenu(false);
           this._cancelTaskConfirmationOpen = false;
@@ -3386,6 +3390,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _requestCancelCurrentTask(): void {
+    this._patrolMenu = undefined;
     if (!this._config || !this._supportsCancelCurrentTask()) {
       return;
     }
@@ -3477,6 +3482,7 @@ export class LawnMowerCard extends LitElement {
 
   /** Mowers with a choice of areas get the Start menu; others start right away. */
   private _requestStart(action?: LawnMowerActionConfig): void | Promise<void> {
+    this._patrolMenu = undefined;
     if (this._areaMenuContext) {
       this._closeAreaMenu();
       return;
@@ -3656,7 +3662,7 @@ export class LawnMowerCard extends LitElement {
         label,
         icon,
         disabled: Boolean(this._mutationInFlight) || !mowerCanPatrol(mower),
-        expanded: this._patrolMenu === kind,
+        expanded: this._patrolMenu?.kind === kind,
         handler: () => this._requestPatrol(kind, label),
       }));
   }
@@ -3671,25 +3677,46 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _requestPatrol(kind: DreamePatrolKind, label: string): void {
-    if (this._patrolMenu === kind) {
+    if (this._patrolMenu?.kind === kind) {
       this._patrolMenu = undefined;
       return;
     }
+    this._closeAreaMenu(false);
+    this._cancelTaskConfirmationOpen = false;
+    this._cancelTaskTrigger = undefined;
+    this._pendingCustomAction = undefined;
+    this._customActionTrigger = undefined;
     if (this._patrolZones().length < 2) {
       void this._startPatrol(kind, label);
       return;
     }
-    this._areaMenuContext = undefined;
-    this._cancelTaskConfirmationOpen = false;
-    this._pendingCustomAction = undefined;
-    this._patrolMenu = kind;
+    const keys = this._patrolKeys();
+    if (keys) this._patrolMenu = { kind, keys };
+  }
+
+  private _patrolKeys(): ZoneSelectionKeys | undefined {
+    if (!this._config) return undefined;
+    const entityId = resolvedOwnedMowerCompanionEntity(
+      this.hass.states, this._config.entity, this.hass.entities, "select", "zone",
+    );
+    return entityId ? this._zoneSelectionKeys(entityId, this._zoneChoices(entityId)) : undefined;
+  }
+
+  private _patrolMenuCurrent(menu: NonNullable<typeof this._patrolMenu>): boolean {
+    const keys = this._patrolKeys();
+    const mower = this._config ? this.hass.states[this._config.entity] : undefined;
+    return this._patrolMenu === menu && Boolean(keys && reconciledZoneSelectionKeys(menu.keys, keys) &&
+      mower && mowerCanPatrol(mower) && supportsDreamePatrol(
+        menu.kind, this._config!.entity, this.hass.entities, this.hass.services,
+      ));
   }
 
   private _renderPatrolMenu() {
-    const kind = this._patrolMenu;
+    const menu = this._patrolMenu;
+    const kind = menu?.kind;
     const mower = this._config ? this.hass.states[this._config.entity] : undefined;
     const zones = this._patrolZones();
-    if (!kind || !mower || !mowerCanPatrol(mower) || zones.length < 2) {
+    if (!menu || !kind || !this._patrolMenuCurrent(menu) || !mower || zones.length < 2) {
       return undefined;
     }
     const label = this._t(kind === "point" ? "action.pointPatrol" : "action.edgePatrol");
@@ -3704,8 +3731,12 @@ export class LawnMowerCard extends LitElement {
       .areaLabel=${(area: string) => this._t("action.patrolZone", { area })}
       .selectedLabel=${this._t("action.patrolSelectedZone")}
       .onCancel=${close}
-      .onStartAll=${() => { close(); void this._startPatrol(kind, label); }}
+      .onStartAll=${() => {
+        if (!this._patrolMenuCurrent(menu)) return;
+        close(); void this._startPatrol(kind, label);
+      }}
       .onStartArea=${(area: string) => {
+        if (!this._patrolMenuCurrent(menu)) return;
         close();
         const zone = zones.find((choice) => choice.label === area);
         if (zone) void this._startPatrol(kind, `${label} · ${area}`, zone.id);
@@ -3716,6 +3747,10 @@ export class LawnMowerCard extends LitElement {
   private async _startPatrol(kind: DreamePatrolKind, label: string, zoneId?: number) {
     const entityId = this._config?.entity;
     if (!entityId) return;
+    const mower = this.hass.states[entityId];
+    if (!mower || !mowerCanPatrol(mower) || !supportsDreamePatrol(
+      kind, entityId, this.hass.entities, this.hass.services,
+    ) || (zoneId !== undefined && !this._patrolZones().some((zone) => zone.id === zoneId))) return;
     await this._runMowerAction(`${kind}-patrol`, label, () =>
       this.hass.callService(
         DREAME_LAWN_MOWER_SERVICE_DOMAIN,
