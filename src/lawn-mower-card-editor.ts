@@ -191,6 +191,11 @@ export class LawnMowerCardEditor extends LitElement {
           "show_helper_actions",
         )}
         ${this._toggle(
+          this._t("editor.showPhotos"),
+          config.show_photos ?? true,
+          "show_photos",
+        )}
+        ${this._toggle(
           this._t("editor.showAdvanced"),
           config.show_advanced_details ?? false,
           "show_advanced_details",
@@ -380,6 +385,7 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_hero_label"
       | "show_default_actions"
       | "show_helper_actions"
+      | "show_photos"
       | "show_advanced_details"
       | "show_recent_conditions",
   ) {
@@ -580,6 +586,7 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_hero_label"
       | "show_default_actions"
       | "show_helper_actions"
+      | "show_photos"
       | "show_advanced_details"
       | "show_recent_conditions"
       | undefined;

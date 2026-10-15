@@ -67,6 +67,8 @@
   alongside `coverage_entity`
 - `show_default_actions`: optional boolean, defaults to `true`
 - `show_helper_actions`: optional boolean, defaults to `true`
+- `show_photos`: optional boolean, defaults to `true`; shows the Hero Photos view
+  when the Dreame integration saves mower photos
 - `show_custom_action_label`: optional boolean, defaults to `true`; set to
   `false` to hide the translated heading above custom actions while keeping the
   actions and their accessible section name

@@ -78,6 +78,21 @@ remains independent of 3D export. Include the visible
 vendor URLs, transient object names, or point coordinates as troubleshooting
 data.
 
+## Photos
+
+With the Dreame & MOVA integration, the Hero layout adds a **Photos** view and
+action. It lists the photos the integration saved to Home Assistant media under
+`dreame_lawn_mower/<mower>/`, for example patrol photos from
+`download_session_photos`. The newest photo is shown large with its capture
+time; older photos form an album. Select a photo to view it full size and step
+through the album with the arrows or the arrow keys. Photos of a person
+detection carry a **Person** badge.
+
+The card reads the folder through Home Assistant's media browser and signs only
+the photos on screen, so the album follows the same permissions as **Media**.
+It loads only while the view is open and refreshes every two minutes. Set
+`show_photos: false` to hide it.
+
 ## Media behavior
 
 Unrelated Home Assistant state changes do not redraw the card. Hidden pages

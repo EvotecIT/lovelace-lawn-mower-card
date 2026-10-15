@@ -1,3 +1,4 @@
+import "./photo-album";
 import { html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import type { HeroLayoutModel, HeroView } from "./hero-layout";
@@ -13,7 +14,7 @@ function useBuiltInHeroArtwork(event: Event): void {
   }
 }
 
-export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView[] = ["overview", "map", "point-cloud", "camera"]): TemplateResult {
+export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView[] = ["overview", "map", "point-cloud", "camera", "photos"]): TemplateResult {
   const image = normalizeHeroImage(model.heroImage) || heroArtwork;
   const position = normalizeHeroImagePosition(model.heroImagePosition);
   return html`
@@ -26,6 +27,12 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
       aria-hidden="true"
       @error=${useBuiltInHeroArtwork}
     />` : nothing}
+    ${views.includes("photos") && model.availableViews.includes("photos") ? html`
+      <lawn-mower-photo-album
+        class=${`hero-layer hero-photos${model.activeView === "photos" ? " active" : ""}`}
+        .hass=${model.hass} .entityId=${model.photoEntityId} .locale=${model.locale}
+        .active=${model.activeView === "photos" && model.mediaVisible !== false}
+      ></lawn-mower-photo-album>` : nothing}
     ${views.includes("map") && model.mowingMapPath ? html`
       <lawn-mower-mowing-map
         class=${`hero-layer hero-mowing-map${model.activeView === "map" ? " active" : ""}`}

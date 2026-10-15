@@ -107,6 +107,14 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                       { active: model.activeView === "map" },
                     )
                   : nothing}
+                ${isHeroViewAvailable("photos", model.availableViews)
+                  ? renderAction(
+                      model.t("hero.photos"),
+                      "mdi:image-multiple-outline",
+                      () => model.onView("photos"),
+                      { active: model.activeView === "photos" },
+                    )
+                  : nothing}
                 ${isHeroViewAvailable("point-cloud", model.availableViews)
                   ? renderAction(
                       model.t("action.pointCloud"),
