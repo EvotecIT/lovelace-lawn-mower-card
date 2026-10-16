@@ -581,6 +581,10 @@ export class LawnMowerMowingMap extends LitElement {
     }, scene.width, scene.height, this._limits);
   }
 
+  /** Touches on the map are gestures: no text selection, callout or emulated mouse. */
+  private _noTouchDefault = { handleEvent: (event: TouchEvent) => event.preventDefault(), passive: false };
+  private _noDefault = (event: Event) => event.preventDefault();
+
   private _down(event: PointerEvent): void {
     const scene = this._scene;
     if (event.button !== 0 || !scene) return;
@@ -913,7 +917,8 @@ export class LawnMowerMowingMap extends LitElement {
             tabindex="0" role="img" aria-label=${this._t("mowingMap.mapLabel")}
             @pointerdown=${this._down} @pointermove=${this._move} @pointerup=${this._up}
             @pointercancel=${this._up} @lostpointercapture=${this._up}
-            @wheel=${this._wheel} @keydown=${this._key}>
+            @wheel=${this._wheel} @keydown=${this._key}
+            @touchstart=${this._noTouchDefault} @contextmenu=${this._noDefault} @selectstart=${this._noDefault}>
             <g class=${`mower-layer${world ? " over-world" : ""}${align ? " aligning" : ""}`}
               transform=${adjustment ?? nothing}>
             ${this._photoWanted && this._photo && this._photoPath === scene.real_scene_path ? svg`

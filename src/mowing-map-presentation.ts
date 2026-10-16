@@ -106,7 +106,12 @@ export const mowingMapStyles = css`
     transform-origin:0 0; user-select:none; -webkit-user-drag:none; }
   .canvas.world .map-canvas { position:relative; }
   .mower-layer.over-world { opacity:var(--mower-map-world-overlay-opacity,1); }
+  /* Dragging the map must never select a zone name or open the long-press menu. */
+  .canvas, .canvas *, .map-text, .map-text * { -webkit-user-select:none; user-select:none;
+    -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+  .tile-attribution, .tile-attribution * { -webkit-user-select:text; user-select:text; }
   .map-text { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+  .map-text * { pointer-events:none; }
   .zone-label { position:absolute; transform:translate(-50%,-50%); white-space:nowrap;
     font-weight:700; line-height:1.2; letter-spacing:.01em; color:#fff;
     text-shadow:0 0 2px #000, 0 0 3px #000, 0 1px 3px rgba(0,0,0,.9), 0 0 6px rgba(0,0,0,.6); }
