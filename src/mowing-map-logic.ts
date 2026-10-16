@@ -1,3 +1,7 @@
+import {
+  readMapGeoreference, readMapProjection, type MapGeoreference, type MapProjection,
+} from "./map-georeference-logic.ts";
+
 /** Validated, bounded contract for independent map backgrounds and live overlays. */
 export type MapPoint = { x: number; y: number };
 export type MapViewport = MapPoint & { width: number; height: number };
@@ -11,6 +15,10 @@ export type MowingMapScene = {
   background_path: string;
   /** Optional vendor photo layer drawn in the same canvas as the background. */
   real_scene_path: string | null;
+  /** Native-to-pixel projection; null with integrations that do not send it. */
+  projection: MapProjection | null;
+  /** Saved GPS alignment; null until one is saved. */
+  georeference: MapGeoreference | null;
   overlay: {
     position: (MapPoint & { heading: number | null }) | null;
     trail: number[][][];
@@ -79,6 +87,8 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
     real_scene_path: typeof data.real_scene_path === "string" &&
       new RegExp(`^${path}/real-scene/${data.revision}/[a-f0-9]{64}$`).test(data.real_scene_path)
       ? data.real_scene_path : null,
+    projection: readMapProjection(data.projection),
+    georeference: readMapGeoreference(data.georeference),
     overlay: {
       position: (status === "current" || retained) && validPoint(position)
         ? { x: position.x as number, y: position.y as number,
@@ -96,12 +106,45 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
   };
 }
 
-export type MapBackground = "standard" | "real_scene";
+export const MAP_BACKGROUNDS = ["standard", "real_scene", "map", "satellite"] as const;
+export type MapBackground = (typeof MAP_BACKGROUNDS)[number];
 
 /** Unknown values keep the standard background. */
 export function normalizeMapBackground(value: unknown): MapBackground {
-  return value === "real_scene" ? "real_scene" : "standard";
+  return (MAP_BACKGROUNDS as readonly unknown[]).includes(value) ? value as MapBackground : "standard";
 }
+
+export function isWorldBackground(value: MapBackground): value is "map" | "satellite" {
+  return value === "map" || value === "satellite";
+}
+
+/**
+ * Backgrounds a scene can draw. Street map and satellite need the projection
+ * and either a saved alignment or a home position to start aligning from.
+ */
+export function availableMapBackgrounds(
+  scene: Pick<MowingMapScene, "real_scene_path" | "projection" | "georeference"> | undefined,
+  hasHome: boolean,
+): MapBackground[] {
+  const choices: MapBackground[] = ["standard"];
+  if (scene?.real_scene_path) choices.push("real_scene");
+  if (scene?.projection && (scene.georeference || hasHome)) choices.push("map", "satellite");
+  return choices;
+}
+
+/** The wanted background when the scene can draw it, otherwise standard. */
+export function effectiveMapBackground(wanted: MapBackground, available: readonly MapBackground[]): MapBackground {
+  return available.includes(wanted) ? wanted : "standard";
+}
+
+/**
+ * How far the view may leave the map: maximum view width in map widths and
+ * the overscroll in view sizes. Geographic backgrounds let the view roam
+ * further so the garden can be found and aligned.
+ */
+export type ViewLimits = { maxWidth: number; slack: number };
+export const MAP_VIEW_LIMITS: ViewLimits = Object.freeze({ maxWidth: 1, slack: 0.5 });
+export const WORLD_VIEW_LIMITS: ViewLimits = Object.freeze({ maxWidth: 4, slack: 1.5 });
 
 export function overlayIsFresh(scene: MowingMapScene, now = Date.now()): boolean {
   const updated = Date.parse(scene.overlay.updated_at || "");
@@ -121,22 +164,26 @@ export function fitMap(width: number, height: number): MapViewport {
   return { x: 0, y: 0, width, height };
 }
 
-export function constrainViewport(view: MapViewport, width: number, height: number): MapViewport {
+export function constrainViewport(
+  view: MapViewport, width: number, height: number, limits: ViewLimits = MAP_VIEW_LIMITS,
+): MapViewport {
+  const slackX = view.width * limits.slack, slackY = view.height * limits.slack;
   return { ...view,
-    x: Math.max(-view.width / 2, Math.min(width - view.width / 2, view.x)),
-    y: Math.max(-view.height / 2, Math.min(height - view.height / 2, view.y)),
+    x: Math.max(-slackX, Math.min(width - view.width + slackX, view.x)),
+    y: Math.max(-slackY, Math.min(height - view.height + slackY, view.y)),
   };
 }
 
 export function zoomMap(
   view: MapViewport, factor: number, anchor: MapPoint, width: number, height: number,
+  limits: ViewLimits = MAP_VIEW_LIMITS,
 ): MapViewport {
   if (!finite(factor) || factor <= 0) return view;
-  const nextWidth = Math.max(width / 12, Math.min(width, view.width / factor));
+  const nextWidth = Math.max(width / 12, Math.min(width * limits.maxWidth, view.width / factor));
   const ratio = nextWidth / view.width;
   return constrainViewport({
     x: anchor.x - (anchor.x - view.x) * ratio,
     y: anchor.y - (anchor.y - view.y) * ratio,
     width: nextWidth, height: height * nextWidth / width,
-  }, width, height);
+  }, width, height, limits);
 }

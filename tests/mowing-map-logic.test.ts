@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  fitMap, mowingMapPath, normalizeMapBackground, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
+  availableMapBackgrounds, constrainViewport, effectiveMapBackground, fitMap, mowingMapPath,
+  normalizeMapBackground, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
 
 const path = "/api/dreame_lawn_mower/mowing-map/entry";
@@ -111,9 +112,45 @@ test("a real-scene layer is accepted only for the same entry and revision", () =
   }
 });
 
-test("only real_scene selects the photo background", () => {
-  assert.equal(normalizeMapBackground("real_scene"), "real_scene");
-  for (const value of [undefined, "standard", "photo", 1]) {
+test("map backgrounds accept the four known choices and keep standard otherwise", () => {
+  for (const value of ["real_scene", "map", "satellite", "standard"]) {
+    assert.equal(normalizeMapBackground(value), value);
+  }
+  for (const value of [undefined, "photo", "Satellite", 1]) {
     assert.equal(normalizeMapBackground(value), "standard");
   }
+});
+
+const projection = { max_x: 20000, min_y: -30000, scale: 0.05, padding: 10,
+  native_width: 1520, native_height: 1020, rotation: 0 };
+const georeference = { anchor_x: 1160, anchor_y: -20, latitude: 45.317421,
+  longitude: -73.837131, heading: 227.33, scale: 0.001 };
+
+test("geographic backgrounds need a projection and an alignment or a home", () => {
+  const scene = readMowingMapScene(payload(), path);
+  assert.equal(scene.projection, null);
+  assert.equal(scene.georeference, null);
+  assert.deepEqual(availableMapBackgrounds(scene, true), ["standard"]);
+  const projected = readMowingMapScene({ ...payload(), projection, georeference: null }, path);
+  assert.deepEqual(projected.projection, projection);
+  assert.deepEqual(availableMapBackgrounds(projected, false), ["standard"]);
+  assert.deepEqual(availableMapBackgrounds(projected, true), ["standard", "map", "satellite"]);
+  const aligned = readMowingMapScene({ ...payload(), projection, georeference }, path);
+  assert.deepEqual(aligned.georeference, georeference);
+  assert.deepEqual(availableMapBackgrounds(aligned, false), ["standard", "map", "satellite"]);
+  assert.equal(effectiveMapBackground("satellite", ["standard"]), "standard");
+  assert.equal(effectiveMapBackground("map", availableMapBackgrounds(aligned, false)), "map");
+  for (const broken of [{ ...projection, rotation: 45 }, { ...projection, scale: 0 }, "x"]) {
+    assert.equal(readMowingMapScene({ ...payload(), projection: broken }, path).projection, null);
+  }
+  assert.equal(readMowingMapScene({ ...payload(), projection,
+    georeference: { ...georeference, latitude: 95 } }, path).georeference, null);
+});
+
+test("geographic views may zoom out and roam further than the map alone", () => {
+  const fit = fitMap(1000, 600);
+  const anchor = { x: 500, y: 300 };
+  assert.equal(zoomMap(fit, 0.00001, anchor, 1000, 600, WORLD_VIEW_LIMITS).width, 4000);
+  assert.equal(constrainViewport({ ...fit, x: -5000 }, 1000, 600).x, -500);
+  assert.equal(constrainViewport({ ...fit, x: -5000 }, 1000, 600, WORLD_VIEW_LIMITS).x, -1500);
 });
