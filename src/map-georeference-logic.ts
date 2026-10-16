@@ -466,3 +466,73 @@ export function worldTileSource(kind: WorldBackground, options: WorldTileOptions
     options.maxZoom >= 1 && options.maxZoom <= 23 ? options.maxZoom : custom ? 22 : fallback.maxZoom;
   return { template, attribution, attributionUrl: custom ? undefined : fallback.attributionUrl, maxZoom };
 }
+
+/** Map pixel under a drawn point: the inverse of adjustPoint. */
+export function unadjustPoint(adjustment: MapAdjustment, centre: MapPoint, point: MapPoint): MapPoint {
+  const c = Math.cos(adjustment.rotation * RAD), s = Math.sin(adjustment.rotation * RAD);
+  const x = (point.x - centre.x - adjustment.dx) / adjustment.scale;
+  const y = (point.y - centre.y - adjustment.dy) / adjustment.scale;
+  return { x: centre.x + x * c + y * s, y: centre.y - x * s + y * c };
+}
+
+export type AlignHandle = "scale" | "rotate";
+export type AlignGesture = "move-map" | "view" | AlignHandle;
+
+/**
+ * What a gesture does while aligning: two fingers always zoom and pan the
+ * view; one finger or the mouse uses the handle it started on, moves the
+ * mower map when it started on it, and otherwise pans the view.
+ */
+export function alignGesture(pointers: number, handle: AlignHandle | undefined, onMap: boolean): AlignGesture {
+  if (pointers >= 2) return "view";
+  if (handle) return handle;
+  return onMap ? "move-map" : "view";
+}
+
+/** Whether a drawn point lies on the adjusted mower map. */
+export function pointOnMap(
+  adjustment: MapAdjustment, width: number, height: number, point: MapPoint,
+): boolean {
+  const pixel = unadjustPoint(adjustment, mapCentre(width, height), point);
+  return pixel.x >= 0 && pixel.x <= width && pixel.y >= 0 && pixel.y <= height;
+}
+
+/**
+ * Drag a handle from one drawn point to another. The corner handle resizes
+ * about the drawn map centre, keeping proportions; the rotate handle turns
+ * about it.
+ */
+export function dragHandle(
+  adjustment: MapAdjustment, centre: MapPoint, handle: AlignHandle, from: MapPoint, to: MapPoint,
+): MapAdjustment {
+  const pivot = { x: centre.x + adjustment.dx, y: centre.y + adjustment.dy };
+  const a = { x: from.x - pivot.x, y: from.y - pivot.y }, b = { x: to.x - pivot.x, y: to.y - pivot.y };
+  const before = Math.hypot(a.x, a.y), after = Math.hypot(b.x, b.y);
+  if (before < 1e-9 || after < 1e-9) return adjustment;
+  if (handle === "scale") return composeAdjustment(adjustment, centre, pivot, after / before, 0);
+  let turn = (Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x)) / RAD;
+  turn = ((turn + 540) % 360) - 180;
+  return composeAdjustment(adjustment, centre, pivot, 1, turn);
+}
+
+/**
+ * Drawn positions of the handles: the four frame corners (resize) and a
+ * rotate knob `offset` drawn units above the middle of the frame's top edge.
+ */
+export function alignHandlePositions(
+  adjustment: MapAdjustment, width: number, height: number, offset: number,
+): { corners: MapPoint[]; top: MapPoint; rotate: MapPoint } {
+  const centre = mapCentre(width, height);
+  const at = (point: MapPoint) => adjustPoint(adjustment, centre, point);
+  const top = at({ x: width / 2, y: 0 });
+  const middle = at(centre);
+  const length = Math.hypot(top.x - middle.x, top.y - middle.y) || 1;
+  return {
+    corners: [at({ x: 0, y: 0 }), at({ x: width, y: 0 }), at({ x: width, y: height }), at({ x: 0, y: height })],
+    top,
+    rotate: {
+      x: top.x + (top.x - middle.x) / length * offset,
+      y: top.y + (top.y - middle.y) / length * offset,
+    },
+  };
+}

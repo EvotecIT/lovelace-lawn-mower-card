@@ -473,12 +473,11 @@ export const nl = {
   "mowingMap.backgroundSatellite": "Satelliet",
   "mowingMap.align": "Uitlijnen",
   "mowingMap.alignTools": "Uitlijnknoppen",
-  "mowingMap.alignHint": "Sleep, knijp of draai de maaikaart tot de zones op het gazon liggen.",
+  "mowingMap.alignHint": "Twee vingers of scrollwiel: weergave zoomen · sleep de kaart om haar te verplaatsen · grepen: grootte en draaiing",
   "mowingMap.alignNew": "Start op de locatie van je huis in Home Assistant. Sleep de maaikaart naar je tuin.",
+  "mowingMap.rotationLabel": "Draaiing",
+  "mowingMap.sizeLabel": "Kaartgrootte",
   "mowingMap.notAligned": "Nog niet uitgelijnd · gebruik Uitlijnen om de kaart op het terrein te leggen",
-  "mowingMap.gestures": "Gebaren verplaatsen",
-  "mowingMap.gestureMap": "Kaart",
-  "mowingMap.gestureView": "Weergave",
   "mowingMap.rotateLeft": "Kaart linksom draaien",
   "mowingMap.rotateRight": "Kaart rechtsom draaien",
   "mowingMap.scaleDown": "Kaart kleiner maken",
@@ -502,5 +501,7 @@ export const nl = {
   "editor.mowerMarkerFixed": "Vaste grootte",
   "editor.mowerMarkerHint": "Op echte grootte volgt het icoon de zoom; van ver houdt het de vaste grootte zodat het zichtbaar blijft. Standaardgrootte: 65,9 × 43,9 cm.",
   "editor.mowerLength": "Lengte van de maaier (cm)",
-  "editor.mowerWidth": "Breedte van de maaier (cm)"
+  "editor.mowerWidth": "Breedte van de maaier (cm)",
+  "editor.worldBackgroundDim": "Stratenkaart en satelliet dempen (0–100)",
+  "editor.worldBackgroundDimHint": "Hoeveel de stratenkaart of satelliet vervaagt achter de tuin zodat de zones opvallen. Standaard 45; 0 laat de tegels ongewijzigd. Uitlijnen toont ze altijd scherp."
 } satisfies TranslationCatalog;

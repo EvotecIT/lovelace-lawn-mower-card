@@ -143,12 +143,11 @@ export const it = {
   "mowingMap.backgroundSatellite": "Satellite",
   "mowingMap.align": "Allinea",
   "mowingMap.alignTools": "Comandi di allineamento",
-  "mowingMap.alignHint": "Trascina, pizzica o ruota la mappa del rasaerba finché le zone coincidono con il prato.",
+  "mowingMap.alignHint": "Due dita o rotellina: zoom della vista · trascina la mappa per spostarla · maniglie: dimensione e rotazione",
   "mowingMap.alignNew": "Si parte dalla posizione della casa in Home Assistant. Trascina la mappa del rasaerba sul tuo giardino.",
+  "mowingMap.rotationLabel": "Rotazione",
+  "mowingMap.sizeLabel": "Dimensione mappa",
   "mowingMap.notAligned": "Non ancora allineata · usa Allinea per posizionare la mappa sul terreno",
-  "mowingMap.gestures": "I gesti spostano",
-  "mowingMap.gestureMap": "Mappa",
-  "mowingMap.gestureView": "Vista",
   "mowingMap.rotateLeft": "Ruota la mappa in senso antiorario",
   "mowingMap.rotateRight": "Ruota la mappa in senso orario",
   "mowingMap.scaleDown": "Rimpicciolisci la mappa",
@@ -172,5 +171,7 @@ export const it = {
   "editor.mowerMarkerFixed": "Dimensione fissa",
   "editor.mowerMarkerHint": "A dimensione reale l’icona segue lo zoom; da lontano mantiene la dimensione fissa per restare visibile. Dimensione predefinita: 65,9 × 43,9 cm.",
   "editor.mowerLength": "Lunghezza del rasaerba (cm)",
-  "editor.mowerWidth": "Larghezza del rasaerba (cm)"
+  "editor.mowerWidth": "Larghezza del rasaerba (cm)",
+  "editor.worldBackgroundDim": "Attenua mappa stradale e satellite (0–100)",
+  "editor.worldBackgroundDimHint": "Quanto la mappa o il satellite si attenuano dietro il giardino per far risaltare le zone. Predefinito 45; 0 lascia le tessere invariate. Allinea le mostra sempre nitide."
 } satisfies TranslationCatalog;

@@ -244,3 +244,29 @@ export function mowerMarkerTransform(
   if (length / unitsPerScreenPixel < MARKER_BODY.length * FIXED_MARKER_PIXELS) return fixed;
   return { scale: 1, x: width / MARKER_BODY.width, y: length / MARKER_BODY.length, realSize: true };
 }
+
+/** Default softening of street-map and satellite tiles, 0 (none) to 100. */
+export const DEFAULT_WORLD_DIM = 45;
+
+/**
+ * How much to soften geographic tiles so the garden stands out: a veil in the
+ * theme's surface colour (darker on dark themes, lighter on light ones) and
+ * reduced saturation. `world_background_dim` is 0–100; invalid values use the default.
+ */
+export function worldDim(value: unknown): { veil: number; saturate: number } {
+  const number = typeof value === "number" ? value
+    : typeof value === "string" && value.trim() ? Number(value.trim()) : NaN;
+  const level = (Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : DEFAULT_WORLD_DIM) / 100;
+  return { veil: Math.round(level * 0.9 * 1000) / 1000, saturate: Math.round((1 - level * 0.8) * 1000) / 1000 };
+}
+
+/**
+ * Emphasis of the garden over geographic tiles, in map pixels for the current
+ * zoom: zone fills, outlines and labels about twice as opaque, over a
+ * ~2.5 screen-pixel contrasting halo that keeps outlines and labels legible.
+ * (Thickening was tried and smudged the integration's small labels.)
+ */
+export function gardenEmphasis(unitsPerScreenPixel: number): { alphaSlope: number; halo: number } {
+  const u = finite(unitsPerScreenPixel) && unitsPerScreenPixel > 0 ? unitsPerScreenPixel : 1;
+  return { alphaSlope: 2.2, halo: 2.5 * u };
+}

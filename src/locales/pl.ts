@@ -431,12 +431,11 @@ export const pl = {
   "mowingMap.backgroundSatellite": "Satelita",
   "mowingMap.align": "Dopasuj",
   "mowingMap.alignTools": "Sterowanie dopasowaniem",
-  "mowingMap.alignHint": "Przeciągnij, uszczypnij lub obróć mapę kosiarki, aż strefy pokryją trawnik.",
+  "mowingMap.alignHint": "Dwa palce lub kółko: powiększanie widoku · przeciągnij mapę, aby ją przesunąć · uchwyty: rozmiar i obrót",
   "mowingMap.alignNew": "Start w lokalizacji domu z Home Assistant. Przeciągnij mapę kosiarki na swój ogród.",
+  "mowingMap.rotationLabel": "Obrót",
+  "mowingMap.sizeLabel": "Rozmiar mapy",
   "mowingMap.notAligned": "Jeszcze niedopasowana · użyj Dopasuj, aby położyć mapę na terenie",
-  "mowingMap.gestures": "Gesty przesuwają",
-  "mowingMap.gestureMap": "Mapa",
-  "mowingMap.gestureView": "Widok",
   "mowingMap.rotateLeft": "Obróć mapę w lewo",
   "mowingMap.rotateRight": "Obróć mapę w prawo",
   "mowingMap.scaleDown": "Zmniejsz mapę",
@@ -460,5 +459,7 @@ export const pl = {
   "editor.mowerMarkerFixed": "Stały rozmiar",
   "editor.mowerMarkerHint": "W rzeczywistym rozmiarze ikona podąża za powiększeniem; z daleka zachowuje stały rozmiar, aby była widoczna. Domyślny rozmiar: 65,9 × 43,9 cm.",
   "editor.mowerLength": "Długość kosiarki (cm)",
-  "editor.mowerWidth": "Szerokość kosiarki (cm)"
+  "editor.mowerWidth": "Szerokość kosiarki (cm)",
+  "editor.worldBackgroundDim": "Przyciemnij mapę ulic i satelitę (0–100)",
+  "editor.worldBackgroundDimHint": "Jak mocno mapa ulic lub satelita blednie za ogrodem, aby strefy były wyraźne. Domyślnie 45; 0 pozostawia kafelki bez zmian. Dopasowanie zawsze pokazuje je ostro."
 } satisfies TranslationCatalog;

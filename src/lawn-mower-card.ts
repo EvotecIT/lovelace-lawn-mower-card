@@ -566,6 +566,7 @@ export class LawnMowerCard extends LitElement {
                           .background=${this._config.map_background}
                           .entityId=${this._config.entity} .tiles=${worldTileConfig(this._config)}
                           .mowerSize=${mowerMarkerSize(this._config)}
+                          .worldDim=${this._config.world_background_dim}
                           .path=${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)}
                           .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
                           .active=${this._mediaVisible}></lawn-mower-mowing-map>`
@@ -823,6 +824,7 @@ export class LawnMowerCard extends LitElement {
       mowerEntityId: this._config.entity,
       worldTiles: worldTileConfig(this._config),
       mowerSize: mowerMarkerSize(this._config),
+      worldDim: this._config.world_background_dim,
       photoEntityId: this._config.entity,
       mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,
       heroImage: normalizeHeroImage(this._config.hero_image),

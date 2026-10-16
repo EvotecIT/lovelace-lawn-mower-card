@@ -484,12 +484,11 @@ export const en = {
   "mowingMap.backgroundSatellite": "Satellite",
   "mowingMap.align": "Align",
   "mowingMap.alignTools": "Alignment controls",
-  "mowingMap.alignHint": "Drag, pinch or twist the mower map until its zones sit on the lawn.",
+  "mowingMap.alignHint": "Two fingers or the wheel: zoom the view · drag the map to move it · handles: size and rotation",
   "mowingMap.alignNew": "Starting from your Home Assistant home. Drag the mower map onto your garden.",
+  "mowingMap.rotationLabel": "Rotation",
+  "mowingMap.sizeLabel": "Map size",
   "mowingMap.notAligned": "Not aligned yet · use Align to place the map on the ground",
-  "mowingMap.gestures": "Gestures move",
-  "mowingMap.gestureMap": "Map",
-  "mowingMap.gestureView": "View",
   "mowingMap.rotateLeft": "Rotate map anticlockwise",
   "mowingMap.rotateRight": "Rotate map clockwise",
   "mowingMap.scaleDown": "Make the map smaller",
@@ -513,7 +512,9 @@ export const en = {
   "editor.mowerMarkerFixed": "Fixed size",
   "editor.mowerMarkerHint": "Real size grows and shrinks with zoom; far out it keeps the fixed icon so it stays visible. Default size: 65.9 × 43.9 cm.",
   "editor.mowerLength": "Mower length (cm)",
-  "editor.mowerWidth": "Mower width (cm)"
+  "editor.mowerWidth": "Mower width (cm)",
+  "editor.worldBackgroundDim": "Soften street map and satellite (0–100)",
+  "editor.worldBackgroundDimHint": "How much the street map or satellite fades behind the garden so zones stand out. Default 45; 0 keeps the tiles unchanged. Align always shows them crisp."
 } as const satisfies Record<string, TranslationMessage>;
 
 export type TranslationKey = keyof typeof en;

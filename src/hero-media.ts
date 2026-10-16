@@ -39,6 +39,7 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
         .hass=${model.hass} .path=${model.mowingMapPath} .locale=${model.locale}
         .background=${model.mapBackground}
         .entityId=${model.mowerEntityId} .tiles=${model.worldTiles} .mowerSize=${model.mowerSize ?? null}
+        .worldDim=${model.worldDim}
         .fallbackUrl=${model.mapUrl} .fallbackSaved=${Boolean(model.mapSavedPreview)}
         .active=${views.includes("map") && model.activeView === "map" && model.mediaVisible !== false}
       ></lawn-mower-mowing-map>` : views.includes("map") && model.mapUrl

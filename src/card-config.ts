@@ -95,6 +95,8 @@ export type LawnMowerCardConfig = {
   satellite_tile_max_zoom?: number;
   /** real_size (default) draws the mower to scale when the map scale is known. */
   mower_marker?: "real_size" | "fixed";
+  /** Softening of street map and satellite tiles, 0 (none) to 100; default 45. */
+  world_background_dim?: number;
   /** Mower length and width in centimetres for the real-size marker. */
   mower_length?: number;
   mower_width?: number;

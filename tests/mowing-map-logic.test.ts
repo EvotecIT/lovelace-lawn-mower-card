@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   availableMapBackgrounds, constrainViewport, effectiveMapBackground, fitMap, mowingMapPath,
-  DEFAULT_MOWER_SIZE, MARKER_BODY, mowerMarkerSize, mowerMarkerTransform,
+  DEFAULT_MOWER_SIZE, DEFAULT_WORLD_DIM, gardenEmphasis, MARKER_BODY, mowerMarkerSize, mowerMarkerTransform, worldDim,
   normalizeMapBackground, viewLimits, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
 
@@ -182,4 +182,16 @@ test("the mower marker is drawn at real size when the scale is known", () => {
   // Without a projection or with the fixed option, the icon is unchanged.
   assert.equal(mowerMarkerTransform(0.25, undefined, DEFAULT_MOWER_SIZE).realSize, false);
   assert.equal(mowerMarkerTransform(0.25, 0.05, null).realSize, false);
+});
+
+test("geographic tiles are softened by the configured amount", () => {
+  assert.deepEqual(worldDim(undefined), { veil: 0.405, saturate: 0.64 });
+  assert.deepEqual(worldDim(0), { veil: 0, saturate: 1 });
+  assert.deepEqual(worldDim(100), { veil: 0.9, saturate: 0.2 });
+  assert.deepEqual(worldDim("50"), { veil: 0.45, saturate: 0.6 });
+  assert.deepEqual(worldDim(250), worldDim(100));
+  assert.deepEqual(worldDim("dark"), worldDim(DEFAULT_WORLD_DIM));
+  const emphasis = gardenEmphasis(2);
+  assert.equal(emphasis.alphaSlope, 2.2);
+  assert.equal(emphasis.halo, 5);
 });

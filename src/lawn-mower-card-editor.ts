@@ -144,6 +144,14 @@ export class LawnMowerCardEditor extends LitElement {
           "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
           this._t("editor.satelliteTileUrlHint"),
         )}
+        <label>
+          <span>${this._t("editor.worldBackgroundDim")}</span>
+          <input type="number" min="0" max="100" step="5" inputmode="numeric" placeholder="45"
+            .value=${config.world_background_dim === undefined ? "" : String(config.world_background_dim)}
+            @input=${(event: Event) => this._numberChanged("world_background_dim",
+              (event.currentTarget as HTMLInputElement).value)} />
+          <span class="hint">${this._t("editor.worldBackgroundDimHint")}</span>
+        </label>
         ${this._mowerMarkerFields(config)}
         ${this._toggle(
           this._t("editor.showPointCloud"),
@@ -357,7 +365,7 @@ export class LawnMowerCardEditor extends LitElement {
     `;
   }
 
-  private _numberChanged(key: "mower_length" | "mower_width", raw: string) {
+  private _numberChanged(key: "mower_length" | "mower_width" | "world_background_dim", raw: string) {
     const next: LawnMowerCardConfig = { ...(this._config || getStubConfig()) };
     const value = Number(raw.trim().replace(",", "."));
     if (raw.trim() && Number.isFinite(value)) next[key] = value;

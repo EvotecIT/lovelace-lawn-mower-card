@@ -8,7 +8,7 @@ import { actionErrorDetail } from "./action-error";
 import { DREAME_LAWN_MOWER_SERVICE_DOMAIN } from "./card-logic";
 import { mapControlIcon, mowerMapMarker, mowingMapStyles } from "./mowing-map-presentation";
 import {
-  availableMapBackgrounds, constrainViewport, DEFAULT_MOWER_SIZE, mowerMarkerTransform, effectiveMapBackground, fitMap, isWorldBackground,
+  availableMapBackgrounds, constrainViewport, DEFAULT_MOWER_SIZE, gardenEmphasis, mowerMarkerTransform, worldDim, effectiveMapBackground, fitMap, isWorldBackground,
   mowingMapPath, viewLimits, normalizeMapBackground, overlayIsFresh, positionStatusKey,
   readMowingMapScene, zoomMap,
   type MapBackground, type MapPoint, type MapViewport, type MowerSize, type MowingMapScene,
@@ -17,7 +17,8 @@ import {
   adjustmentMatrix, alignedGeoreference, colorSchemeFor, composeAdjustment, defaultGeoreference,
   georeferenceServiceData, IDENTITY_ADJUSTMENT, mapCentre, metresPerMapPixel, sameGeoreference,
   screenMatrix, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
-  type GeoPoint, type MapAdjustment, type MapGeoreference, type WorldBackground, type WorldTileOptions,
+  alignGesture, alignHandlePositions, dragHandle, pointOnMap,
+  type AlignGesture, type AlignHandle, type GeoPoint, type MapAdjustment, type MapGeoreference, type WorldBackground, type WorldTileOptions,
 } from "./map-georeference-logic";
 
 /** Tile options per geographic background, from the card configuration. */
@@ -63,13 +64,16 @@ export class LawnMowerMowingMap extends LitElement {
   @property({ attribute: false }) public tiles?: WorldTileConfig;
   /** Real mower footprint in mm, or null for the fixed-size icon. */
   @property({ attribute: false }) public mowerSize: MowerSize | null = DEFAULT_MOWER_SIZE;
+  /** world_background_dim (0–100): how much geographic tiles are softened. */
+  @property({ attribute: false }) public worldDim?: unknown;
 
   @state() private _scene?: MowingMapScene;
   @state() private _image?: string;
   @state() private _photo?: string;
   @state() private _backgroundChoice?: MapBackground;
   @state() private _align?: AlignSession;
-  @state() private _gesture: "map" | "view" = "map";
+  /** What the current one-pointer drag does while aligning. */
+  private _drag?: AlignGesture;
   @state() private _saving = false;
   @state() private _alignError?: string;
   @state() private _notice?: TranslationKey;
@@ -265,8 +269,13 @@ export class LawnMowerMowingMap extends LitElement {
     const base = this._reference;
     if (!base || !this._canAlign) return;
     this._align = { base, adjustment: { ...IDENTITY_ADJUSTMENT }, fresh: !this._aligned };
-    this._gesture = "map";
     this._alignError = undefined;
+    // Leave room around the frame so its corner and rotate handles are reachable.
+    const scene = this._scene;
+    if (scene) {
+      this._view = zoomMap(fitMap(scene.width, scene.height), 1 / 1.6,
+        mapCentre(scene.width, scene.height), scene.width, scene.height, this._limits);
+    }
   };
 
   private _cancelAlign = (): void => {
@@ -524,10 +533,18 @@ export class LawnMowerMowingMap extends LitElement {
   }
 
   private _down(event: PointerEvent): void {
-    if (event.button !== 0 || !this._scene) return;
+    const scene = this._scene;
+    if (event.button !== 0 || !scene) return;
     event.preventDefault();
     (event.currentTarget as SVGElement).setPointerCapture(event.pointerId);
     this._pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (this._align && this._pointers.size === 1) {
+      const handle = (event.target as Element | null)?.closest?.("[data-handle]")
+        ?.getAttribute("data-handle") as AlignHandle | null | undefined;
+      const onMap = pointOnMap(this._align.adjustment, scene.width, scene.height,
+        this._point({ x: event.clientX, y: event.clientY }));
+      this._drag = alignGesture(1, handle ?? undefined, onMap);
+    }
   }
 
   private _move(event: PointerEvent): void {
@@ -540,18 +557,16 @@ export class LawnMowerMowingMap extends LitElement {
       y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
     });
     const oldCentre = this._point(centre(before)), newCentre = this._point(centre(after));
-    if (this._align && this._gesture === "map") {
-      // Align: one finger moves the mower map; two fingers also turn and resize it.
-      const angle = (points: MapPoint[]) => Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
-      const distance = (points: MapPoint[]) => Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
-      this._adjust((adjustment, mapMiddle) => {
-        const moved = { ...adjustment,
-          dx: adjustment.dx + newCentre.x - oldCentre.x, dy: adjustment.dy + newCentre.y - oldCentre.y };
-        if (before.length !== 2 || distance(before) <= 0) return moved;
-        let turn = (angle(after) - angle(before)) * 180 / Math.PI;
-        turn = ((turn + 540) % 360) - 180;
-        return composeAdjustment(moved, mapMiddle, newCentre, distance(after) / distance(before), turn);
-      });
+    // Aligning: two fingers always move the view; one pointer moves the map,
+    // drags a handle, or pans the view when it started off the map.
+    const gesture = this._align ? (after.length >= 2 ? "view" : this._drag ?? "view") : "view";
+    if (gesture === "move-map") {
+      this._adjust((adjustment) => ({ ...adjustment,
+        dx: adjustment.dx + newCentre.x - oldCentre.x, dy: adjustment.dy + newCentre.y - oldCentre.y }));
+      return;
+    }
+    if (gesture === "scale" || gesture === "rotate") {
+      this._adjust((adjustment, mapMiddle) => dragHandle(adjustment, mapMiddle, gesture, oldCentre, newCentre));
       return;
     }
     this._pan(oldCentre.x - newCentre.x, oldCentre.y - newCentre.y);
@@ -564,24 +579,23 @@ export class LawnMowerMowingMap extends LitElement {
     }
   }
 
-  private _up(event: PointerEvent): void { this._pointers.delete(event.pointerId); }
+  private _up(event: PointerEvent): void {
+    this._pointers.delete(event.pointerId);
+    // Lifting one of two fingers continues as a view pan, never as a map move.
+    if (this._pointers.size === 0) this._drag = undefined;
+    else this._drag = "view";
+  }
 
   private _wheel(event: WheelEvent): void {
     if (!this._scene) return;
     event.preventDefault();
-    const point = this._point({ x: event.clientX, y: event.clientY });
-    if (this._align && event.shiftKey) {
-      // Shift + wheel resizes the mower map under the pointer while aligning.
-      const factor = (event.deltaY || event.deltaX) < 0 ? 1.01 : 1 / 1.01;
-      this._adjust((adjustment, centre) => composeAdjustment(adjustment, centre, point, factor, 0));
-      return;
-    }
-    this._zoom(event.deltaY < 0 ? 1.15 : 1 / 1.15, point);
+    // The wheel always zooms the view, aligning or not.
+    this._zoom(event.deltaY < 0 ? 1.15 : 1 / 1.15, this._point({ x: event.clientX, y: event.clientY }));
   }
 
   private _key(event: KeyboardEvent): void {
     const step = this._view.width / 10;
-    if (this._align && this._gesture === "map" && event.key.startsWith("Arrow")) {
+    if (this._align && event.key.startsWith("Arrow")) {
       const nudge = this._view.width / 100;
       const [dx, dy] = ({ ArrowLeft: [-nudge, 0], ArrowRight: [nudge, 0],
         ArrowUp: [0, -nudge], ArrowDown: [0, nudge] } as Record<string, number[]>)[event.key] ?? [0, 0];
@@ -642,14 +656,19 @@ export class LawnMowerMowingMap extends LitElement {
       x: this._view.x - (shown.width - this._view.width) / 2,
       y: this._view.y - (shown.height - this._view.height) / 2, ...shown,
     }, zoom);
-    return html`<div class="world-tiles" aria-hidden="true">${repeat(tiles, (tile) => `${tile.z}/${tile.x}/${tile.y}`,
+    // Outside Align, tiles step back (veil + less colour) so the garden stands out;
+    // while aligning they stay crisp because the map is matched to the photo.
+    const dim = this._align ? undefined : worldDim(this.worldDim);
+    return html`<div class="world-tiles" aria-hidden="true"
+      style=${dim ? `filter:saturate(${dim.saturate})` : ""}>${repeat(tiles, (tile) => `${tile.z}/${tile.x}/${tile.y}`,
       (tile) => {
         const href = tileUrl(source.template, tile.z, tile.x, tile.y);
         return href ? html`<img src=${href} alt="" draggable="false" decoding="async"
           referrerpolicy="strict-origin-when-cross-origin"
           style=${`transform:matrix(${screenMatrix(tile.matrix, this._view, this._size).join(",")})`}
           @error=${() => this._tileFailed(source.template, tile.z)} />` : nothing;
-      })}</div>`;
+      })}</div>
+      ${dim?.veil ? html`<div class="world-veil" aria-hidden="true" style=${`opacity:${dim.veil}`}></div>` : nothing}`;
   }
 
   private _renderAttribution(world: WorldBackground) {
@@ -662,41 +681,44 @@ export class LawnMowerMowingMap extends LitElement {
 
   private _renderAlignBar(align: AlignSession) {
     const { rotation, scale } = align.adjustment;
-    const degrees = new Intl.NumberFormat(this.locale, {
-      minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero",
-    }).format(rotation);
-    const size = new Intl.NumberFormat(this.locale, { style: "percent", maximumFractionDigits: 1 }).format(scale);
+    const number = (options: Intl.NumberFormatOptions) => new Intl.NumberFormat(this.locale, options);
+    const degrees = number({ minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" })
+      .format(rotation);
+    const size = number({ style: "percent", maximumFractionDigits: 1 }).format(scale);
+    const signedDegrees = (value: number) =>
+      `${number({ minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "always" }).format(value)}°`;
+    const signedPercent = (value: number) =>
+      number({ style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "always" })
+        .format(value);
     const rotateLeft = (times = 1) => this._adjustAboutCentre(1, -ROTATE_STEP * times);
     const rotateRight = (times = 1) => this._adjustAboutCentre(1, ROTATE_STEP * times);
     const shrink = (times = 1) => this._adjustAboutCentre(SCALE_STEP ** -times, 0);
     const grow = (times = 1) => this._adjustAboutCentre(SCALE_STEP ** times, 0);
-    const step = (label: TranslationKey, action: (times?: number) => void, content: unknown, extra = "") => html`
-      <button class=${`step${extra}`} @click=${() => action()} @pointerdown=${this._hold(action)}
+    const step = (label: TranslationKey, action: (times?: number) => void, content: string) => html`
+      <button class="step" @click=${() => action()} @pointerdown=${this._hold(action)}
         @pointerup=${this._stopHold} @pointerleave=${this._stopHold} @pointercancel=${this._stopHold}
         aria-label=${this._t(label)} title=${this._t(label)}>${content}</button>`;
     return html`
       <div class="align-bar" role="group" aria-label=${this._t("mowingMap.alignTools")}>
+        <p class="align-help">${this._t("mowingMap.alignHint")}</p>
         <div class="align-row">
-          <div class="segmented" role="group" aria-label=${this._t("mowingMap.gestures")}>
-            <button aria-pressed=${this._gesture === "map" ? "true" : "false"} title=${this._t("mowingMap.gestureMap")}
-              @click=${() => { this._gesture = "map"; }}>${mapControlIcon("move")}<span>${this._t("mowingMap.gestureMap")}</span></button>
-            <button aria-pressed=${this._gesture === "view" ? "true" : "false"} title=${this._t("mowingMap.gestureView")}
-              @click=${() => { this._gesture = "view"; }}>${mapControlIcon("view")}<span>${this._t("mowingMap.gestureView")}</span></button>
-          </div>
           <div class="stepper" role="group" aria-label=${this._t("mowingMap.alignRotation", { value: degrees })}>
-            ${step("mowingMap.rotateLeft", rotateLeft, mapControlIcon("rotate-left"))}
+            <span class="stepper-label">${this._t("mowingMap.rotationLabel")}</span>
+            ${step("mowingMap.rotateLeft", rotateLeft, signedDegrees(-ROTATE_STEP))}
             <span class="readout" aria-hidden="true">${degrees}°</span>
-            ${step("mowingMap.rotateRight", rotateRight, mapControlIcon("rotate-right"))}
+            ${step("mowingMap.rotateRight", rotateRight, signedDegrees(ROTATE_STEP))}
           </div>
           <div class="stepper" role="group" aria-label=${this._t("mowingMap.alignScale", { value: size })}>
-            ${step("mowingMap.scaleDown", shrink, "−", " zoom")}
+            <span class="stepper-label">${this._t("mowingMap.sizeLabel")}</span>
+            ${step("mowingMap.scaleDown", shrink, signedPercent(-(SCALE_STEP - 1)))}
             <span class="readout" aria-hidden="true">${size}</span>
-            ${step("mowingMap.scaleUp", grow, "+", " zoom")}
+            ${step("mowingMap.scaleUp", grow, signedPercent(SCALE_STEP - 1))}
           </div>
         </div>
         <div class="align-row">
-          <span class=${`align-hint${this._alignError ? " error" : ""}`} role="status">${this._alignError ||
-            this._t(align.fresh ? "mowingMap.alignNew" : "mowingMap.alignHint")}</span>
+          ${this._alignError || align.fresh ? html`
+            <span class=${`align-hint${this._alignError ? " error" : ""}`} role="status">${this._alignError ||
+              this._t("mowingMap.alignNew")}</span>` : html`<span class="align-hint"></span>`}
           <div class="align-actions">
             <button @click=${this._cancelAlign} ?disabled=${this._saving}>${this._t("mowingMap.alignCancel")}</button>
             <button class="primary" @click=${this._saveAlign} ?disabled=${this._saving}>
@@ -704,6 +726,27 @@ export class LawnMowerMowingMap extends LitElement {
           </div>
         </div>
       </div>`;
+  }
+
+  /** Resize corners and a rotate knob, constant on screen whatever the zoom. */
+  private _renderHandles(scene: MowingMapScene, align: AlignSession, unitsPerScreenPixel: number) {
+    const u = unitsPerScreenPixel;
+    const { corners, top, rotate } = alignHandlePositions(align.adjustment, scene.width, scene.height, 40 * u);
+    const knob = (point: MapPoint, kind: AlignHandle, label: string, extra = "") => svg`
+      <g class=${`handle ${kind}${extra}`} data-handle=${kind} transform=${`translate(${point.x} ${point.y})`}>
+        <title>${label}</title>
+        <circle class="handle-hit" r=${22 * u} />
+        <circle class="handle-dot" r=${kind === "rotate" ? 11 * u : 9 * u} stroke-width=${2.5 * u} />
+        ${kind === "rotate" ? svg`<path class="handle-glyph" stroke-width=${1.8 * u}
+          d=${`M ${-4.5 * u} ${-2 * u} A ${5 * u} ${5 * u} 0 1 0 ${0} ${-5 * u} M ${-1.5 * u} ${-8 * u} L 0 ${-5 * u} L ${-3 * u} ${-2.5 * u}`} />` : nothing}
+      </g>`;
+    return svg`
+      <g class="align-handles">
+        <line class="handle-stem" x1=${top.x} y1=${top.y} x2=${rotate.x} y2=${rotate.y} stroke-width=${2 * u} />
+        ${corners.map((corner, index) => knob(corner, "scale", this._t("mowingMap.sizeLabel"),
+          index % 2 ? " nesw" : " nwse"))}
+        ${knob(rotate, "rotate", this._t("mowingMap.rotationLabel"))}
+      </g>`;
   }
 
   protected render() {
@@ -718,6 +761,8 @@ export class LawnMowerMowingMap extends LitElement {
     const adjustment = scene && align
       ? `matrix(${adjustmentMatrix(align.adjustment, mapCentre(scene.width, scene.height)).join(" ")})` : undefined;
     const minZoom = scene ? 1 / this._limits.maxWidth : 1;
+    // Over street map or satellite (not while aligning), the garden is emphasised.
+    const emphasis = world && !align ? gardenEmphasis(unitsPerScreenPixel) : undefined;
     // Inside an aligning map, map pixels are drawn larger by the adjustment's size.
     const marker = mowerMarkerTransform(unitsPerScreenPixel / (align?.adjustment.scale ?? 1),
       scene?.projection?.scale, this.mowerSize);
@@ -746,7 +791,7 @@ export class LawnMowerMowingMap extends LitElement {
         <div class=${`canvas${world ? " world" : ""}`}>
         ${scene && this._image ? html`
           ${world && reference ? this._renderTiles(scene, world, reference) : nothing}
-          <svg class=${`map-canvas${align && this._gesture === "map" ? " moving-map" : ""}`}
+          <svg class=${`map-canvas${align ? " aligning" : ""}`}
             viewBox=${`${this._view.x} ${this._view.y} ${this._view.width} ${this._view.height}`}
             tabindex="0" role="img" aria-label=${this._t("mowingMap.mapLabel")}
             @pointerdown=${this._down} @pointermove=${this._move} @pointerup=${this._up}
@@ -757,7 +802,18 @@ export class LawnMowerMowingMap extends LitElement {
             ${this._photoWanted && this._photo && this._photoPath === scene.real_scene_path ? svg`
               <image class="real-scene" href=${this._photo} x="0" y="0"
                 width=${scene.width} height=${scene.height} />` : nothing}
-            <image href=${this._image} x="0" y="0" width=${scene.width} height=${scene.height} />
+            ${emphasis ? svg`<defs>
+              <filter id="garden-emphasis" x="-5%" y="-5%" width="110%" height="110%"
+                color-interpolation-filters="sRGB">
+                <feComponentTransfer in="SourceGraphic" result="solid">
+                  <feFuncA type="linear" slope=${emphasis.alphaSlope} /></feComponentTransfer>
+                <feMorphology in="SourceAlpha" operator="dilate" radius=${emphasis.halo} result="spread" />
+                <feFlood class="garden-halo" result="tint" />
+                <feComposite in="tint" in2="spread" operator="in" result="halo" />
+                <feMerge><feMergeNode in="halo" /><feMergeNode in="solid" /></feMerge>
+              </filter></defs>` : nothing}
+            <image href=${this._image} x="0" y="0" width=${scene.width} height=${scene.height}
+              filter=${emphasis ? "url(#garden-emphasis)" : nothing} />
             ${align ? svg`<rect class="align-frame" x="0" y="0" width=${scene.width} height=${scene.height}
               fill="none" vector-effect="non-scaling-stroke" />` : nothing}
             ${fresh ? scene.overlay.trail.map((segment) => svg`
@@ -775,6 +831,7 @@ export class LawnMowerMowingMap extends LitElement {
                 ${mowerMapMarker(position.heading, marker)}
               </g>` : nothing}
             </g>
+            ${align ? this._renderHandles(scene, align, unitsPerScreenPixel) : nothing}
           </svg>
           ${world ? this._renderAttribution(world) : nothing}
           ${world && !align && !this._aligned ? html`

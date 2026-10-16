@@ -487,12 +487,11 @@ export const cs = {
   "mowingMap.backgroundSatellite": "Satelit",
   "mowingMap.align": "Zarovnat",
   "mowingMap.alignTools": "Ovládání zarovnání",
-  "mowingMap.alignHint": "Táhněte, roztáhněte nebo otočte mapu sekačky, dokud zóny nesedí na trávník.",
+  "mowingMap.alignHint": "Dva prsty nebo kolečko: přiblížení pohledu · tažením mapu posunete · úchyty: velikost a otočení",
   "mowingMap.alignNew": "Začíná se na poloze domova v Home Assistant. Přetáhněte mapu sekačky na svou zahradu.",
+  "mowingMap.rotationLabel": "Otočení",
+  "mowingMap.sizeLabel": "Velikost mapy",
   "mowingMap.notAligned": "Zatím nezarovnáno · pomocí Zarovnat umístěte mapu na terén",
-  "mowingMap.gestures": "Gesta posouvají",
-  "mowingMap.gestureMap": "Mapa",
-  "mowingMap.gestureView": "Pohled",
   "mowingMap.rotateLeft": "Otočit mapu doleva",
   "mowingMap.rotateRight": "Otočit mapu doprava",
   "mowingMap.scaleDown": "Zmenšit mapu",
@@ -516,5 +515,7 @@ export const cs = {
   "editor.mowerMarkerFixed": "Pevná velikost",
   "editor.mowerMarkerHint": "Ve skutečné velikosti ikona sleduje přiblížení; zdálky si ponechá pevnou velikost, aby zůstala viditelná. Výchozí velikost: 65,9 × 43,9 cm.",
   "editor.mowerLength": "Délka sekačky (cm)",
-  "editor.mowerWidth": "Šířka sekačky (cm)"
+  "editor.mowerWidth": "Šířka sekačky (cm)",
+  "editor.worldBackgroundDim": "Ztlumit mapu ulic a satelit (0–100)",
+  "editor.worldBackgroundDimHint": "Jak moc mapa ulic nebo satelit ustoupí za zahradu, aby zóny vynikly. Výchozí 45; 0 ponechá dlaždice beze změny. Při zarovnání jsou vždy ostré."
 } satisfies TranslationCatalog;

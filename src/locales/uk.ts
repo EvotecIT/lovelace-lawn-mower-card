@@ -143,12 +143,11 @@ export const uk = {
   "mowingMap.backgroundSatellite": "Супутник",
   "mowingMap.align": "Вирівняти",
   "mowingMap.alignTools": "Керування вирівнюванням",
-  "mowingMap.alignHint": "Перетягуйте, зводьте або обертайте карту косарки, доки зони не ляжуть на газон.",
+  "mowingMap.alignHint": "Два пальці або коліщатко: масштаб вигляду · перетягніть карту, щоб зсунути її · маркери: розмір і поворот",
   "mowingMap.alignNew": "Початок — розташування дому в Home Assistant. Перетягніть карту косарки на свою ділянку.",
+  "mowingMap.rotationLabel": "Поворот",
+  "mowingMap.sizeLabel": "Розмір карти",
   "mowingMap.notAligned": "Ще не вирівняна · натисніть «Вирівняти», щоб покласти карту на місцевість",
-  "mowingMap.gestures": "Жести рухають",
-  "mowingMap.gestureMap": "Карту",
-  "mowingMap.gestureView": "Вигляд",
   "mowingMap.rotateLeft": "Повернути карту проти годинникової стрілки",
   "mowingMap.rotateRight": "Повернути карту за годинниковою стрілкою",
   "mowingMap.scaleDown": "Зменшити карту",
@@ -172,5 +171,7 @@ export const uk = {
   "editor.mowerMarkerFixed": "Фіксований розмір",
   "editor.mowerMarkerHint": "У реальному розмірі значок слідує за масштабом; здалеку він зберігає фіксований розмір, щоб лишатися видимим. Розмір за замовчуванням: 65,9 × 43,9 см.",
   "editor.mowerLength": "Довжина косарки (см)",
-  "editor.mowerWidth": "Ширина косарки (см)"
+  "editor.mowerWidth": "Ширина косарки (см)",
+  "editor.worldBackgroundDim": "Приглушити карту вулиць і супутник (0–100)",
+  "editor.worldBackgroundDimHint": "Наскільки карта вулиць або супутник відходять на другий план, щоб зони виділялися. За замовчуванням 45; 0 залишає плитки без змін. Під час вирівнювання вони завжди чіткі."
 } satisfies TranslationCatalog;

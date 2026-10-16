@@ -143,12 +143,11 @@ export const de = {
   "mowingMap.backgroundSatellite": "Satellit",
   "mowingMap.align": "Ausrichten",
   "mowingMap.alignTools": "Ausrichtungssteuerung",
-  "mowingMap.alignHint": "Ziehen, zoomen oder drehen Sie die Mähkarte, bis die Zonen auf dem Rasen liegen.",
+  "mowingMap.alignHint": "Zwei Finger oder Mausrad: Ansicht zoomen · Karte ziehen, um sie zu verschieben · Griffe: Größe und Drehung",
   "mowingMap.alignNew": "Start am Standort Ihres Zuhauses in Home Assistant. Ziehen Sie die Mähkarte auf Ihren Garten.",
+  "mowingMap.rotationLabel": "Drehung",
+  "mowingMap.sizeLabel": "Kartengröße",
   "mowingMap.notAligned": "Noch nicht ausgerichtet · mit Ausrichten die Karte auf das Gelände legen",
-  "mowingMap.gestures": "Gesten bewegen",
-  "mowingMap.gestureMap": "Karte",
-  "mowingMap.gestureView": "Ansicht",
   "mowingMap.rotateLeft": "Karte gegen den Uhrzeigersinn drehen",
   "mowingMap.rotateRight": "Karte im Uhrzeigersinn drehen",
   "mowingMap.scaleDown": "Karte verkleinern",
@@ -172,5 +171,7 @@ export const de = {
   "editor.mowerMarkerFixed": "Feste Größe",
   "editor.mowerMarkerHint": "In echter Größe folgt das Symbol dem Zoom; aus der Ferne behält es die feste Größe, damit es sichtbar bleibt. Standardgröße: 65,9 × 43,9 cm.",
   "editor.mowerLength": "Länge des Mähers (cm)",
-  "editor.mowerWidth": "Breite des Mähers (cm)"
+  "editor.mowerWidth": "Breite des Mähers (cm)",
+  "editor.worldBackgroundDim": "Straßenkarte und Satellit abschwächen (0–100)",
+  "editor.worldBackgroundDimHint": "Wie stark Straßenkarte oder Satellitenbild hinter dem Garten zurücktreten, damit die Zonen hervortreten. Standard 45; 0 lässt die Kacheln unverändert. Beim Ausrichten bleiben sie scharf."
 } satisfies TranslationCatalog;

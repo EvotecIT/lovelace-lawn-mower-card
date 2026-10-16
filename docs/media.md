@@ -55,12 +55,13 @@ home location (north up, 1 mm per map unit).
 
 **Align** opens full screen. The mower map becomes see-through over the tiles:
 
-- **Map** gestures: drag to move it; pinch to resize it; twist to turn it.
-  With a mouse, Shift + wheel resizes it and the arrow keys nudge it.
-- **View** gestures: drag and pinch move and zoom the view only, to look closely.
-  The **+** and **−** toolbar buttons and the wheel always zoom the view.
-- Fine steps: turn by 0.5° and resize by 0.5% with the buttons; hold a button to
-  repeat faster.
+- Drag the mower map (one finger or the mouse) to move it; the arrow keys nudge it.
+- Drag a **corner handle** to resize it (proportions kept) and the round
+  **rotate handle** above the frame to turn it. Handles keep their size on screen.
+- Two fingers, the mouse wheel, the **+** and **−** buttons, or dragging outside
+  the map only zoom and move the view; they never change the alignment.
+- **Rotation** and **Map size** buttons turn by 0.5° and resize by 0.5%; hold a
+  button to repeat faster.
 - **Save** sends `dreame_lawn_mower.set_georeference` with the mower entity;
   **Cancel** or Escape keeps the previous alignment.
 

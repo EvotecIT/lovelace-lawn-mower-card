@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  adjustPoint, adjustmentMatrix, alignedGeoreference, composeAdjustment, DEFAULT_WORLD_TILES,
+  adjustPoint, adjustmentMatrix, alignGesture, alignHandlePositions, dragHandle, pointOnMap, unadjustPoint, alignedGeoreference, composeAdjustment, DEFAULT_WORLD_TILES,
   defaultGeoreference, geoToNative, geoToPixel, geoToTile, georeferenceServiceData, IDENTITY_ADJUSTMENT,
   nativeToGeo, nativeToPixel, pixelToGeo, pixelToNative, readMapGeoreference, sameGeoreference, screenMatrix, colorSchemeFor,
   tileMatrix, tileTemplate, tileToGeo, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
@@ -225,4 +225,40 @@ test("without an alignment the map centre starts at the Home Assistant home", ()
   const centre = pixelToGeo(projection, start, { x: 1260, y: 760 });
   near(centre.latitude, 45.3, 1e-7); near(centre.longitude, -73.8, 1e-7);
   assert.equal(defaultGeoreference(projection, 2520, 1520, { latitude: NaN, longitude: 0 }), null);
+});
+
+test("aligning gestures: two fingers move the view, one finger the map or a handle", () => {
+  assert.equal(alignGesture(2, undefined, true), "view");
+  assert.equal(alignGesture(2, "scale", true), "view");
+  assert.equal(alignGesture(1, undefined, true), "move-map");
+  assert.equal(alignGesture(1, undefined, false), "view");
+  assert.equal(alignGesture(1, "rotate", false), "rotate");
+  assert.equal(alignGesture(1, "scale", true), "scale");
+  const adjustment = { dx: 100, dy: 0, rotation: 30, scale: 0.5 };
+  assert.equal(pointOnMap(adjustment, 1000, 600, { x: 600, y: 300 }), true);
+  assert.equal(pointOnMap(adjustment, 1000, 600, { x: 50, y: 300 }), false);
+  const point = { x: 123, y: 456 };
+  const back = adjustPoint(adjustment, { x: 500, y: 300 }, unadjustPoint(adjustment, { x: 500, y: 300 }, point));
+  near(back.x, point.x, 1e-9); near(back.y, point.y, 1e-9);
+});
+
+test("the corner handle resizes and the rotate handle turns about the drawn centre", () => {
+  const centre = { x: 500, y: 300 };
+  const start = { dx: 40, dy: -20, rotation: 10, scale: 1 };
+  const middle = { x: 540, y: 280 };
+  const { corners, rotate, top } = alignHandlePositions(start, 1000, 600, 36);
+  // Dragging a corner twice as far from the centre doubles the size; the centre stays.
+  const corner = corners[2];
+  const bigger = dragHandle(start, centre, "scale", corner,
+    { x: middle.x + 2 * (corner.x - middle.x), y: middle.y + 2 * (corner.y - middle.y) });
+  near(bigger.scale, 2, 1e-9); near(bigger.rotation, 10, 1e-9);
+  near(bigger.dx, start.dx, 1e-9); near(bigger.dy, start.dy, 1e-9);
+  // The rotate knob sits 36 units out from the top edge, along the map's up direction.
+  near(Math.hypot(rotate.x - top.x, rotate.y - top.y), 36, 1e-9);
+  // Dragging it a quarter turn around the centre turns the map 90 degrees.
+  const vector = { x: rotate.x - middle.x, y: rotate.y - middle.y };
+  const turned = dragHandle(start, centre, "rotate", rotate, { x: middle.x - vector.y, y: middle.y + vector.x });
+  near(turned.rotation, 100, 1e-9); near(turned.scale, 1, 1e-9);
+  near(turned.dx, start.dx, 1e-9); near(turned.dy, start.dy, 1e-9);
+  assert.deepEqual(dragHandle(start, centre, "scale", middle, corner), start);
 });

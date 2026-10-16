@@ -143,12 +143,11 @@ export const ru = {
   "mowingMap.backgroundSatellite": "Спутник",
   "mowingMap.align": "Выровнять",
   "mowingMap.alignTools": "Управление выравниванием",
-  "mowingMap.alignHint": "Перетаскивайте, сводите или вращайте карту газонокосилки, пока зоны не лягут на газон.",
+  "mowingMap.alignHint": "Два пальца или колесо: масштаб вида · перетащите карту, чтобы сдвинуть её · маркеры: размер и поворот",
   "mowingMap.alignNew": "Начало — расположение дома в Home Assistant. Перетащите карту газонокосилки на свой участок.",
+  "mowingMap.rotationLabel": "Поворот",
+  "mowingMap.sizeLabel": "Размер карты",
   "mowingMap.notAligned": "Ещё не выровнена · нажмите «Выровнять», чтобы положить карту на местность",
-  "mowingMap.gestures": "Жесты двигают",
-  "mowingMap.gestureMap": "Карту",
-  "mowingMap.gestureView": "Вид",
   "mowingMap.rotateLeft": "Повернуть карту против часовой стрелки",
   "mowingMap.rotateRight": "Повернуть карту по часовой стрелке",
   "mowingMap.scaleDown": "Уменьшить карту",
@@ -172,5 +171,7 @@ export const ru = {
   "editor.mowerMarkerFixed": "Фиксированный размер",
   "editor.mowerMarkerHint": "В реальном размере значок следует за масштабом; издалека он сохраняет фиксированный размер, чтобы оставаться видимым. Размер по умолчанию: 65,9 × 43,9 см.",
   "editor.mowerLength": "Длина газонокосилки (см)",
-  "editor.mowerWidth": "Ширина газонокосилки (см)"
+  "editor.mowerWidth": "Ширина газонокосилки (см)",
+  "editor.worldBackgroundDim": "Приглушить карту улиц и спутник (0–100)",
+  "editor.worldBackgroundDimHint": "Насколько карта улиц или спутник уходят на второй план, чтобы зоны выделялись. По умолчанию 45; 0 оставляет плитки без изменений. При выравнивании они всегда чёткие."
 } satisfies TranslationCatalog;

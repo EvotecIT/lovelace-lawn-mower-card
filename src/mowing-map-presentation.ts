@@ -25,7 +25,7 @@ export function mowerMapMarker(heading: number | null, stretch = { x: 1, y: 1 })
 }
 
 export type MapControlIcon =
-  "fit" | "centre" | "photo" | "layers" | "align" | "move" | "view" | "rotate-left" | "rotate-right";
+  "fit" | "centre" | "photo" | "layers" | "align";
 
 /** Small inline controls stay legible even outside the Home Assistant icon host. */
 export function mapControlIcon(kind: MapControlIcon) {
@@ -38,14 +38,6 @@ export function mapControlIcon(kind: MapControlIcon) {
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /></svg>`;
     case "align": return svg`
     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="12" height="10" rx="1.5" /><path d="M9 4h11v11" stroke-dasharray="2.5 2" /></svg>`;
-    case "move": return svg`
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3" /></svg>`;
-    case "view": return svg`
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5M8.5 11h5M11 8.5v5" /></svg>`;
-    case "rotate-left": return svg`
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v5h5" /><path d="M5 10a8 8 0 1 1 1.5 7" /></svg>`;
-    case "rotate-right": return svg`
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5v5h-5" /><path d="M19 10a8 8 0 1 0-1.5 7" /></svg>`;
     default: return svg`
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" /><path d="M12 2v4m0 12v4M2 12h4m12 0h4" /><circle cx="12" cy="12" r="1" /></svg>`;
   }
@@ -113,10 +105,26 @@ export const mowingMapStyles = css`
   .world-tiles img { position:absolute; left:0; top:0; width:256.5px; height:256.5px; max-width:none;
     transform-origin:0 0; user-select:none; -webkit-user-drag:none; }
   .canvas.world .map-canvas { position:relative; }
-  .mower-layer.over-world { opacity:var(--mower-map-world-overlay-opacity,.92); }
+  .mower-layer.over-world { opacity:var(--mower-map-world-overlay-opacity,1); }
+  .world-veil { position:absolute; inset:0; pointer-events:none; background:var(--map-surface); }
+  .garden-halo { flood-color:var(--mower-map-garden-halo, #0b1410); flood-opacity:.62; }
+  .mower-layer.over-world:not(.aligning) .trail { stroke-width:3.5px; stroke-opacity:1; }
+  .mower-layer.over-world:not(.aligning) .trail-outline { stroke-width:7px; stroke:#0b1410; stroke-opacity:.7; }
+  .mower-layer.over-world:not(.aligning) .position-halo { fill-opacity:.3; stroke-opacity:1; }
   .mower-layer.aligning { opacity:var(--mower-map-align-opacity,.6); }
   .align-frame { stroke:var(--map-accent); stroke-width:2; stroke-dasharray:6 4; }
-  .map-canvas.moving-map { cursor:move; }
+  .map-canvas.aligning { cursor:grab; }
+  .mower-layer.aligning { cursor:move; }
+  .handle-hit { fill:transparent; }
+  .handle-dot { fill:var(--map-surface); stroke:var(--map-accent); }
+  .handle.rotate .handle-dot { fill:var(--map-accent); stroke:var(--map-surface); }
+  .handle-glyph { fill:none; stroke:var(--map-surface); stroke-linecap:round; stroke-linejoin:round; }
+  .handle-stem { stroke:var(--map-accent); }
+  .handle.nwse { cursor:nwse-resize; }
+  .handle.nesw { cursor:nesw-resize; }
+  .handle.rotate { cursor:grab; }
+  .align-help { margin:0; font-size:12px; line-height:1.4; font-weight:600; }
+  .stepper-label { min-width:7.5em; font-size:12px; color:var(--map-muted); }
   .tile-attribution { position:absolute; right:0; bottom:0; max-width:100%; box-sizing:border-box;
     padding:2px 6px; font-size:9px; line-height:1.3; text-align:right; color:#1d2621;
     background:rgba(255,255,255,.72); border-top-left-radius:6px; pointer-events:auto; }
@@ -139,12 +147,9 @@ export const mowingMapStyles = css`
     border-bottom:1px solid var(--map-border);
     background:color-mix(in srgb, var(--map-surface) 92%, var(--map-accent)); }
   .align-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
-  .segmented { display:inline-flex; }
-  .segmented button { border-radius:0; }
-  .segmented button:first-child { border-radius:10px 0 0 10px; }
-  .segmented button:last-child { border-radius:0 10px 10px 0; margin-left:-1px; }
   .stepper { display:inline-flex; align-items:center; gap:4px; }
-  .stepper button { min-width:42px; min-height:42px; touch-action:manipulation; }
+  .stepper button { min-width:52px; min-height:42px; padding:6px 8px; touch-action:manipulation;
+    font-variant-numeric:tabular-nums; }
   .readout { min-width:4.2em; text-align:center; font-size:12px; font-weight:600;
     font-variant-numeric:tabular-nums; }
   .align-hint { flex:1 1 180px; min-width:0; font-size:12px; line-height:1.4; color:var(--map-muted); }

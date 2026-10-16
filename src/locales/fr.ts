@@ -143,12 +143,11 @@ export const fr = {
   "mowingMap.backgroundSatellite": "Satellite",
   "mowingMap.align": "Ajuster",
   "mowingMap.alignTools": "Commandes d’ajustement",
-  "mowingMap.alignHint": "Glissez, pincez ou tournez la carte de la tondeuse jusqu’à ce que les zones recouvrent la pelouse.",
+  "mowingMap.alignHint": "2 doigts ou molette : zoomer la vue · glisser la carte pour la déplacer · poignées : taille et rotation",
   "mowingMap.alignNew": "Départ à la position de la maison dans Home Assistant. Glissez la carte de la tondeuse sur votre terrain.",
+  "mowingMap.rotationLabel": "Rotation",
+  "mowingMap.sizeLabel": "Taille de la carte",
   "mowingMap.notAligned": "Pas encore calée · utilisez Ajuster pour placer la carte sur le terrain",
-  "mowingMap.gestures": "Les gestes déplacent",
-  "mowingMap.gestureMap": "Carte",
-  "mowingMap.gestureView": "Vue",
   "mowingMap.rotateLeft": "Tourner la carte vers la gauche",
   "mowingMap.rotateRight": "Tourner la carte vers la droite",
   "mowingMap.scaleDown": "Réduire la taille de la carte",
@@ -172,5 +171,7 @@ export const fr = {
   "editor.mowerMarkerFixed": "Taille fixe",
   "editor.mowerMarkerHint": "En taille réelle, l’icône suit le zoom ; de loin, elle garde la taille fixe pour rester visible. Taille par défaut : 65,9 × 43,9 cm.",
   "editor.mowerLength": "Longueur de la tondeuse (cm)",
-  "editor.mowerWidth": "Largeur de la tondeuse (cm)"
+  "editor.mowerWidth": "Largeur de la tondeuse (cm)",
+  "editor.worldBackgroundDim": "Atténuer le plan et le satellite (0–100)",
+  "editor.worldBackgroundDimHint": "Intensité avec laquelle le plan ou le satellite s’efface derrière le jardin pour faire ressortir les zones. 45 par défaut ; 0 garde les tuiles intactes. Ajuster les affiche toujours nettes."
 } satisfies TranslationCatalog;

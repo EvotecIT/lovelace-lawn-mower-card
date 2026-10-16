@@ -425,12 +425,11 @@ export const es = {
   "mowingMap.backgroundSatellite": "Satélite",
   "mowingMap.align": "Ajustar",
   "mowingMap.alignTools": "Controles de ajuste",
-  "mowingMap.alignHint": "Arrastra, pellizca o gira el mapa del cortacésped hasta que las zonas queden sobre el césped.",
+  "mowingMap.alignHint": "Dos dedos o la rueda: ampliar la vista · arrastra el mapa para moverlo · tiradores: tamaño y rotación",
   "mowingMap.alignNew": "Se parte de la ubicación de tu casa en Home Assistant. Arrastra el mapa del cortacésped sobre tu jardín.",
+  "mowingMap.rotationLabel": "Rotación",
+  "mowingMap.sizeLabel": "Tamaño del mapa",
   "mowingMap.notAligned": "Aún sin ajustar · usa Ajustar para colocar el mapa sobre el terreno",
-  "mowingMap.gestures": "Los gestos mueven",
-  "mowingMap.gestureMap": "Mapa",
-  "mowingMap.gestureView": "Vista",
   "mowingMap.rotateLeft": "Girar el mapa a la izquierda",
   "mowingMap.rotateRight": "Girar el mapa a la derecha",
   "mowingMap.scaleDown": "Reducir el mapa",
@@ -454,5 +453,7 @@ export const es = {
   "editor.mowerMarkerFixed": "Tamaño fijo",
   "editor.mowerMarkerHint": "A tamaño real, el icono sigue el zoom; de lejos mantiene el tamaño fijo para seguir visible. Tamaño predeterminado: 65,9 × 43,9 cm.",
   "editor.mowerLength": "Longitud del cortacésped (cm)",
-  "editor.mowerWidth": "Anchura del cortacésped (cm)"
+  "editor.mowerWidth": "Anchura del cortacésped (cm)",
+  "editor.worldBackgroundDim": "Atenuar mapa de calles y satélite (0–100)",
+  "editor.worldBackgroundDimHint": "Cuánto se difumina el mapa o el satélite detrás del jardín para destacar las zonas. 45 por defecto; 0 deja las teselas intactas. Ajustar siempre las muestra nítidas."
 } satisfies TranslationCatalog;
