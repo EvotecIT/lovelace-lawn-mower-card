@@ -14,9 +14,9 @@ import {
   type MapBackground, type MapPoint, type MapViewport, type MowerSize, type MowingMapScene,
 } from "./mowing-map-logic";
 import {
-  adjustmentMatrix, alignedGeoreference, composeAdjustment, defaultGeoreference,
+  adjustmentMatrix, alignedGeoreference, colorSchemeFor, composeAdjustment, defaultGeoreference,
   georeferenceServiceData, IDENTITY_ADJUSTMENT, mapCentre, metresPerMapPixel, sameGeoreference,
-  tileUrl, tileZoomFor, visibleTiles, worldTileSource,
+  screenMatrix, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
   type GeoPoint, type MapAdjustment, type MapGeoreference, type WorldBackground, type WorldTileOptions,
 } from "./map-georeference-logic";
 
@@ -111,6 +111,10 @@ export class LawnMowerMowingMap extends LitElement {
       this._resize.observe(viewport);
       this._observed = viewport;
     }
+    // Native pickers follow color-scheme, not the card's colours: match the theme surface.
+    const surface = this.renderRoot.querySelector<HTMLElement>(".viewport");
+    const scheme = surface ? colorSchemeFor(getComputedStyle(surface).backgroundColor) : undefined;
+    if (scheme && this.style.colorScheme !== scheme) this.style.colorScheme = scheme;
     // Aligning happens full screen on phones: a modal dialog escapes the card's height.
     const dialog = this.renderRoot.querySelector<HTMLDialogElement>("dialog.align-dialog");
     if (dialog && !dialog.open) {
@@ -616,7 +620,11 @@ export class LawnMowerMowingMap extends LitElement {
       </label>`;
   }
 
-  /** Geographic tiles in map pixels, one affine per tile, under the mower layers. */
+  /**
+   * Geographic tiles under the SVG, one affine per tile. They are HTML images
+   * so they can send an origin-only Referer, which tile servers such as
+   * OpenStreetMap require and Home Assistant pages otherwise suppress.
+   */
   private _renderTiles(scene: MowingMapScene, world: WorldBackground, reference: MapGeoreference) {
     const projection = scene.projection;
     if (!projection) return nothing;
@@ -634,13 +642,14 @@ export class LawnMowerMowingMap extends LitElement {
       x: this._view.x - (shown.width - this._view.width) / 2,
       y: this._view.y - (shown.height - this._view.height) / 2, ...shown,
     }, zoom);
-    return svg`<g class="world-tiles" aria-hidden="true">${repeat(tiles, (tile) => `${tile.z}/${tile.x}/${tile.y}`,
+    return html`<div class="world-tiles" aria-hidden="true">${repeat(tiles, (tile) => `${tile.z}/${tile.x}/${tile.y}`,
       (tile) => {
         const href = tileUrl(source.template, tile.z, tile.x, tile.y);
-        return href ? svg`<image href=${href} x="-0.25" y="-0.25" width="256.5" height="256.5"
-          preserveAspectRatio="none" transform=${`matrix(${tile.matrix.join(" ")})`}
+        return href ? html`<img src=${href} alt="" draggable="false" decoding="async"
+          referrerpolicy="strict-origin-when-cross-origin"
+          style=${`transform:matrix(${screenMatrix(tile.matrix, this._view, this._size).join(",")})`}
           @error=${() => this._tileFailed(source.template, tile.z)} />` : nothing;
-      })}</g>`;
+      })}</div>`;
   }
 
   private _renderAttribution(world: WorldBackground) {
@@ -736,13 +745,13 @@ export class LawnMowerMowingMap extends LitElement {
         ${align ? this._renderAlignBar(align) : nothing}
         <div class=${`canvas${world ? " world" : ""}`}>
         ${scene && this._image ? html`
+          ${world && reference ? this._renderTiles(scene, world, reference) : nothing}
           <svg class=${`map-canvas${align && this._gesture === "map" ? " moving-map" : ""}`}
             viewBox=${`${this._view.x} ${this._view.y} ${this._view.width} ${this._view.height}`}
             tabindex="0" role="img" aria-label=${this._t("mowingMap.mapLabel")}
             @pointerdown=${this._down} @pointermove=${this._move} @pointerup=${this._up}
             @pointercancel=${this._up} @lostpointercapture=${this._up}
             @wheel=${this._wheel} @keydown=${this._key}>
-            ${world && reference ? this._renderTiles(scene, world, reference) : nothing}
             <g class=${`mower-layer${world ? " over-world" : ""}${align ? " aligning" : ""}`}
               transform=${adjustment ?? nothing}>
             ${this._photoWanted && this._photo && this._photoPath === scene.real_scene_path ? svg`

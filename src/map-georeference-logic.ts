@@ -219,6 +219,20 @@ export function tileMatrix(
   ];
 }
 
+/**
+ * Compose a map-pixel matrix with the SVG's letterboxed viewBox, giving CSS
+ * pixels inside the canvas (preserveAspectRatio "xMidYMid meet").
+ */
+export function screenMatrix(
+  matrix: PlacedTile["matrix"], view: MapViewport, size: { width: number; height: number },
+): PlacedTile["matrix"] {
+  const k = Math.min(size.width / view.width, size.height / view.height);
+  const ox = (size.width - view.width * k) / 2 - view.x * k;
+  const oy = (size.height - view.height * k) / 2 - view.y * k;
+  const [a, b, c, d, e, f] = matrix;
+  return [a * k, b * k, c * k, d * k, e * k + ox, f * k + oy];
+}
+
 /** Tiles covering a viewport; lowers the level until the count fits. */
 export function visibleTiles(
   projection: MapProjection, reference: MapGeoreference, view: MapViewport,
@@ -400,6 +414,16 @@ export function sameGeoreference(
       (where.longitude - b.longitude) * metres.longitude) < 0.01;
 }
 
+/** Dark or light native controls for a CSS colour such as "rgb(17, 24, 39)". */
+export function colorSchemeFor(color: string): "dark" | "light" | undefined {
+  const match = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)$/.exec(color.trim());
+  if (!match) return undefined;
+  if (match[4] !== undefined && parseFloat(match[4]) === 0) return undefined;
+  const [r, g, b] = match.slice(1, 4).map((value) => Number(value) / 255)
+    .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.18 ? "dark" : "light";
+}
+
 export type WorldBackground = "map" | "satellite";
 
 export type WorldTileSource = {
@@ -415,10 +439,11 @@ export type WorldTileSource = {
  * "Map data not yet available" placeholders.
  */
 export const DEFAULT_WORLD_TILES: Readonly<Record<WorldBackground, WorldTileSource>> = Object.freeze({
+  // OpenStreetMap's own servers refuse requests without a Referer, which Home
+  // Assistant pages do not send; OSM stays available through map_tile_url.
   map: {
-    template: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: "© OpenStreetMap contributors",
-    attributionUrl: "https://www.openstreetmap.org/copyright",
+    template: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}?blankTile=false",
+    attribution: "Powered by Esri · Esri, HERE, Garmin, USGS, NRCan, © OpenStreetMap contributors, and the GIS User Community",
     maxZoom: 19,
   },
   satellite: {

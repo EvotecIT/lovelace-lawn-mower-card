@@ -52,7 +52,7 @@
   toolbar can switch for the current view. See
   [street map and satellite](media.md#street-map-and-satellite).
 - `map_tile_url` / `satellite_tile_url`: optional `http(s)` tile templates with
-  `{z}`, `{x}` and `{y}` for the street map (default OpenStreetMap) and satellite
+  `{z}`, `{x}` and `{y}` for the street map (default Esri World Street Map) and satellite
   (default Esri World Imagery) backgrounds
 - `map_tile_attribution` / `satellite_tile_attribution`: attribution shown over
   a custom tile source; the defaults keep their provider's attribution

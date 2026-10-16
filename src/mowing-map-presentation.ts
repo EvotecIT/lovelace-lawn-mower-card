@@ -104,8 +104,15 @@ export const mowingMapStyles = css`
   .background-picker svg { width:16px; height:16px; flex:none; fill:none; stroke:currentColor;
     stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
   .background-picker select { min-height:36px; max-width:9.5em; border:0; outline:0; padding:0 2px;
-    font:inherit; font-size:12px; font-weight:600; color:inherit; background:transparent; cursor:pointer; }
+    font:inherit; font-size:12px; font-weight:600; cursor:pointer;
+    color:var(--map-text); background-color:transparent; }
+  /* Native pickers draw options on their own surface: give them the theme's colours. */
+  .background-picker option { color:var(--map-text); background-color:var(--map-surface); }
   .canvas.world { background:var(--mower-map-world-ground, #6f7d71); }
+  .world-tiles { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+  .world-tiles img { position:absolute; left:0; top:0; width:256.5px; height:256.5px; max-width:none;
+    transform-origin:0 0; user-select:none; -webkit-user-drag:none; }
+  .canvas.world .map-canvas { position:relative; }
   .mower-layer.over-world { opacity:var(--mower-map-world-overlay-opacity,.92); }
   .mower-layer.aligning { opacity:var(--mower-map-align-opacity,.6); }
   .align-frame { stroke:var(--map-accent); stroke-width:2; stroke-dasharray:6 4; }

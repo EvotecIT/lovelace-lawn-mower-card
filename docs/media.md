@@ -64,11 +64,23 @@ home location (north up, 1 mm per map unit).
 - **Save** sends `dreame_lawn_mower.set_georeference` with the mower entity;
   **Cancel** or Escape keeps the previous alignment.
 
-The default street map is © OpenStreetMap contributors (levels up to 19; closer
-views enlarge level-19 tiles). The default satellite source is Esri World
-Imagery; where it has no imagery at a level, the card steps down to the deepest
-level it serves. Both are fetched by your browser from the tile provider, which
-therefore sees the area being viewed.
+The default street map is Esri World Street Map and the default satellite source
+is Esri World Imagery, both free without a key. Where a source has no tiles at a
+level, the card steps down to the deepest level it serves and enlarges those
+tiles (street map: level 19 at most). Tiles are fetched by your browser from the
+provider, which therefore sees the area being viewed; they send only your Home
+Assistant origin as the Referer.
+
+OpenStreetMap's own tile servers can be used instead, with their attribution:
+
+```yaml
+map_tile_url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+map_tile_attribution: © OpenStreetMap contributors
+map_tile_max_zoom: 19
+```
+
+Follow the [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/);
+it refuses requests that carry no Referer.
 
 ## 3D Point Clouds
 

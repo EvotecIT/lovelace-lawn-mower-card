@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   adjustPoint, adjustmentMatrix, alignedGeoreference, composeAdjustment, DEFAULT_WORLD_TILES,
   defaultGeoreference, geoToNative, geoToPixel, geoToTile, georeferenceServiceData, IDENTITY_ADJUSTMENT,
-  nativeToGeo, nativeToPixel, pixelToGeo, pixelToNative, readMapGeoreference, sameGeoreference,
+  nativeToGeo, nativeToPixel, pixelToGeo, pixelToNative, readMapGeoreference, sameGeoreference, screenMatrix, colorSchemeFor,
   tileMatrix, tileTemplate, tileToGeo, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
   type MapGeoreference, type MapProjection,
 } from "../src/map-georeference-logic.ts";
@@ -98,6 +98,24 @@ test("tiles are placed through pixel, native and GPS with one affine per tile", 
   assert.ok(tiles.every((tile) => tile.z <= 21));
 });
 
+test("tile matrices follow the letterboxed SVG into canvas pixels", () => {
+  const view = { x: 100, y: 50, width: 400, height: 200 };
+  const size = { width: 400, height: 400 }; // 1 px per unit, 100 px bands above and below
+  const matrix = screenMatrix([2, 0, 0, 2, 150, 60], view, size);
+  assert.deepEqual(matrix, [2, 0, 0, 2, 50, 110]);
+  const half = screenMatrix([1, 0, 0, 1, 100, 50], view, { width: 200, height: 100 });
+  assert.deepEqual(half, [0.5, 0, 0, 0.5, 0, 0]);
+});
+
+test("native controls follow a dark or light theme surface", () => {
+  assert.equal(colorSchemeFor("rgb(28, 28, 28)"), "dark");
+  assert.equal(colorSchemeFor("rgb(17 24 39 / 0.9)"), "dark");
+  assert.equal(colorSchemeFor("rgb(255, 255, 255)"), "light");
+  assert.equal(colorSchemeFor("rgba(244, 247, 244, 1)"), "light");
+  assert.equal(colorSchemeFor("rgba(0, 0, 0, 0)"), undefined);
+  assert.equal(colorSchemeFor("color(srgb 1 1 1)"), undefined);
+});
+
 test("tile level follows screen sharpness and the source limit", () => {
   near(tileZoomFor(0.3, 45.3, 25), 19, 0);
   assert.equal(tileZoomFor(0.01, 45.3, 19), 19);
@@ -108,7 +126,12 @@ test("tile level follows screen sharpness and the source limit", () => {
 
 test("tile sources accept only templated http(s) URLs and keep attribution", () => {
   assert.equal(worldTileSource("map").maxZoom, 19);
-  assert.match(worldTileSource("map").attribution, /OpenStreetMap contributors/);
+  assert.match(worldTileSource("map").template, /World_Street_Map\/MapServer\/tile\/\{z\}\/\{y\}\/\{x\}\?blankTile=false$/);
+  assert.match(worldTileSource("map").attribution, /^Powered by Esri .*OpenStreetMap contributors/);
+  const osm = worldTileSource("map", { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "© OpenStreetMap contributors", maxZoom: 19 });
+  assert.equal(osm.template, "https://tile.openstreetmap.org/{z}/{x}/{y}.png");
+  assert.equal(osm.attribution, "© OpenStreetMap contributors");
   assert.match(worldTileSource("satellite").template, /World_Imagery/);
   assert.match(worldTileSource("satellite").attribution, /Esri, Maxar, Earthstar Geographics/);
   for (const bad of ["javascript:alert(1)//{z}{x}{y}", "//evil/{z}/{x}/{y}", "https://t/{z}/{x}.png", 4]) {
