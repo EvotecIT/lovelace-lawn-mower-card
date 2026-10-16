@@ -510,5 +510,11 @@ export const cs = {
   "editor.mapTileUrl": "URL dlaždic mapy ulic",
   "editor.mapTileUrlHint": "Volitelná šablona dlaždic s {z}, {x} a {y}. Nechte prázdné pro OpenStreetMap.",
   "editor.satelliteTileUrl": "URL satelitních dlaždic",
-  "editor.satelliteTileUrlHint": "Volitelná šablona dlaždic s {z}, {x} a {y}. Nechte prázdné pro Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Volitelná šablona dlaždic s {z}, {x} a {y}. Nechte prázdné pro Esri World Imagery.",
+  "editor.mowerMarker": "Ikona sekačky na mapě",
+  "editor.mowerMarkerRealSize": "Skutečná velikost, je-li měřítko mapy známé",
+  "editor.mowerMarkerFixed": "Pevná velikost",
+  "editor.mowerMarkerHint": "Ve skutečné velikosti ikona sleduje přiblížení; zdálky si ponechá pevnou velikost, aby zůstala viditelná. Výchozí velikost: 65,9 × 43,9 cm.",
+  "editor.mowerLength": "Délka sekačky (cm)",
+  "editor.mowerWidth": "Šířka sekačky (cm)"
 } satisfies TranslationCatalog;

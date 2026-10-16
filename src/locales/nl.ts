@@ -496,5 +496,11 @@ export const nl = {
   "editor.mapTileUrl": "Tegel-URL van de stratenkaart",
   "editor.mapTileUrlHint": "Optioneel tegelsjabloon met {z}, {x} en {y}. Laat leeg voor OpenStreetMap.",
   "editor.satelliteTileUrl": "Tegel-URL van de satelliet",
-  "editor.satelliteTileUrlHint": "Optioneel tegelsjabloon met {z}, {x} en {y}. Laat leeg voor Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Optioneel tegelsjabloon met {z}, {x} en {y}. Laat leeg voor Esri World Imagery.",
+  "editor.mowerMarker": "Maaiericoon op de kaart",
+  "editor.mowerMarkerRealSize": "Echte grootte als de kaartschaal bekend is",
+  "editor.mowerMarkerFixed": "Vaste grootte",
+  "editor.mowerMarkerHint": "Op echte grootte volgt het icoon de zoom; van ver houdt het de vaste grootte zodat het zichtbaar blijft. Standaardgrootte: 65,9 × 43,9 cm.",
+  "editor.mowerLength": "Lengte van de maaier (cm)",
+  "editor.mowerWidth": "Breedte van de maaier (cm)"
 } satisfies TranslationCatalog;

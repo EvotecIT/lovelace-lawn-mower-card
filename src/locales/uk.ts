@@ -166,5 +166,11 @@ export const uk = {
   "editor.mapTileUrl": "URL плиток карти вулиць",
   "editor.mapTileUrlHint": "Необов’язковий шаблон плиток з {z}, {x} і {y}. Залиште порожнім для OpenStreetMap.",
   "editor.satelliteTileUrl": "URL супутникових плиток",
-  "editor.satelliteTileUrlHint": "Необов’язковий шаблон плиток з {z}, {x} і {y}. Залиште порожнім для Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Необов’язковий шаблон плиток з {z}, {x} і {y}. Залиште порожнім для Esri World Imagery.",
+  "editor.mowerMarker": "Значок косарки на карті",
+  "editor.mowerMarkerRealSize": "Реальний розмір, якщо відомий масштаб карти",
+  "editor.mowerMarkerFixed": "Фіксований розмір",
+  "editor.mowerMarkerHint": "У реальному розмірі значок слідує за масштабом; здалеку він зберігає фіксований розмір, щоб лишатися видимим. Розмір за замовчуванням: 65,9 × 43,9 см.",
+  "editor.mowerLength": "Довжина косарки (см)",
+  "editor.mowerWidth": "Ширина косарки (см)"
 } satisfies TranslationCatalog;

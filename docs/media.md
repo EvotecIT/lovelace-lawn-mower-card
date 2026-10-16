@@ -34,6 +34,12 @@ integration or a camera without the attribute continues to show its map image.
 
 ![Live-path map inside the Lawn Mower Card Hero layout](../assets/lawn-mower-card-map.png)
 
+When the integration also sends the map projection, the mower is drawn at its
+real size (`mower_length` × `mower_width`, default 65.9 × 43.9 cm) and turned to
+its heading, on every background. It grows with the zoom, which can then go up
+to 32×; further out it keeps the fixed icon so it stays visible.
+`mower_marker: fixed` always uses the fixed icon.
+
 ## Street map and satellite
 
 When the integration describes how its map pixels relate to the mower's own

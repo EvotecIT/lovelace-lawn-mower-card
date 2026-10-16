@@ -58,6 +58,12 @@
   a custom tile source; the defaults keep their provider's attribution
 - `map_tile_max_zoom` / `satellite_tile_max_zoom`: optional highest tile level
   (1–23) a source serves; deeper views enlarge that level's tiles
+- `mower_marker`: `real_size` (default) draws the mower on the interactive map
+  at its real size when the integration provides the map projection, oriented
+  by its heading; far out, the fixed icon is kept so it stays visible. `fixed`
+  always uses the fixed icon.
+- `mower_length` / `mower_width`: real-size footprint in centimetres (10–300).
+  Defaults: 65.9 × 43.9 cm (MOVA LiDAX Ultra 1000; the AWD variant is 74 × 53.2 cm).
 - `camera_entity`: optional live-video camera used by the Hero Camera view. A
   compatible companion camera is detected automatically when this is omitted.
 - `schedule_calendar_entity`: optional `calendar` entity for the Schedule helper

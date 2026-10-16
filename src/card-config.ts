@@ -93,6 +93,11 @@ export type LawnMowerCardConfig = {
   satellite_tile_url?: string;
   satellite_tile_attribution?: string;
   satellite_tile_max_zoom?: number;
+  /** real_size (default) draws the mower to scale when the map scale is known. */
+  mower_marker?: "real_size" | "fixed";
+  /** Mower length and width in centimetres for the real-size marker. */
+  mower_length?: number;
+  mower_width?: number;
   map_position?: MapPosition;
   camera_entity?: string;
   schedule_calendar_entity?: string;

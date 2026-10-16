@@ -144,6 +144,7 @@ export class LawnMowerCardEditor extends LitElement {
           "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
           this._t("editor.satelliteTileUrlHint"),
         )}
+        ${this._mowerMarkerFields(config)}
         ${this._toggle(
           this._t("editor.showPointCloud"),
           config.show_point_cloud ??
@@ -330,6 +331,38 @@ export class LawnMowerCardEditor extends LitElement {
         <span class="hint">${this._t("editor.mapBackgroundHint")}</span>
       </label>
     `;
+  }
+
+  private _mowerMarkerFields(config: LawnMowerCardConfig) {
+    const fixed = config.mower_marker === "fixed";
+    const size = (key: "mower_length" | "mower_width", label: string, placeholder: string) => html`
+      <label>
+        <span>${label}</span>
+        <input type="number" min="10" max="300" step="0.1" inputmode="decimal" placeholder=${placeholder}
+          .value=${config[key] === undefined ? "" : String(config[key])}
+          @input=${(event: Event) => this._numberChanged(key, (event.currentTarget as HTMLInputElement).value)} />
+      </label>`;
+    return html`
+      <label>
+        <span>${this._t("editor.mowerMarker")}</span>
+        <select data-key="mower_marker" .value=${fixed ? "fixed" : "real_size"} @change=${this._valueChanged}>
+          <option value="real_size">${this._t("editor.mowerMarkerRealSize")}</option>
+          <option value="fixed">${this._t("editor.mowerMarkerFixed")}</option>
+        </select>
+        <span class="hint">${this._t("editor.mowerMarkerHint")}</span>
+      </label>
+      ${fixed ? nothing : html`
+        ${size("mower_length", this._t("editor.mowerLength"), "65.9")}
+        ${size("mower_width", this._t("editor.mowerWidth"), "43.9")}`}
+    `;
+  }
+
+  private _numberChanged(key: "mower_length" | "mower_width", raw: string) {
+    const next: LawnMowerCardConfig = { ...(this._config || getStubConfig()) };
+    const value = Number(raw.trim().replace(",", "."));
+    if (raw.trim() && Number.isFinite(value)) next[key] = value;
+    else delete next[key];
+    this._emitConfigChanged(next);
   }
 
   private _mapFitField(value: MapFit) {

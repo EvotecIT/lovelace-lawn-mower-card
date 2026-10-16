@@ -448,5 +448,11 @@ export const es = {
   "editor.mapTileUrl": "URL de teselas del mapa de calles",
   "editor.mapTileUrlHint": "Plantilla de teselas opcional con {z}, {x} y {y}. Déjalo vacío para OpenStreetMap.",
   "editor.satelliteTileUrl": "URL de teselas de satélite",
-  "editor.satelliteTileUrlHint": "Plantilla de teselas opcional con {z}, {x} y {y}. Déjalo vacío para Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Plantilla de teselas opcional con {z}, {x} y {y}. Déjalo vacío para Esri World Imagery.",
+  "editor.mowerMarker": "Icono del cortacésped en el mapa",
+  "editor.mowerMarkerRealSize": "Tamaño real si se conoce la escala del mapa",
+  "editor.mowerMarkerFixed": "Tamaño fijo",
+  "editor.mowerMarkerHint": "A tamaño real, el icono sigue el zoom; de lejos mantiene el tamaño fijo para seguir visible. Tamaño predeterminado: 65,9 × 43,9 cm.",
+  "editor.mowerLength": "Longitud del cortacésped (cm)",
+  "editor.mowerWidth": "Anchura del cortacésped (cm)"
 } satisfies TranslationCatalog;

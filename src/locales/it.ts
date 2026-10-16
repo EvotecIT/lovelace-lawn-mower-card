@@ -166,5 +166,11 @@ export const it = {
   "editor.mapTileUrl": "URL delle tessere della mappa stradale",
   "editor.mapTileUrlHint": "Modello di tessere facoltativo con {z}, {x} e {y}. Lascia vuoto per OpenStreetMap.",
   "editor.satelliteTileUrl": "URL delle tessere satellitari",
-  "editor.satelliteTileUrlHint": "Modello di tessere facoltativo con {z}, {x} e {y}. Lascia vuoto per Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Modello di tessere facoltativo con {z}, {x} e {y}. Lascia vuoto per Esri World Imagery.",
+  "editor.mowerMarker": "Icona del rasaerba sulla mappa",
+  "editor.mowerMarkerRealSize": "Dimensione reale se la scala della mappa è nota",
+  "editor.mowerMarkerFixed": "Dimensione fissa",
+  "editor.mowerMarkerHint": "A dimensione reale l’icona segue lo zoom; da lontano mantiene la dimensione fissa per restare visibile. Dimensione predefinita: 65,9 × 43,9 cm.",
+  "editor.mowerLength": "Lunghezza del rasaerba (cm)",
+  "editor.mowerWidth": "Larghezza del rasaerba (cm)"
 } satisfies TranslationCatalog;

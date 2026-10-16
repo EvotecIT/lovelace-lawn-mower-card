@@ -166,5 +166,11 @@ export const de = {
   "editor.mapTileUrl": "Kachel-URL der Straßenkarte",
   "editor.mapTileUrlHint": "Optionale Kachelvorlage mit {z}, {x} und {y}. Leer lassen für OpenStreetMap.",
   "editor.satelliteTileUrl": "Kachel-URL des Satellitenbilds",
-  "editor.satelliteTileUrlHint": "Optionale Kachelvorlage mit {z}, {x} und {y}. Leer lassen für Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Optionale Kachelvorlage mit {z}, {x} und {y}. Leer lassen für Esri World Imagery.",
+  "editor.mowerMarker": "Mähersymbol auf der Karte",
+  "editor.mowerMarkerRealSize": "Echte Größe, wenn der Kartenmaßstab bekannt ist",
+  "editor.mowerMarkerFixed": "Feste Größe",
+  "editor.mowerMarkerHint": "In echter Größe folgt das Symbol dem Zoom; aus der Ferne behält es die feste Größe, damit es sichtbar bleibt. Standardgröße: 65,9 × 43,9 cm.",
+  "editor.mowerLength": "Länge des Mähers (cm)",
+  "editor.mowerWidth": "Breite des Mähers (cm)"
 } satisfies TranslationCatalog;

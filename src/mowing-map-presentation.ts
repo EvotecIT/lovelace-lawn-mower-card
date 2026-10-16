@@ -1,10 +1,13 @@
 import { css, svg } from "lit";
 
-/** Top-down mower silhouette; rotation is supplied only by validated telemetry. */
-export function mowerMapMarker(heading: number | null) {
+/**
+ * Top-down mower silhouette; rotation is supplied only by validated telemetry.
+ * `stretch` sizes the body along the mower's width (x) and length (y).
+ */
+export function mowerMapMarker(heading: number | null, stretch = { x: 1, y: 1 }) {
   return svg`
-    <circle class="position-halo" r="1.13" />
-    <g transform=${`rotate(${heading ?? 0})`}>
+    <circle class="position-halo" r=${1.13 * Math.max(stretch.x, stretch.y)} />
+    <g transform=${`rotate(${heading ?? 0}) scale(${stretch.x} ${stretch.y})`}>
       ${heading === null ? svg`` : svg`
         <path class="heading-cone" d="M -.62 -1.05 L 0 -1.65 L .62 -1.05 Z" />`}
       <rect x="-.83" y="-.39" width=".3" height="1.05" rx=".12" fill="#111917" stroke="#85968d" stroke-width=".05" />

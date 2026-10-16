@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   availableMapBackgrounds, constrainViewport, effectiveMapBackground, fitMap, mowingMapPath,
-  normalizeMapBackground, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
+  DEFAULT_MOWER_SIZE, MARKER_BODY, mowerMarkerSize, mowerMarkerTransform,
+  normalizeMapBackground, viewLimits, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
 
 const path = "/api/dreame_lawn_mower/mowing-map/entry";
@@ -153,4 +154,32 @@ test("geographic views may zoom out and roam further than the map alone", () => 
   assert.equal(zoomMap(fit, 0.00001, anchor, 1000, 600, WORLD_VIEW_LIMITS).width, 4000);
   assert.equal(constrainViewport({ ...fit, x: -5000 }, 1000, 600).x, -500);
   assert.equal(constrainViewport({ ...fit, x: -5000 }, 1000, 600, WORLD_VIEW_LIMITS).x, -1500);
+  // A known map scale allows a deeper zoom, to see the real-size mower up close.
+  assert.equal(zoomMap(fit, 10000, anchor, 1000, 600, viewLimits(false, false)).width, 1000 / 12);
+  assert.equal(zoomMap(fit, 10000, anchor, 1000, 600, viewLimits(false, true)).width, 1000 / 32);
+  assert.equal(zoomMap(fit, 0.00001, anchor, 1000, 600, viewLimits(false, true)).width, 1000);
+  assert.equal(viewLimits(true, true), WORLD_VIEW_LIMITS);
+});
+
+test("the mower marker is drawn at real size when the scale is known", () => {
+  assert.deepEqual(mowerMarkerSize({}), DEFAULT_MOWER_SIZE);
+  assert.deepEqual(mowerMarkerSize({ mower_length: 74, mower_width: "53,2" }), { length: 740, width: 532 });
+  assert.deepEqual(mowerMarkerSize({ mower_length: 5, mower_width: "wide" }), DEFAULT_MOWER_SIZE);
+  assert.equal(mowerMarkerSize({ mower_marker: "fixed" }), null);
+  // 0.05 map px per mm: a 659 mm mower is 32.95 map px long.
+  const zoomedIn = mowerMarkerTransform(0.25, 0.05, DEFAULT_MOWER_SIZE);
+  assert.equal(zoomedIn.realSize, true);
+  assert.equal(zoomedIn.scale, 1);
+  assert.ok(Math.abs(zoomedIn.y * MARKER_BODY.length - 659 * 0.05) < 1e-9);
+  assert.ok(Math.abs(zoomedIn.x * MARKER_BODY.width - 439 * 0.05) < 1e-9);
+  // On screen that is 131.8 px; zooming in twice doubles it.
+  const closer = mowerMarkerTransform(0.125, 0.05, DEFAULT_MOWER_SIZE);
+  assert.equal(closer.y, zoomedIn.y);
+  // Below the fixed icon's 37.8 px the fixed icon stays, so it remains visible.
+  assert.deepEqual(mowerMarkerTransform(2, 0.05, DEFAULT_MOWER_SIZE), { scale: 40, x: 1, y: 1, realSize: false });
+  assert.equal(mowerMarkerTransform(0.8716, 0.05, DEFAULT_MOWER_SIZE).realSize, true);
+  assert.equal(mowerMarkerTransform(0.8718, 0.05, DEFAULT_MOWER_SIZE).realSize, false);
+  // Without a projection or with the fixed option, the icon is unchanged.
+  assert.equal(mowerMarkerTransform(0.25, undefined, DEFAULT_MOWER_SIZE).realSize, false);
+  assert.equal(mowerMarkerTransform(0.25, 0.05, null).realSize, false);
 });

@@ -8,10 +8,10 @@ import { actionErrorDetail } from "./action-error";
 import { DREAME_LAWN_MOWER_SERVICE_DOMAIN } from "./card-logic";
 import { mapControlIcon, mowerMapMarker, mowingMapStyles } from "./mowing-map-presentation";
 import {
-  availableMapBackgrounds, constrainViewport, effectiveMapBackground, fitMap, isWorldBackground,
-  MAP_VIEW_LIMITS, mowingMapPath, normalizeMapBackground, overlayIsFresh, positionStatusKey,
-  readMowingMapScene, WORLD_VIEW_LIMITS, zoomMap,
-  type MapBackground, type MapPoint, type MapViewport, type MowingMapScene,
+  availableMapBackgrounds, constrainViewport, DEFAULT_MOWER_SIZE, mowerMarkerTransform, effectiveMapBackground, fitMap, isWorldBackground,
+  mowingMapPath, viewLimits, normalizeMapBackground, overlayIsFresh, positionStatusKey,
+  readMowingMapScene, zoomMap,
+  type MapBackground, type MapPoint, type MapViewport, type MowerSize, type MowingMapScene,
 } from "./mowing-map-logic";
 import {
   adjustmentMatrix, alignedGeoreference, composeAdjustment, defaultGeoreference,
@@ -61,6 +61,8 @@ export class LawnMowerMowingMap extends LitElement {
   /** Mower entity targeted by the integration's set_georeference service. */
   @property() public entityId?: string;
   @property({ attribute: false }) public tiles?: WorldTileConfig;
+  /** Real mower footprint in mm, or null for the fixed-size icon. */
+  @property({ attribute: false }) public mowerSize: MowerSize | null = DEFAULT_MOWER_SIZE;
 
   @state() private _scene?: MowingMapScene;
   @state() private _image?: string;
@@ -220,7 +222,7 @@ export class LawnMowerMowingMap extends LitElement {
   }
 
   private get _limits() {
-    return this._world ? WORLD_VIEW_LIMITS : MAP_VIEW_LIMITS;
+    return viewLimits(Boolean(this._world), Boolean(this._scene?.projection));
   }
 
   /** The saved alignment, a just-saved one, or the home as a starting point. */
@@ -699,7 +701,7 @@ export class LawnMowerMowingMap extends LitElement {
     const scene = this._scene;
     const fresh = Boolean(scene && this.active && !this._error && overlayIsFresh(scene));
     const position = fresh ? scene?.overlay.position : undefined;
-    const markerSize = Math.max(this._view.width / this._size.width, this._view.height / this._size.height) * 20;
+    const unitsPerScreenPixel = Math.max(this._view.width / this._size.width, this._view.height / this._size.height);
     const zoom = scene ? scene.width / this._view.width : 1;
     const world = scene ? this._world : undefined;
     const reference = world ? this._reference : undefined;
@@ -707,12 +709,15 @@ export class LawnMowerMowingMap extends LitElement {
     const adjustment = scene && align
       ? `matrix(${adjustmentMatrix(align.adjustment, mapCentre(scene.width, scene.height)).join(" ")})` : undefined;
     const minZoom = scene ? 1 / this._limits.maxWidth : 1;
+    // Inside an aligning map, map pixels are drawn larger by the adjustment's size.
+    const marker = mowerMarkerTransform(unitsPerScreenPixel / (align?.adjustment.scale ?? 1),
+      scene?.projection?.scale, this.mowerSize);
     const body = html`
       <div class="viewport" data-map-state=${this._error ? "error" : scene ? "ready" : "loading"}>
         <div class="toolbar" aria-label=${this._t("mowingMap.tools")}>
           <span class="map-name">${scene?.name || this._t("mowingMap.garden")}</span>
           <div class="tool-actions">
-            <button class="zoom" @click=${() => this._zoom(1.4)} ?disabled=${!scene || zoom >= 12}
+            <button class="zoom" @click=${() => this._zoom(1.4)} ?disabled=${!scene || zoom >= this._limits.maxZoom - 1e-6}
               title=${this._t("mowingMap.zoomIn")} aria-label=${this._t("mowingMap.zoomIn")}>+</button>
             <button class="zoom" @click=${() => this._zoom(1 / 1.4)} ?disabled=${!scene || zoom <= minZoom}
               title=${this._t("mowingMap.zoomOut")} aria-label=${this._t("mowingMap.zoomOut")}>−</button>
@@ -754,10 +759,11 @@ export class LawnMowerMowingMap extends LitElement {
                 fill="none" stroke-width="2.5" vector-effect="non-scaling-stroke"
                 stroke-linecap="round" stroke-linejoin="round" />`) : nothing}
             ${position ? svg`
-              <g transform=${`translate(${position.x} ${position.y}) scale(${markerSize / (align?.adjustment.scale ?? 1)})`}
+              <g transform=${`translate(${position.x} ${position.y}) scale(${marker.scale})`}
                 data-mower-position=${scene.overlay.position_status}
+                data-marker-size=${marker.realSize ? "real" : "fixed"}
                 opacity=${scene.overlay.position_status === "last_known" ? "0.55" : "1"}>
-                ${mowerMapMarker(position.heading)}
+                ${mowerMapMarker(position.heading, marker)}
               </g>` : nothing}
             </g>
           </svg>

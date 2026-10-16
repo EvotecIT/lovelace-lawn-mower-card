@@ -12,6 +12,7 @@ import type { MowingAreaProgress } from "./mowing-progress";
 
 import type { HeroImagePosition } from "./hero-image";
 import type { WorldTileConfig } from "./mowing-map";
+import type { MowerSize } from "./mowing-map-logic";
 import { renderHeroMedia } from "./hero-media";
 import { dashboardMainView, renderDashboardAside, renderDashboardHeader } from "./dashboard-layout";
 import { renderHeroActions, renderHeroActionFeedback } from "./hero-actions";
@@ -45,6 +46,8 @@ export type HeroLayoutModel = {
   /** Mower entity for map services such as set_georeference. */
   mowerEntityId?: string;
   worldTiles?: WorldTileConfig;
+  /** Real mower footprint in mm for the map marker; null keeps the fixed icon. */
+  mowerSize?: MowerSize | null;
   /** Mower entity whose saved photos the Photos view lists. */
   photoEntityId?: string;
   mapSavedPreview?: boolean;

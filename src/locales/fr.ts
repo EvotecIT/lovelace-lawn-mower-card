@@ -166,5 +166,11 @@ export const fr = {
   "editor.mapTileUrl": "URL des tuiles du plan",
   "editor.mapTileUrlHint": "Modèle de tuiles facultatif avec {z}, {x} et {y}. Laissez vide pour OpenStreetMap.",
   "editor.satelliteTileUrl": "URL des tuiles satellite",
-  "editor.satelliteTileUrlHint": "Modèle de tuiles facultatif avec {z}, {x} et {y}. Laissez vide pour Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Modèle de tuiles facultatif avec {z}, {x} et {y}. Laissez vide pour Esri World Imagery.",
+  "editor.mowerMarker": "Icône de la tondeuse sur la carte",
+  "editor.mowerMarkerRealSize": "Taille réelle si l’échelle de la carte est connue",
+  "editor.mowerMarkerFixed": "Taille fixe",
+  "editor.mowerMarkerHint": "En taille réelle, l’icône suit le zoom ; de loin, elle garde la taille fixe pour rester visible. Taille par défaut : 65,9 × 43,9 cm.",
+  "editor.mowerLength": "Longueur de la tondeuse (cm)",
+  "editor.mowerWidth": "Largeur de la tondeuse (cm)"
 } satisfies TranslationCatalog;

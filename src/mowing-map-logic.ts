@@ -142,9 +142,18 @@ export function effectiveMapBackground(wanted: MapBackground, available: readonl
  * the overscroll in view sizes. Geographic backgrounds let the view roam
  * further so the garden can be found and aligned.
  */
-export type ViewLimits = { maxWidth: number; slack: number };
-export const MAP_VIEW_LIMITS: ViewLimits = Object.freeze({ maxWidth: 1, slack: 0.5 });
-export const WORLD_VIEW_LIMITS: ViewLimits = Object.freeze({ maxWidth: 4, slack: 1.5 });
+export type ViewLimits = { maxWidth: number; slack: number; maxZoom: number };
+export const MAP_VIEW_LIMITS: ViewLimits = Object.freeze({ maxWidth: 1, slack: 0.5, maxZoom: 12 });
+export const WORLD_VIEW_LIMITS: ViewLimits = Object.freeze({ maxWidth: 4, slack: 1.5, maxZoom: 32 });
+
+/**
+ * With a known map scale the view may zoom deeper (32x) so the real-size
+ * mower can be seen up close; geographic backgrounds also roam further.
+ */
+export function viewLimits(world: boolean, projected: boolean): ViewLimits {
+  if (world) return WORLD_VIEW_LIMITS;
+  return projected ? { ...MAP_VIEW_LIMITS, maxZoom: WORLD_VIEW_LIMITS.maxZoom } : MAP_VIEW_LIMITS;
+}
 
 export function overlayIsFresh(scene: MowingMapScene, now = Date.now()): boolean {
   const updated = Date.parse(scene.overlay.updated_at || "");
@@ -179,11 +188,59 @@ export function zoomMap(
   limits: ViewLimits = MAP_VIEW_LIMITS,
 ): MapViewport {
   if (!finite(factor) || factor <= 0) return view;
-  const nextWidth = Math.max(width / 12, Math.min(width * limits.maxWidth, view.width / factor));
+  const nextWidth = Math.max(width / limits.maxZoom, Math.min(width * limits.maxWidth, view.width / factor));
   const ratio = nextWidth / view.width;
   return constrainViewport({
     x: anchor.x - (anchor.x - view.x) * ratio,
     y: anchor.y - (anchor.y - view.y) * ratio,
     width: nextWidth, height: height * nextWidth / width,
   }, width, height, limits);
+}
+
+/** Real mower footprint in millimetres. */
+export type MowerSize = { length: number; width: number };
+
+/** MOVA LiDAX Ultra 1000 (659 × 439 mm); the AWD variant is 740 × 532 mm. */
+export const DEFAULT_MOWER_SIZE: MowerSize = Object.freeze({ length: 659, width: 439 });
+
+function centimetres(value: unknown): number | undefined {
+  const number = typeof value === "number" ? value
+    : typeof value === "string" && value.trim() ? Number(value.trim().replace(",", ".")) : NaN;
+  return Number.isFinite(number) && number >= 10 && number <= 300 ? number * 10 : undefined;
+}
+
+/**
+ * Footprint for the real-size marker, or null for the fixed icon.
+ * Lengths are configured in centimetres; out-of-range values use the default.
+ */
+export function mowerMarkerSize(options: {
+  mower_marker?: unknown; mower_length?: unknown; mower_width?: unknown;
+}): MowerSize | null {
+  if (options.mower_marker === "fixed") return null;
+  return {
+    length: centimetres(options.mower_length) ?? DEFAULT_MOWER_SIZE.length,
+    width: centimetres(options.mower_width) ?? DEFAULT_MOWER_SIZE.width,
+  };
+}
+
+/** Body of the marker artwork in its own units (nose to tail, wheel to wheel). */
+export const MARKER_BODY: MowerSize = Object.freeze({ length: 1.89, width: 1.66 });
+/** Screen pixels per marker unit for the fixed icon. */
+export const FIXED_MARKER_PIXELS = 20;
+
+/**
+ * How to draw the mower marker: an outer uniform `scale` in map pixels and an
+ * inner `x`/`y` stretch applied along the mower's own axes (after heading).
+ * Real size needs the projection scale (map pixels per millimetre); below the
+ * fixed icon's on-screen length the fixed icon is kept so it stays visible.
+ */
+export function mowerMarkerTransform(
+  unitsPerScreenPixel: number, pixelsPerMillimetre: number | undefined, size: MowerSize | null,
+): { scale: number; x: number; y: number; realSize: boolean } {
+  const fixed = { scale: unitsPerScreenPixel * FIXED_MARKER_PIXELS, x: 1, y: 1, realSize: false };
+  if (!size || !finite(pixelsPerMillimetre) || pixelsPerMillimetre <= 0 ||
+      !finite(unitsPerScreenPixel) || unitsPerScreenPixel <= 0) return fixed;
+  const length = size.length * pixelsPerMillimetre, width = size.width * pixelsPerMillimetre;
+  if (length / unitsPerScreenPixel < MARKER_BODY.length * FIXED_MARKER_PIXELS) return fixed;
+  return { scale: 1, x: width / MARKER_BODY.width, y: length / MARKER_BODY.length, realSize: true };
 }

@@ -507,7 +507,13 @@ export const en = {
   "editor.mapTileUrl": "Street map tile URL",
   "editor.mapTileUrlHint": "Optional tile template with {z}, {x} and {y}. Leave empty for OpenStreetMap.",
   "editor.satelliteTileUrl": "Satellite tile URL",
-  "editor.satelliteTileUrlHint": "Optional tile template with {z}, {x} and {y}. Leave empty for Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Optional tile template with {z}, {x} and {y}. Leave empty for Esri World Imagery.",
+  "editor.mowerMarker": "Mower icon on the map",
+  "editor.mowerMarkerRealSize": "Real size when the map scale is known",
+  "editor.mowerMarkerFixed": "Fixed size",
+  "editor.mowerMarkerHint": "Real size grows and shrinks with zoom; far out it keeps the fixed icon so it stays visible. Default size: 65.9 × 43.9 cm.",
+  "editor.mowerLength": "Mower length (cm)",
+  "editor.mowerWidth": "Mower width (cm)"
 } as const satisfies Record<string, TranslationMessage>;
 
 export type TranslationKey = keyof typeof en;

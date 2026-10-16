@@ -454,5 +454,11 @@ export const pl = {
   "editor.mapTileUrl": "URL kafelków mapy ulic",
   "editor.mapTileUrlHint": "Opcjonalny szablon kafelków z {z}, {x} i {y}. Pozostaw puste dla OpenStreetMap.",
   "editor.satelliteTileUrl": "URL kafelków satelitarnych",
-  "editor.satelliteTileUrlHint": "Opcjonalny szablon kafelków z {z}, {x} i {y}. Pozostaw puste dla Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Opcjonalny szablon kafelków z {z}, {x} i {y}. Pozostaw puste dla Esri World Imagery.",
+  "editor.mowerMarker": "Ikona kosiarki na mapie",
+  "editor.mowerMarkerRealSize": "Rzeczywisty rozmiar, gdy skala mapy jest znana",
+  "editor.mowerMarkerFixed": "Stały rozmiar",
+  "editor.mowerMarkerHint": "W rzeczywistym rozmiarze ikona podąża za powiększeniem; z daleka zachowuje stały rozmiar, aby była widoczna. Domyślny rozmiar: 65,9 × 43,9 cm.",
+  "editor.mowerLength": "Długość kosiarki (cm)",
+  "editor.mowerWidth": "Szerokość kosiarki (cm)"
 } satisfies TranslationCatalog;

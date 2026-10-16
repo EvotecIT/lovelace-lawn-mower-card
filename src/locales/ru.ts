@@ -166,5 +166,11 @@ export const ru = {
   "editor.mapTileUrl": "URL плиток карты улиц",
   "editor.mapTileUrlHint": "Необязательный шаблон плиток с {z}, {x} и {y}. Оставьте пустым для OpenStreetMap.",
   "editor.satelliteTileUrl": "URL спутниковых плиток",
-  "editor.satelliteTileUrlHint": "Необязательный шаблон плиток с {z}, {x} и {y}. Оставьте пустым для Esri World Imagery."
+  "editor.satelliteTileUrlHint": "Необязательный шаблон плиток с {z}, {x} и {y}. Оставьте пустым для Esri World Imagery.",
+  "editor.mowerMarker": "Значок газонокосилки на карте",
+  "editor.mowerMarkerRealSize": "Реальный размер, если известен масштаб карты",
+  "editor.mowerMarkerFixed": "Фиксированный размер",
+  "editor.mowerMarkerHint": "В реальном размере значок следует за масштабом; издалека он сохраняет фиксированный размер, чтобы оставаться видимым. Размер по умолчанию: 65,9 × 43,9 см.",
+  "editor.mowerLength": "Длина газонокосилки (см)",
+  "editor.mowerWidth": "Ширина газонокосилки (см)"
 } satisfies TranslationCatalog;
