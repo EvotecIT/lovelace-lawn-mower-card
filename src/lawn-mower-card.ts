@@ -25,6 +25,7 @@ import { mowingAreaProgress, type MowingAreaProgress } from "./mowing-progress";
 
 import {
   getStubConfig,
+  worldTileConfig,
   type HassEntity,
   type HomeAssistant,
   type LawnMowerActionConfig,
@@ -563,6 +564,7 @@ export class LawnMowerCard extends LitElement {
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
                           .background=${this._config.map_background}
+                          .entityId=${this._config.entity} .tiles=${worldTileConfig(this._config)}
                           .path=${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)}
                           .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
                           .active=${this._mediaVisible}></lawn-mower-mowing-map>`
@@ -817,6 +819,8 @@ export class LawnMowerCard extends LitElement {
       area: coverage.area,
       mowingMapPath: scenePath,
       mapBackground: this._config.map_background,
+      mowerEntityId: this._config.entity,
+      worldTiles: worldTileConfig(this._config),
       photoEntityId: this._config.entity,
       mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,
       heroImage: normalizeHeroImage(this._config.hero_image),

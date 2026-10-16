@@ -34,6 +34,36 @@ integration or a camera without the attribute continues to show its map image.
 
 ![Live-path map inside the Lawn Mower Card Hero layout](../assets/lawn-mower-card-map.png)
 
+## Street map and satellite
+
+When the integration describes how its map pixels relate to the mower's own
+coordinates (`projection` in the map response), the background picker in the
+map toolbar offers **Standard**, **Real scene** (when available), **Map** and
+**Satellite**. Map and Satellite draw web-map tiles under the garden map; zones,
+the route and the mower stay on top. The picture keeps the mower map's
+orientation, so the tiles are turned to match it.
+
+The garden is placed on the ground with a saved alignment (`georeference`).
+Without one, choosing Map or Satellite opens **Align** from your Home Assistant
+home location (north up, 1 mm per map unit).
+
+**Align** opens full screen. The mower map becomes see-through over the tiles:
+
+- **Map** gestures: drag to move it; pinch to resize it; twist to turn it.
+  With a mouse, Shift + wheel resizes it and the arrow keys nudge it.
+- **View** gestures: drag and pinch move and zoom the view only, to look closely.
+  The **+** and **−** toolbar buttons and the wheel always zoom the view.
+- Fine steps: turn by 0.5° and resize by 0.5% with the buttons; hold a button to
+  repeat faster.
+- **Save** sends `dreame_lawn_mower.set_georeference` with the mower entity;
+  **Cancel** or Escape keeps the previous alignment.
+
+The default street map is © OpenStreetMap contributors (levels up to 19; closer
+views enlarge level-19 tiles). The default satellite source is Esri World
+Imagery; where it has no imagery at a level, the card steps down to the deepest
+level it serves. Both are fetched by your browser from the tile provider, which
+therefore sees the area being viewed.
+
 ## 3D Point Clouds
 
 The Dreame Lawn Mower integration can provide a 3D point cloud through its Map

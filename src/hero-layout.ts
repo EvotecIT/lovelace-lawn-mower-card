@@ -11,6 +11,7 @@ import { renderMowingMission } from "./mowing-mission";
 import type { MowingAreaProgress } from "./mowing-progress";
 
 import type { HeroImagePosition } from "./hero-image";
+import type { WorldTileConfig } from "./mowing-map";
 import { renderHeroMedia } from "./hero-media";
 import { dashboardMainView, renderDashboardAside, renderDashboardHeader } from "./dashboard-layout";
 import { renderHeroActions, renderHeroActionFeedback } from "./hero-actions";
@@ -41,6 +42,9 @@ export type HeroLayoutModel = {
   area?: MowingAreaProgress;
   mowingMapPath?: string;
   mapBackground?: string;
+  /** Mower entity for map services such as set_georeference. */
+  mowerEntityId?: string;
+  worldTiles?: WorldTileConfig;
   /** Mower entity whose saved photos the Photos view lists. */
   photoEntityId?: string;
   mapSavedPreview?: boolean;

@@ -130,6 +130,20 @@ export class LawnMowerCardEditor extends LitElement {
         ${this._mapFitField(normalizeMapFit(config.map_fit))}
         ${this._mapPositionField(normalizeMapPosition(config.map_position))}
         ${this._mapBackgroundField(normalizeMapBackground(config.map_background))}
+        ${this._field(
+          this._t("editor.mapTileUrl"),
+          config.map_tile_url,
+          "map_tile_url",
+          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+          this._t("editor.mapTileUrlHint"),
+        )}
+        ${this._field(
+          this._t("editor.satelliteTileUrl"),
+          config.satellite_tile_url,
+          "satellite_tile_url",
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          this._t("editor.satelliteTileUrlHint"),
+        )}
         ${this._toggle(
           this._t("editor.showPointCloud"),
           config.show_point_cloud ??
@@ -310,7 +324,10 @@ export class LawnMowerCardEditor extends LitElement {
         <select data-key="map_background" .value=${value} @change=${this._valueChanged}>
           <option value="standard">${this._t("editor.mapBackgroundStandard")}</option>
           <option value="real_scene">${this._t("editor.mapBackgroundRealScene")}</option>
+          <option value="map">${this._t("editor.mapBackgroundMap")}</option>
+          <option value="satellite">${this._t("editor.mapBackgroundSatellite")}</option>
         </select>
+        <span class="hint">${this._t("editor.mapBackgroundHint")}</span>
       </label>
     `;
   }

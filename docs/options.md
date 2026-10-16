@@ -46,6 +46,18 @@
 - `map_position`: optional crop focus: `center` (default), `top`, `bottom`,
   `left`, `right`, `top-left`, `top-right`, `bottom-left`, or `bottom-right`;
   it is most noticeable with `map_fit: cover`
+- `map_background`: optional starting background of the interactive map:
+  `standard` (default), `real_scene`, `map` (street map) or `satellite`. A
+  background the current scene cannot draw falls back to `standard`; the map
+  toolbar can switch for the current view. See
+  [street map and satellite](media.md#street-map-and-satellite).
+- `map_tile_url` / `satellite_tile_url`: optional `http(s)` tile templates with
+  `{z}`, `{x}` and `{y}` for the street map (default OpenStreetMap) and satellite
+  (default Esri World Imagery) backgrounds
+- `map_tile_attribution` / `satellite_tile_attribution`: attribution shown over
+  a custom tile source; the defaults keep their provider's attribution
+- `map_tile_max_zoom` / `satellite_tile_max_zoom`: optional highest tile level
+  (1–23) a source serves; deeper views enlarge that level's tiles
 - `camera_entity`: optional live-video camera used by the Hero Camera view. A
   compatible companion camera is detected automatically when this is omitted.
 - `schedule_calendar_entity`: optional `calendar` entity for the Schedule helper
