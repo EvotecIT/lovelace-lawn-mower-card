@@ -5,7 +5,12 @@ import { dashboardStyles } from "./dashboard-styles";
 export const heroLayoutStyles = css`
   ${mowingMissionStyles}
   ${dashboardStyles}
-  .view-map.interactive-map { display:flex; flex-direction:column; aspect-ratio:auto; height:auto; }
+  /* With an interactive map, Overview and Map share one stage height, so switching
+     tabs never resizes the card; the map fills what its heading leaves. */
+  .hero-stage.interactive-map { aspect-ratio:auto;
+    height:var(--mower-hero-stage-height, clamp(420px, 56vh, 560px)); }
+  .view-map.interactive-map { display:flex; flex-direction:column; }
+  .view-map.interactive-map .mowing-mission { order:3; flex:none; position:relative; }
   .view-map.interactive-map .hero-heading { position:relative; order:1; padding:18px; align-items:center; }
   .view-map.interactive-map .hero-eyebrow { display:none; }
   .view-map.interactive-map .hero-title-block { text-shadow:none; }
@@ -13,7 +18,7 @@ export const heroLayoutStyles = css`
   .view-map.interactive-map .hero-scrim { display:none; }
   .hero-mowing-map { position:absolute; inset:0; width:100%; height:100%; }
   .view-map.interactive-map .hero-mowing-map { position:relative; order:2;
-    height:clamp(360px,50vh,500px); flex:none; }
+    height:auto; flex:1 1 auto; min-height:0; }
   ha-card.hero-card {
     --mower-surface:#111a15;
     --mower-text:#eef3ed;

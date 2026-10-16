@@ -48,6 +48,7 @@ export type HeroLayoutModel = {
   worldTiles?: WorldTileConfig;
   /** Real mower footprint in mm for the map marker; null keeps the fixed icon. */
   mowerSize?: MowerSize | null;
+  worldDim?: number;
   /** Mower entity whose saved photos the Photos view lists. */
   photoEntityId?: string;
   mapSavedPreview?: boolean;
@@ -178,6 +179,9 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
     },
     { view: "photos", label: model.t("hero.photos"), icon: "mdi:image-multiple-outline" },
   ];
+  // With an interactive map the mission sits inside the fixed-height stage, so
+  // Overview and Map keep the same card height.
+  const missionInStage = !model.dashboard && model.activeView === "map" && Boolean(model.mowingMapPath);
   return html`
     <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.dashboard && !hasAside ? " dashboard-no-aside" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
       <div class="hero-shell">
@@ -218,11 +222,13 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
                 </div>
               `
             : nothing}
+          ${missionInStage ? renderMowingMission(model) : nothing}
         </section>
 
         ${!model.dashboard && model.summary.length ? html`<div class="hero-summary">${renderSummary(model.summary)}</div>` : nothing}
 
-        ${model.dashboard ? renderDashboardAside(model) : model.activeView === "map" ? renderMowingMission(model) : nothing}
+        ${model.dashboard ? renderDashboardAside(model)
+          : model.activeView === "map" && !missionInStage ? renderMowingMission(model) : nothing}
 
         ${showHeroViewTabs(model.availableViews)
           ? html`

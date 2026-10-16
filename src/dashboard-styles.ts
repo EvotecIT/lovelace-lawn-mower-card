@@ -83,6 +83,7 @@ export const dashboardStyles = css`
     .dashboard-aside { grid-column:2; grid-row:3; }
     .dashboard-card.dashboard-no-aside .hero-shell { grid-template-columns:minmax(0,1fr); }
     .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-action-feedback { grid-column:1/-1; }
+    .dashboard-card .hero-stage.interactive-map { height:auto; min-height:340px; }
     .dashboard-card .view-map.interactive-map .hero-mowing-map { height:340px; flex:1 1 340px; min-height:340px; }
   }
   @container (max-width:440px) {
@@ -104,6 +105,5 @@ export const dashboardStyles = css`
     .dashboard-card .hero-action { min-height:72px; padding:9px 5px; font-size:13px; }
     .dashboard-card .hero-action ha-icon { --mdc-icon-size:25px; }
     .dashboard-card .hero-tab { padding:8px 4px; gap:5px; font-size:12px; }
-    .dashboard-card .view-map.interactive-map .hero-mowing-map { height:350px; }
   }
 `;
