@@ -204,6 +204,20 @@ export class LawnMowerPhotoAlbum extends LitElement {
     if (next >= this._visible) this._showMore();
   }
 
+  // The platform can close the modal itself (Android back gesture); without
+  // this, updated() would reopen it on the next Home Assistant state push.
+  private _viewerClosed = () => {
+    if (this._open !== undefined) void this._closeViewer();
+  };
+
+  // A tap on the photo or around it closes the viewer, as in a gallery.
+  private _viewerClick = (event: Event) => {
+    const target = event.target as HTMLElement | null;
+    if (target === event.currentTarget || target?.classList.contains("viewer-image")) {
+      void this._closeViewer();
+    }
+  };
+
   private _key = (event: KeyboardEvent) => {
     if (event.key === "Escape") this._closeViewer();
     else if (event.key === "ArrowLeft") this._step(-1);
@@ -253,7 +267,10 @@ export class LawnMowerPhotoAlbum extends LitElement {
         ${this._visible < this._photos.length ? html`
           <button class="more" @click=${this._showMore}>${t("photos.showMore")}</button>` : nothing}
         ${open ? html`
-          <dialog class="viewer" aria-label=${this._when(open)} @cancel=${this._closeViewer}>
+          <dialog class="viewer" aria-label=${this._when(open)} @cancel=${this._closeViewer}
+            @close=${this._viewerClosed} @click=${this._viewerClick}>
+            <button class="viewer-close" @click=${this._closeViewer}
+              aria-label=${t("photos.close")}>✕</button>
             ${this._image(open, "viewer-image")}
             <div class="viewer-bar">
               <button @click=${() => this._step(-1)} ?disabled=${this._open === 0}
@@ -261,7 +278,6 @@ export class LawnMowerPhotoAlbum extends LitElement {
               <span>${this._when(open)} · ${this._open! + 1}/${this._photos.length}</span>
               <button @click=${() => this._step(1)} ?disabled=${this._open === this._photos.length - 1}
                 aria-label=${t("photos.next")}>›</button>
-              <button @click=${this._closeViewer} aria-label=${t("photos.close")}>✕</button>
             </div>
           </dialog>` : nothing}
       </div>`;
@@ -294,8 +310,12 @@ export class LawnMowerPhotoAlbum extends LitElement {
     .viewer::backdrop { background:rgba(0,0,0,.65); }
     .viewer-image { min-height:0; }
     .viewer-image { width:100%; height:100%; object-fit:contain; }
-    .viewer-bar { display:flex; gap:8px; align-items:center; justify-content:center; padding:8px;
-      font-size:12px; color:#fff; }
+    .viewer-bar { display:flex; gap:8px; align-items:center; justify-content:center;
+      padding:8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); font-size:12px; color:#fff; }
+    .viewer { position:fixed; }
+    .viewer-close { position:absolute; z-index:1; top:max(8px, env(safe-area-inset-top, 0px));
+      right:8px; min-width:44px; min-height:44px; color:#fff; font-size:20px;
+      background:rgba(0,0,0,.55); border-color:rgba(255,255,255,.4); }
     .viewer-bar button { min-width:40px; min-height:36px; color:#fff; border-color:rgba(255,255,255,.3); }
     .viewer-bar button:disabled { opacity:.35; cursor:default; }
     .empty { display:grid; place-items:center; min-height:200px; padding:24px; font-size:13px;
