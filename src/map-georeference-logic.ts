@@ -89,15 +89,19 @@ export function readMapGeoreference(value: unknown): MapGeoreference | null {
   return { anchor_x, anchor_y, latitude, longitude, heading: normalizeHeading(heading), scale };
 }
 
-/** Native point to background pixel, including the clockwise display rotation. */
+/**
+ * Native point to background pixel, then the clockwise display rotation of
+ * the integration (map_geometry.rotate_canvas_point_exact): native_width and
+ * native_height are the canvas size before rotation, in pixel indices.
+ */
 export function nativeToPixel(projection: MapProjection, native: MapPoint): MapPoint {
   const u = (projection.max_x - native.x) * projection.scale + projection.padding;
   const v = (native.y - projection.min_y) * projection.scale + projection.padding;
   const w = projection.native_width, h = projection.native_height;
   switch (projection.rotation) {
-    case 90: return { x: h - v, y: u };
-    case 180: return { x: w - u, y: h - v };
-    case 270: return { x: v, y: w - u };
+    case 90: return { x: h - 1 - v, y: u };
+    case 180: return { x: w - 1 - u, y: h - 1 - v };
+    case 270: return { x: v, y: w - 1 - u };
     default: return { x: u, y: v };
   }
 }
@@ -106,9 +110,9 @@ export function pixelToNative(projection: MapProjection, pixel: MapPoint): MapPo
   const w = projection.native_width, h = projection.native_height;
   let u: number, v: number;
   switch (projection.rotation) {
-    case 90: u = pixel.y; v = h - pixel.x; break;
-    case 180: u = w - pixel.x; v = h - pixel.y; break;
-    case 270: u = w - pixel.y; v = pixel.x; break;
+    case 90: u = pixel.y; v = h - 1 - pixel.x; break;
+    case 180: u = w - 1 - pixel.x; v = h - 1 - pixel.y; break;
+    case 270: u = w - 1 - pixel.y; v = pixel.x; break;
     default: u = pixel.x; v = pixel.y;
   }
   return {

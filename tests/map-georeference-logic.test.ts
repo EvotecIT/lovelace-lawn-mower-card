@@ -50,13 +50,21 @@ test("pixel and native follow the integration projection without rotation", () =
   near(back.x, 10000, 1e-9); near(back.y, -10000, 1e-9);
 });
 
-test("display rotation turns the canvas clockwise and swaps its size at 90 degrees", () => {
-  const turned = { ...projection, rotation: 90 as const };
-  // Unrotated pixel (10, 10) is near the top-left; clockwise it lands near the top-right.
-  assert.deepEqual(nativeToPixel(turned, { x: 20000, y: -30000 }), { x: 1510, y: 10 });
-  // The final canvas is native_height wide and native_width tall.
-  const corner = nativeToPixel(turned, pixelToNative(projection, { x: 2520, y: 1520 }));
-  near(corner.x, 0, 1e-9); near(corner.y, 2520, 1e-9);
+test("display rotation matches the integration's rotate_canvas_point_exact", () => {
+  // Unrotated (u, v) = (510, 1010) for native (10000, -10000); W = 2520, H = 1520.
+  const native = { x: 10000, y: -10000 };
+  const expected = {
+    0: { x: 510, y: 1010 },
+    90: { x: 1520 - 1 - 1010, y: 510 },
+    180: { x: 2520 - 1 - 510, y: 1520 - 1 - 1010 },
+    270: { x: 1010, y: 2520 - 1 - 510 },
+  } as const;
+  for (const rotation of [0, 90, 180, 270] as const) {
+    assert.deepEqual(nativeToPixel({ ...projection, rotation }, native), expected[rotation], `${rotation}`);
+  }
+  // At 90 degrees the top-left pixel index lands in the top-right column (H - 1).
+  assert.deepEqual(nativeToPixel({ ...projection, rotation: 90 }, { x: 20200, y: -30200 }),
+    { x: 1519, y: 0 });
   for (const rotation of [0, 90, 180, 270] as const) {
     const rotated = { ...projection, rotation };
     for (const point of [{ x: 0, y: 0 }, { x: 123.5, y: 987.25 }, { x: 1500, y: 40 }]) {
