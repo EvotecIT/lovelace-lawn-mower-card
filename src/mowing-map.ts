@@ -10,7 +10,7 @@ import { mapControlIcon, mowerMapMarker, mowingMapStyles } from "./mowing-map-pr
 import {
   availableMapBackgrounds, constrainViewport, DEFAULT_MOWER_SIZE, gardenEmphasis, mowerMarkerTransform, worldDim, effectiveMapBackground, fitMap, isWorldBackground,
   mowingMapPath, viewLimits, normalizeMapBackground, overlayIsFresh, positionStatusKey,
-  readMowingMapScene, zoomMap, backgroundRequestPath, cardDrawsZoneLabels, signedPathMatches,
+  readMowingMapScene, zoomMap, nextRefreshDelay, SCENE_TIMEOUT_MS, backgroundRequestPath, cardDrawsZoneLabels, signedPathMatches,
   type MapBackground, type MapPoint, type MapViewport, type MowerSize, type MowingMapScene,
 } from "./mowing-map-logic";
 import {
@@ -101,6 +101,8 @@ export class LawnMowerMowingMap extends LitElement {
   @state() private _view: MapViewport = fitMap(1, 1);
   @state() private _error = false;
   @state() private _loading = false;
+  /** Consecutive failed polls, for the retry delay. */
+  private _failures = 0;
   @state() private _fallbackFailed = false;
   @state() private _size = { width: 500, height: 300 };
   private _resize?: ResizeObserver;
@@ -174,6 +176,8 @@ export class LawnMowerMowingMap extends LitElement {
 
   private _stop(): void {
     this._stopHold();
+    // An interrupted first load must not keep claiming "Loading map…".
+    this._loading = false;
     this._photoAbort?.abort();
     this._photoAbort = undefined;
     this._abort?.abort();
@@ -475,10 +479,13 @@ export class LawnMowerMowingMap extends LitElement {
     this._abort = controller;
     this._loading = !this._scene;
     const timeout = window.setTimeout(() => controller.abort(), 20_000);
+    // A stalled scene request is abandoned quickly and retried (see nextRefreshDelay).
+    const sceneTimeout = window.setTimeout(() => controller.abort(), SCENE_TIMEOUT_MS);
     let image: string | undefined;
     try {
       const response = await this._fetch(path, controller.signal);
       const scene = readMowingMapScene(await response.json(), path);
+      window.clearTimeout(sceneTimeout);
       const backgroundPath = backgroundRequestPath(scene);
       if (backgroundPath !== this._imagePath || !this._image) {
         const background = await this._fetch(backgroundPath, controller.signal);
@@ -514,14 +521,17 @@ export class LawnMowerMowingMap extends LitElement {
       if (this._align && !scene.projection) this._cancelAlign();
       this._expireOverlay(scene);
       this._error = false;
+      this._failures = 0;
       void this._refreshPhoto(scene);
     } catch {
       if (this._abort === controller) {
         this._clearExpiry();
         this._error = true;
+        this._failures += 1;
       }
     } finally {
       window.clearTimeout(timeout);
+      window.clearTimeout(sceneTimeout);
       if (image) URL.revokeObjectURL(image);
       if (this._abort === controller) {
         this._abort = undefined;
@@ -530,7 +540,7 @@ export class LawnMowerMowingMap extends LitElement {
           this._timer = window.setTimeout(() => {
             this._timer = undefined;
             void this._refresh();
-          }, this._error ? 15_000 : 5000);
+          }, nextRefreshDelay(Boolean(this._scene), this._error ? this._failures : 0));
         }
       }
     }

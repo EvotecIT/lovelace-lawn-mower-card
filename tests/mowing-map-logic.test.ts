@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  availableMapBackgrounds, backgroundRequestPath, constrainViewport, signedPathMatches, effectiveMapBackground, fitMap, mowingMapPath,
+  availableMapBackgrounds, backgroundRequestPath, nextRefreshDelay, SCENE_TIMEOUT_MS, constrainViewport, signedPathMatches, effectiveMapBackground, fitMap, mowingMapPath,
   DEFAULT_MOWER_SIZE, DEFAULT_WORLD_DIM, gardenEmphasis, MARKER_BODY, mowerMarkerSize, mowerMarkerTransform, worldDim,
   normalizeMapBackground, viewLimits, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
@@ -217,4 +217,12 @@ test("zone names: the card draws them only when the integration lists them", () 
   assert.equal(signedPathMatches(requested, `${path}/background/${"a".repeat(64)}?labels=0&x=1&authSig=y`), false);
   assert.equal(signedPathMatches(path, `${path}?authSig=x`), true);
   assert.equal(signedPathMatches(path, `/api/other?authSig=x`), false);
+});
+
+test("a map that has not loaded yet retries quickly after a stalled request", () => {
+  assert.equal(SCENE_TIMEOUT_MS, 8000);
+  assert.equal(nextRefreshDelay(true, 0), 5000);
+  assert.equal(nextRefreshDelay(false, 0), 5000);
+  assert.deepEqual([1, 2, 3, 4, 9].map((n) => nextRefreshDelay(false, n)), [2000, 4000, 8000, 8000, 8000]);
+  assert.equal(nextRefreshDelay(true, 1), 15_000);
 });

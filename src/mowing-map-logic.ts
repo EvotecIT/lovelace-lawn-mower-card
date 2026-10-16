@@ -203,6 +203,20 @@ export function viewLimits(world: boolean, projected: boolean): ViewLimits {
   return projected ? { ...MAP_VIEW_LIMITS, maxZoom: WORLD_VIEW_LIMITS.maxZoom } : MAP_VIEW_LIMITS;
 }
 
+/** The scene description is small and served in well under a second; waiting longer only hides a stalled request. */
+export const SCENE_TIMEOUT_MS = 8000;
+
+/**
+ * Delay before the next poll. A loaded scene polls every 5 s and backs off
+ * to 15 s after a failure. Before any scene is shown, failures retry fast
+ * (2, 4, 8 s) so one stalled request does not leave "Loading map…" for long.
+ */
+export function nextRefreshDelay(hasScene: boolean, failures: number): number {
+  if (failures <= 0) return 5000;
+  if (hasScene) return 15_000;
+  return Math.min(8000, 2000 * 2 ** (failures - 1));
+}
+
 export function overlayIsFresh(scene: MowingMapScene, now = Date.now()): boolean {
   const updated = Date.parse(scene.overlay.updated_at || "");
   const age = now - updated;
