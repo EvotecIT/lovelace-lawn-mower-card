@@ -22,7 +22,9 @@ export function mowerMapMarker(heading: number | null) {
 }
 
 /** Small inline controls stay legible even outside the Home Assistant icon host. */
-export function mapControlIcon(kind: "fit" | "centre") {
+export function mapControlIcon(kind: "fit" | "centre" | "photo") {
+  if (kind === "photo") return svg`
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6" /><circle cx="16" cy="9" r="1.5" /></svg>`;
   return kind === "fit" ? svg`
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg>` : svg`
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" /><path d="M12 2v4m0 12v4M2 12h4m12 0h4" /><circle cx="12" cy="12" r="1" /></svg>`;
@@ -65,6 +67,9 @@ export const mowingMapStyles = css`
   button:hover:not(:disabled) { border-color:var(--map-accent);
     background:color-mix(in srgb, var(--map-surface) 86%, var(--map-accent)); }
   button:disabled { opacity:.42; cursor:default; }
+  button[aria-pressed="true"] { border-color:var(--map-accent); color:var(--map-accent);
+    background:color-mix(in srgb, var(--map-surface) 80%, var(--map-accent)); }
+  .real-scene { opacity:var(--mower-map-real-scene-opacity,.88); }
   button:focus-visible { outline:2px solid var(--map-accent); outline-offset:2px; }
   button svg { width:16px; height:16px; flex:none; fill:none; stroke:currentColor;
     stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
@@ -91,7 +96,7 @@ export const mowingMapStyles = css`
     .map-name { flex-basis:100%; }
     .tool-actions { width:100%; }
     .tool-actions button:last-child { margin-left:auto; }
-    .centre-button span { display:none; }
+    .centre-button span, .photo-button span { display:none; }
     .legend { padding:8px 10px; gap:5px 12px; }
     .status { margin-left:0; }
   }

@@ -30,6 +30,9 @@ import {
   resolvedMowerMapSelector,
   resolvedMowerLiveVideoEntity,
   resolvedOwnedMowerCompanionEntity,
+  mowerCanPatrol,
+  patrolServiceData,
+  supportsDreamePatrol,
   supportsDreameTaskCancellation,
   taskCancellationStillAvailable,
   type MinimalHassEntity,
@@ -1097,4 +1100,32 @@ test("default helpers discover renamed companions from the mower device registry
       ["camera.front_yard_render", "Live Map"],
     ],
   );
+});
+
+test("patrol actions follow the Dreame services and an idle, task-free mower", () => {
+  const entities = {
+    "lawn_mower.garden": { platform: "dreame_lawn_mower" },
+    "lawn_mower.other": { platform: "other_mower" },
+  };
+  const services = { dreame_lawn_mower: { start_point_patrol: {} } };
+  assert.equal(supportsDreamePatrol("point", "lawn_mower.garden", entities, services), true);
+  assert.equal(supportsDreamePatrol("edge", "lawn_mower.garden", entities, services), false);
+  assert.equal(supportsDreamePatrol("point", "lawn_mower.other", entities, services), false);
+  assert.equal(supportsDreamePatrol("point", "lawn_mower.garden", entities, undefined), false);
+
+  const mower = (state: string, attributes = {}) => ({ entity_id: "lawn_mower.garden", state, attributes });
+  assert.equal(mowerCanPatrol(mower("docked")), true);
+  assert.equal(mowerCanPatrol(mower("idle")), true);
+  assert.equal(mowerCanPatrol(mower("docked", { mowing_session_active: true })), false);
+  for (const state of ["mowing", "paused", "returning", "error", "unavailable"]) {
+    assert.equal(mowerCanPatrol(mower(state)), false);
+  }
+});
+
+test("zone patrols send zone ids to points and outer contours to edges", () => {
+  assert.deepEqual(patrolServiceData("point", "lawn_mower.garden"), { entity_id: "lawn_mower.garden" });
+  assert.deepEqual(patrolServiceData("point", "lawn_mower.garden", 2),
+    { entity_id: "lawn_mower.garden", zone_ids: [2] });
+  assert.deepEqual(patrolServiceData("edge", "lawn_mower.garden", 2),
+    { entity_id: "lawn_mower.garden", contour_ids: [[2, 0]] });
 });

@@ -5,8 +5,8 @@ import { signedPathFromResponse } from "./point-cloud-logic";
 import type { HomeAssistant } from "./card-config";
 import { mapControlIcon, mowerMapMarker, mowingMapStyles } from "./mowing-map-presentation";
 import {
-  constrainViewport, fitMap, mowingMapPath, overlayIsFresh, positionStatusKey, readMowingMapScene,
-  zoomMap, type MapPoint, type MapViewport, type MowingMapScene,
+  constrainViewport, fitMap, mowingMapPath, normalizeMapBackground, overlayIsFresh, positionStatusKey,
+  readMowingMapScene, zoomMap, type MapPoint, type MapViewport, type MowingMapScene,
 } from "./mowing-map-logic";
 
 /** Abort waiting on non-cancellable HA signing and browser decoding promises. */
@@ -30,9 +30,14 @@ export class LawnMowerMowingMap extends LitElement {
   @property({ type: Boolean }) public fallbackSaved = false;
   @property({ type: Boolean }) public active = false;
   @property({ attribute: false }) public locale: SupportedLocale = "en";
+  /** Configured default; the toolbar toggle overrides it for this view. */
+  @property() public background?: string;
 
   @state() private _scene?: MowingMapScene;
   @state() private _image?: string;
+  @state() private _photo?: string;
+  @state() private _showPhoto?: boolean;
+  private _photoPath?: string;
   @state() private _view: MapViewport = fitMap(1, 1);
   @state() private _error = false;
   @state() private _loading = false;
@@ -40,6 +45,7 @@ export class LawnMowerMowingMap extends LitElement {
   @state() private _size = { width: 500, height: 300 };
   private _resize?: ResizeObserver;
   private _abort?: AbortController;
+  private _photoAbort?: AbortController;
   private _timer?: number;
   private _expiryTimer?: number;
   private _pointers = new Map<number, MapPoint>();
@@ -64,6 +70,7 @@ export class LawnMowerMowingMap extends LitElement {
     if (changed.has("path")) {
       this._stop();
       this._releaseImage();
+      this._releasePhoto();
       this._scene = undefined;
       this._error = false;
     }
@@ -85,11 +92,14 @@ export class LawnMowerMowingMap extends LitElement {
     this._resize?.disconnect();
     this._resize = undefined;
     this._releaseImage();
+    this._releasePhoto();
     this._scene = undefined;
     super.disconnectedCallback();
   }
 
   private _stop(): void {
+    this._photoAbort?.abort();
+    this._photoAbort = undefined;
     this._abort?.abort();
     this._abort = undefined;
     if (this._timer !== undefined) window.clearTimeout(this._timer);
@@ -117,6 +127,72 @@ export class LawnMowerMowingMap extends LitElement {
   private _releaseImage(): void {
     if (this._image) URL.revokeObjectURL(this._image);
     this._image = undefined;
+  }
+
+  private _releasePhoto(): void {
+    if (this._photo) URL.revokeObjectURL(this._photo);
+    this._photo = undefined;
+    this._photoPath = undefined;
+  }
+
+  private get _photoWanted(): boolean {
+    return this._showPhoto ?? normalizeMapBackground(this.background) === "real_scene";
+  }
+
+  private _togglePhoto = (): void => {
+    this._showPhoto = !this._photoWanted;
+    if (this._showPhoto && this._scene) void this._refreshPhoto(this._scene);
+  };
+
+  /** Optional photography never delays delivery of the usable standard map. */
+  private async _refreshPhoto(scene: MowingMapScene): Promise<void> {
+    if (!this._photoWanted || !scene.real_scene_path || this._photoAbort ||
+        this._photoPath === scene.real_scene_path || !this.active || !this.isConnected) return;
+    const controller = new AbortController();
+    this._photoAbort = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 10_000);
+    let photo: string | undefined;
+    try {
+      photo = await this._loadPhoto(scene, controller.signal);
+      if (photo && this._photoAbort === controller && !controller.signal.aborted &&
+          this.active && this.isConnected && this._scene?.real_scene_path === scene.real_scene_path) {
+        this._releasePhoto();
+        this._photo = photo;
+        this._photoPath = scene.real_scene_path;
+        photo = undefined;
+      }
+    } catch { /* Optional photo failures leave the standard map available. */ }
+    finally {
+      window.clearTimeout(timeout);
+      if (photo) URL.revokeObjectURL(photo);
+      if (this._photoAbort === controller) this._photoAbort = undefined;
+    }
+  }
+
+  /** Load the optional photo layer; any failure keeps the standard map. */
+  private async _loadPhoto(
+    scene: MowingMapScene, signal: AbortSignal,
+  ): Promise<string | undefined> {
+    if (!scene.real_scene_path) return undefined;
+    let photo: string | undefined;
+    try {
+      const response = await this._fetch(scene.real_scene_path, signal);
+      const blob = await response.blob();
+      if (blob.type !== "image/png" || blob.size > 16 * 1024 * 1024) return undefined;
+      photo = URL.createObjectURL(blob);
+      const decoded = new Image();
+      decoded.src = photo;
+      await abortable(decoded.decode(), signal);
+      if (decoded.naturalWidth !== scene.width || decoded.naturalHeight !== scene.height) {
+        URL.revokeObjectURL(photo);
+        return undefined;
+      }
+      return photo;
+    } catch (error) {
+      if (photo) URL.revokeObjectURL(photo);
+      if (signal.aborted) throw error;
+      return undefined;
+    }
   }
 
   private async _fetch(path: string, signal: AbortSignal): Promise<Response> {
@@ -163,6 +239,11 @@ export class LawnMowerMowingMap extends LitElement {
         }
       }
       if (this._abort !== controller || controller.signal.aborted || !this.active || !this.isConnected) return;
+      if (scene.real_scene_path !== this._scene?.real_scene_path) {
+        this._photoAbort?.abort();
+        this._photoAbort = undefined;
+        this._releasePhoto();
+      }
       if (image) {
         this._releaseImage();
         this._image = image;
@@ -172,6 +253,7 @@ export class LawnMowerMowingMap extends LitElement {
       this._scene = scene;
       this._expireOverlay(scene);
       this._error = false;
+      void this._refreshPhoto(scene);
     } catch {
       if (this._abort === controller) {
         this._clearExpiry();
@@ -290,6 +372,11 @@ export class LawnMowerMowingMap extends LitElement {
               title=${this._t("mowingMap.zoomIn")} aria-label=${this._t("mowingMap.zoomIn")}>+</button>
             <button class="zoom" @click=${() => this._zoom(1 / 1.4)} ?disabled=${!scene || zoom <= 1}
               title=${this._t("mowingMap.zoomOut")} aria-label=${this._t("mowingMap.zoomOut")}>−</button>
+            ${scene?.real_scene_path ? html`
+              <button class="photo-button" @click=${this._togglePhoto}
+                aria-pressed=${this._photoWanted ? "true" : "false"}
+                aria-label=${this._t("mowingMap.realScene")} title=${this._t("mowingMap.realScene")}
+                >${mapControlIcon("photo")}<span>${this._t("mowingMap.realScene")}</span></button>` : nothing}
             <button @click=${this._fit} ?disabled=${!scene} aria-label=${this._t("mowingMap.fit")}
               title=${this._t("mowingMap.fit")}>${mapControlIcon("fit")}<span>${this._t("mowingMap.fit")}</span></button>
             <button class="centre-button" @click=${this._centre} ?disabled=${!position}
@@ -304,6 +391,9 @@ export class LawnMowerMowingMap extends LitElement {
             @pointerdown=${this._down} @pointermove=${this._move} @pointerup=${this._up}
             @pointercancel=${this._up} @lostpointercapture=${this._up}
             @wheel=${this._wheel} @keydown=${this._key}>
+            ${this._photoWanted && this._photo && this._photoPath === scene.real_scene_path ? svg`
+              <image class="real-scene" href=${this._photo} x="0" y="0"
+                width=${scene.width} height=${scene.height} />` : nothing}
             <image href=${this._image} x="0" y="0" width=${scene.width} height=${scene.height} />
             ${fresh ? scene.overlay.trail.map((segment) => svg`
               <polyline class="trail-outline" points=${segment.map((point) => point.join(",")).join(" ")}

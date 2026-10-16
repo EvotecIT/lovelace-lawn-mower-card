@@ -9,6 +9,8 @@ export type MowingMapScene = {
   width: number;
   height: number;
   background_path: string;
+  /** Optional vendor photo layer drawn in the same canvas as the background. */
+  real_scene_path: string | null;
   overlay: {
     position: (MapPoint & { heading: number | null }) | null;
     trail: number[][][];
@@ -74,6 +76,9 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
     map_index: data.map_index as number, map_id: data.map_id as number,
     name: typeof data.name === "string" ? data.name.slice(0, 256) : "",
     background_path: data.background_path as string,
+    real_scene_path: typeof data.real_scene_path === "string" &&
+      new RegExp(`^${path}/real-scene/${data.revision}/[a-f0-9]{64}$`).test(data.real_scene_path)
+      ? data.real_scene_path : null,
     overlay: {
       position: (status === "current" || retained) && validPoint(position)
         ? { x: position.x as number, y: position.y as number,
@@ -89,6 +94,13 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
         ? Math.max(1, Math.min(90, overlay.max_age_seconds)) : 90,
     },
   };
+}
+
+export type MapBackground = "standard" | "real_scene";
+
+/** Unknown values keep the standard background. */
+export function normalizeMapBackground(value: unknown): MapBackground {
+  return value === "real_scene" ? "real_scene" : "standard";
 }
 
 export function overlayIsFresh(scene: MowingMapScene, now = Date.now()): boolean {

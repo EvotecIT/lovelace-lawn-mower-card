@@ -47,6 +47,7 @@ import {
   heroViewRestorationAllowed,
   mowerCanCancelTask,
   mowerCanDock,
+  mowerCanPatrol,
   mowerSessionActive,
   numberControlSettings,
   resolvedControlEntities,
@@ -55,8 +56,11 @@ import {
   resolvedMowerCompanionEntity,
   resolvedOwnedMowerCompanionEntity,
   DREAME_LAWN_MOWER_SERVICE_DOMAIN,
+  patrolServiceData,
+  supportsDreamePatrol,
   supportsDreameTaskCancellation,
   taskCancellationStillAvailable,
+  type DreamePatrolKind,
 } from "./card-logic";
 import {
   timeInputStep,
@@ -260,6 +264,7 @@ export class LawnMowerCard extends LitElement {
   @state() private _config?: LawnMowerCardConfig;
   @state() private _pendingCustomAction?: LawnMowerActionConfig;
   @state() private _cancelTaskConfirmationOpen = false;
+  @state() private _patrolMenu?: { kind: DreamePatrolKind; keys: ZoneSelectionKeys };
   @state() private _areaMenuContext?: AreaStartContext;
   private _customActionTrigger?: HTMLElement;
   private _cancelTaskTrigger?: HTMLElement;
@@ -336,6 +341,7 @@ export class LawnMowerCard extends LitElement {
       throw new Error("The 'schedule_calendar_entity' option must be a calendar entity id.");
     }
     if (config !== this._config) {
+      this._patrolMenu = undefined;
       this._pendingCustomAction = undefined;
       this._cancelTaskConfirmationOpen = false;
       this._closeAreaMenu(false);
@@ -384,6 +390,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   public disconnectedCallback(): void {
+    this._patrolMenu = undefined;
     this._pendingCustomAction = undefined;
     this._customActionTrigger = undefined;
     this._cancelTaskConfirmationOpen = false;
@@ -435,6 +442,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   protected willUpdate(): void {
+    if (this._patrolMenu && !this._patrolMenuCurrent(this._patrolMenu)) this._patrolMenu = undefined;
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
     if (this._areaMenuContext && (!mower || !this._areaMenuShown(mower))) {
       const menuHadFocus = this.shadowRoot?.activeElement?.tagName === "LAWN-MOWER-AREA-START-MENU";
@@ -554,6 +562,7 @@ export class LawnMowerCard extends LitElement {
                     ${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
+                          .background=${this._config.map_background}
                           .path=${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)}
                           .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
                           .active=${this._mediaVisible}></lawn-mower-mowing-map>`
@@ -807,6 +816,7 @@ export class LawnMowerCard extends LitElement {
       coverageLabel: coverage.label,
       area: coverage.area,
       mowingMapPath: scenePath,
+      mapBackground: this._config.map_background,
       photoEntityId: this._config.entity,
       mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,
       heroImage: normalizeHeroImage(this._config.hero_image),
@@ -887,6 +897,8 @@ export class LawnMowerCard extends LitElement {
       onMaintenancePoint: maintenancePointButton
         ? () => this._pressButton(maintenancePointButton.entityId)
         : undefined,
+      patrolActions: (this._config.show_default_actions ?? true)
+        ? this._patrolActions(mower) : [],
       onMoreInfo: () => this._showMoreInfo(),
     });
   }
@@ -1630,6 +1642,7 @@ export class LawnMowerCard extends LitElement {
           handler: () => this._dockMower(),
         });
       }
+      defaultActions.push(...this._patrolActions(mower));
     }
 
     const helperActions: DisplayAction[] = [];
@@ -1661,6 +1674,7 @@ export class LawnMowerCard extends LitElement {
       if (!built) return [];
       if (action.type === "start" && this._areaMenuShown(mower)) return [built];
       return [{ ...built, handler: () => {
+        this._patrolMenu = undefined;
         if (action.confirmation) {
           this._closeAreaMenu(false);
           this._cancelTaskConfirmationOpen = false;
@@ -1709,6 +1723,10 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _renderActionConfirmation() {
+    const patrolMenu = this._renderPatrolMenu();
+    if (patrolMenu) {
+      return patrolMenu;
+    }
     const areaMenu = this._renderAreaStartMenu();
     if (areaMenu) {
       return areaMenu;
@@ -3376,6 +3394,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _requestCancelCurrentTask(): void {
+    this._patrolMenu = undefined;
     if (!this._config || !this._supportsCancelCurrentTask()) {
       return;
     }
@@ -3467,6 +3486,7 @@ export class LawnMowerCard extends LitElement {
 
   /** Mowers with a choice of areas get the Start menu; others start right away. */
   private _requestStart(action?: LawnMowerActionConfig): void | Promise<void> {
+    this._patrolMenu = undefined;
     if (this._areaMenuContext) {
       this._closeAreaMenu();
       return;
@@ -3627,6 +3647,120 @@ export class LawnMowerCard extends LitElement {
             entity_id: this._config?.entity,
           },
         ),
+    );
+  }
+
+  private _patrolActions(mower: HassEntity): DisplayAction[] {
+    if (!this._config || !(this._config.show_patrol_actions ?? true)) {
+      return [];
+    }
+    const patrols: Array<[DreamePatrolKind, string, string]> = [
+      ["point", this._t("action.pointPatrol"), "mdi:map-marker-path"],
+      ["edge", this._t("action.edgePatrol"), "mdi:vector-polyline"],
+    ];
+    return patrols
+      .filter(([kind]) => supportsDreamePatrol(
+        kind, this._config!.entity, this.hass.entities, this.hass.services,
+      ))
+      .map(([kind, label, icon]) => ({
+        label,
+        icon,
+        disabled: Boolean(this._mutationInFlight) || !mowerCanPatrol(mower),
+        expanded: this._patrolMenu?.kind === kind,
+        handler: () => this._requestPatrol(kind, label),
+      }));
+  }
+
+  /** Zones of the mower's own zone selector, with their integration ids. */
+  private _patrolZones(): ZoneChoice[] {
+    if (!this._config) return [];
+    const entityId = resolvedOwnedMowerCompanionEntity(
+      this.hass.states, this._config.entity, this.hass.entities, "select", "zone",
+    );
+    return entityId ? this._zoneChoices(entityId) : [];
+  }
+
+  private _requestPatrol(kind: DreamePatrolKind, label: string): void {
+    if (this._patrolMenu?.kind === kind) {
+      this._patrolMenu = undefined;
+      return;
+    }
+    this._closeAreaMenu(false);
+    this._cancelTaskConfirmationOpen = false;
+    this._cancelTaskTrigger = undefined;
+    this._pendingCustomAction = undefined;
+    this._customActionTrigger = undefined;
+    if (this._patrolZones().length < 2) {
+      void this._startPatrol(kind, label);
+      return;
+    }
+    const keys = this._patrolKeys();
+    if (keys) this._patrolMenu = { kind, keys };
+  }
+
+  private _patrolKeys(): ZoneSelectionKeys | undefined {
+    if (!this._config) return undefined;
+    const entityId = resolvedOwnedMowerCompanionEntity(
+      this.hass.states, this._config.entity, this.hass.entities, "select", "zone",
+    );
+    return entityId ? this._zoneSelectionKeys(entityId, this._zoneChoices(entityId)) : undefined;
+  }
+
+  private _patrolMenuCurrent(menu: NonNullable<typeof this._patrolMenu>): boolean {
+    const keys = this._patrolKeys();
+    const mower = this._config ? this.hass.states[this._config.entity] : undefined;
+    return this._patrolMenu === menu && Boolean(keys && reconciledZoneSelectionKeys(menu.keys, keys) &&
+      mower && mowerCanPatrol(mower) && supportsDreamePatrol(
+        menu.kind, this._config!.entity, this.hass.entities, this.hass.services,
+      ));
+  }
+
+  private _renderPatrolMenu() {
+    const menu = this._patrolMenu;
+    const kind = menu?.kind;
+    const mower = this._config ? this.hass.states[this._config.entity] : undefined;
+    const zones = this._patrolZones();
+    if (!menu || !kind || !this._patrolMenuCurrent(menu) || !mower || zones.length < 2) {
+      return undefined;
+    }
+    const label = this._t(kind === "point" ? "action.pointPatrol" : "action.edgePatrol");
+    const close = () => { this._patrolMenu = undefined; };
+    return html`<lawn-mower-area-start-menu
+      .areas=${zones.map((zone) => zone.label)}
+      .locale=${this._locale}
+      .disabled=${Boolean(this._mutationInFlight)}
+      .heading=${label}
+      .icon=${kind === "point" ? "mdi:map-marker-path" : "mdi:vector-polyline"}
+      .allLabel=${this._t("action.patrolAllZones")}
+      .areaLabel=${(area: string) => this._t("action.patrolZone", { area })}
+      .selectedLabel=${this._t("action.patrolSelectedZone")}
+      .onCancel=${close}
+      .onStartAll=${() => {
+        if (!this._patrolMenuCurrent(menu)) return;
+        close(); void this._startPatrol(kind, label);
+      }}
+      .onStartArea=${(area: string) => {
+        if (!this._patrolMenuCurrent(menu)) return;
+        close();
+        const zone = zones.find((choice) => choice.label === area);
+        if (zone) void this._startPatrol(kind, `${label} · ${area}`, zone.id);
+      }}
+    ></lawn-mower-area-start-menu>`;
+  }
+
+  private async _startPatrol(kind: DreamePatrolKind, label: string, zoneId?: number) {
+    const entityId = this._config?.entity;
+    if (!entityId) return;
+    const mower = this.hass.states[entityId];
+    if (!mower || !mowerCanPatrol(mower) || !supportsDreamePatrol(
+      kind, entityId, this.hass.entities, this.hass.services,
+    ) || (zoneId !== undefined && !this._patrolZones().some((zone) => zone.id === zoneId))) return;
+    await this._runMowerAction(`${kind}-patrol`, label, () =>
+      this.hass.callService(
+        DREAME_LAWN_MOWER_SERVICE_DOMAIN,
+        `start_${kind}_patrol`,
+        patrolServiceData(kind, entityId, zoneId),
+      ),
     );
   }
 

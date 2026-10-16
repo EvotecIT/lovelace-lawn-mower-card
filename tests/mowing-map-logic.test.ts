@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  fitMap, mowingMapPath, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
+  fitMap, mowingMapPath, normalizeMapBackground, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
 
 const path = "/api/dreame_lawn_mower/mowing-map/entry";
@@ -95,4 +95,25 @@ test("zoom preserves an anchor and has a bounded twelve-fold range", () => {
   assert.equal(zoomMap(fit, 10000, anchor, 1000, 600).width, 1000 / 12);
   assert.equal(zoomMap(fit, 0.00001, anchor, 1000, 600).width, 1000);
   assert.deepEqual(zoomMap(fit, NaN, anchor, 1000, 600), fit);
+});
+
+test("a real-scene layer is accepted only for the same entry and revision", () => {
+  const revision = "a".repeat(64), digest = "b".repeat(64);
+  const own = `${path}/real-scene/${revision}/${digest}`;
+  assert.equal(readMowingMapScene({ ...payload(), real_scene_path: own }, path).real_scene_path, own);
+  assert.equal(readMowingMapScene(payload(), path).real_scene_path, null);
+  for (const other of [
+    `${path}/real-scene/${"c".repeat(64)}/${digest}`,
+    `/api/dreame_lawn_mower/mowing-map/other/real-scene/${revision}/${digest}`,
+    `${own}?token=secret`, `${path}/real-scene/${revision}/../x`, 42,
+  ]) {
+    assert.equal(readMowingMapScene({ ...payload(), real_scene_path: other }, path).real_scene_path, null);
+  }
+});
+
+test("only real_scene selects the photo background", () => {
+  assert.equal(normalizeMapBackground("real_scene"), "real_scene");
+  for (const value of [undefined, "standard", "photo", 1]) {
+    assert.equal(normalizeMapBackground(value), "standard");
+  }
 });

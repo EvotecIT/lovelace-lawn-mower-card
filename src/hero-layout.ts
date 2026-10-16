@@ -40,6 +40,7 @@ export type HeroLayoutModel = {
   coverageLabel?: string;
   area?: MowingAreaProgress;
   mowingMapPath?: string;
+  mapBackground?: string;
   /** Mower entity whose saved photos the Photos view lists. */
   photoEntityId?: string;
   mapSavedPreview?: boolean;
@@ -102,6 +103,8 @@ export type HeroLayoutModel = {
   onDock(): void | Promise<void>;
   onCancelTask(): void | Promise<void>;
   onMaintenancePoint?(): void | Promise<void>;
+  /** Built-in Dreame patrols, shown after Dock when the integration offers them. */
+  patrolActions?: Array<{ label: string; icon?: string; disabled: boolean; handler(): void | Promise<void> }>;
   onMoreInfo(): void;
 };
 
