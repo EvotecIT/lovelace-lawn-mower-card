@@ -517,5 +517,12 @@ export const cs = {
   "editor.mowerLength": "Délka sekačky (cm)",
   "editor.mowerWidth": "Šířka sekačky (cm)",
   "editor.worldBackgroundDim": "Ztlumit mapu ulic a satelit (0–100)",
-  "editor.worldBackgroundDimHint": "Jak moc mapa ulic nebo satelit ustoupí za zahradu, aby zóny vynikly. Výchozí 45; 0 ponechá dlaždice beze změny. Při zarovnání jsou vždy ostré."
+  "editor.worldBackgroundDimHint": "Jak moc mapa ulic nebo satelit ustoupí za zahradu, aby zóny vynikly. Výchozí 45; 0 ponechá dlaždice beze změny. Při zarovnání jsou vždy ostré.",
+  "mowingMap.baseTool": "Zarovnat od základny",
+  "mowingMap.baseToolPick": "Stiskněte základnu na mapě sekačky a přetáhněte ji na skutečné místo",
+  "mowingMap.baseToolMove": "Táhněte mapu, dokud základna nebude na svém místě, pak Další",
+  "mowingMap.baseToolPull": "Přetáhněte libovolný bod mapy na jeho skutečné místo; základna zůstává pevná",
+  "mowingMap.baseToolNext": "Další",
+  "mowingMap.baseToolRestart": "Začít znovu",
+  "mowingMap.basePin": "Základna"
 } satisfies TranslationCatalog;

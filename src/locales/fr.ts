@@ -173,5 +173,12 @@ export const fr = {
   "editor.mowerLength": "Longueur de la tondeuse (cm)",
   "editor.mowerWidth": "Largeur de la tondeuse (cm)",
   "editor.worldBackgroundDim": "Atténuer le plan et le satellite (0–100)",
-  "editor.worldBackgroundDimHint": "Intensité avec laquelle le plan ou le satellite s’efface derrière le jardin pour faire ressortir les zones. 45 par défaut ; 0 garde les tuiles intactes. Ajuster les affiche toujours nettes."
+  "editor.worldBackgroundDimHint": "Intensité avec laquelle le plan ou le satellite s’efface derrière le jardin pour faire ressortir les zones. 45 par défaut ; 0 garde les tuiles intactes. Ajuster les affiche toujours nettes.",
+  "mowingMap.baseTool": "Caler par la base",
+  "mowingMap.baseToolPick": "Appuyez sur la base de la carte et glissez-la sur son emplacement",
+  "mowingMap.baseToolMove": "Glissez la carte jusqu’à ce que la base tombe sur son emplacement, puis Suivant",
+  "mowingMap.baseToolPull": "Tirez un point de la carte sur son vrai emplacement ; la base reste fixe",
+  "mowingMap.baseToolNext": "Suivant",
+  "mowingMap.baseToolRestart": "Recommencer",
+  "mowingMap.basePin": "Base"
 } satisfies TranslationCatalog;

@@ -10,14 +10,15 @@ import { mapControlIcon, mowerMapMarker, mowingMapStyles } from "./mowing-map-pr
 import {
   availableMapBackgrounds, constrainViewport, DEFAULT_MOWER_SIZE, gardenEmphasis, mowerMarkerTransform, worldDim, effectiveMapBackground, fitMap, isWorldBackground,
   mowingMapPath, viewLimits, normalizeMapBackground, overlayIsFresh, positionStatusKey,
-  readMowingMapScene, zoomMap,
+  readMowingMapScene, zoomMap, backgroundRequestPath, cardDrawsZoneLabels, signedPathMatches,
   type MapBackground, type MapPoint, type MapViewport, type MowerSize, type MowingMapScene,
 } from "./mowing-map-logic";
 import {
   adjustmentMatrix, alignedGeoreference, colorSchemeFor, composeAdjustment, defaultGeoreference,
   georeferenceServiceData, IDENTITY_ADJUSTMENT, mapCentre, metresPerMapPixel, sameGeoreference,
   screenMatrix, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
-  alignGesture, alignHandlePositions, dragHandle, pointOnMap,
+  alignGesture, alignHandlePositions, dragHandle, pointOnMap, pullAboutPivot, unadjustPoint, adjustPoint, mapToScreen,
+  nativeToPixel, placeZoneLabels,
   type AlignGesture, type AlignHandle, type GeoPoint, type MapAdjustment, type MapGeoreference, type WorldBackground, type WorldTileOptions,
 } from "./map-georeference-logic";
 
@@ -35,6 +36,8 @@ type AlignSession = {
 const ROTATE_STEP = 0.5;
 const SCALE_STEP = 1.005;
 const SAVED_GRACE_MS = 60_000;
+/** Zone names keep this on-screen size whatever the zoom. */
+const ZONE_LABEL_PX = 14;
 
 /** Abort waiting on non-cancellable HA signing and browser decoding promises. */
 async function abortable<T>(pending: Promise<T>, signal: AbortSignal): Promise<T> {
@@ -69,11 +72,22 @@ export class LawnMowerMowingMap extends LitElement {
 
   @state() private _scene?: MowingMapScene;
   @state() private _image?: string;
+  /** Background request the current image came from (with or without labels). */
+  private _imagePath?: string;
   @state() private _photo?: string;
   @state() private _backgroundChoice?: MapBackground;
   @state() private _align?: AlignSession;
   /** What the current one-pointer drag does while aligning. */
-  private _drag?: AlignGesture;
+  private _drag?: AlignGesture | "pull";
+  /** Map point held by a "pull" drag (map pixels). */
+  private _grab?: MapPoint;
+  /**
+   * "Align from the base": step "move" drags the whole map until the base
+   * (pivot) sits on its real place; step "pull" keeps it fixed while any
+   * pulled point turns and resizes the map about it. Without a known base
+   * position, the first press on the map picks it.
+   */
+  @state() private _baseTool?: { step: "move" | "pull"; pivot?: MapPoint };
   @state() private _saving = false;
   @state() private _alignError?: string;
   @state() private _notice?: TranslationKey;
@@ -189,6 +203,7 @@ export class LawnMowerMowingMap extends LitElement {
   private _releaseImage(): void {
     if (this._image) URL.revokeObjectURL(this._image);
     this._image = undefined;
+    this._imagePath = undefined;
   }
 
   private _releasePhoto(): void {
@@ -270,6 +285,7 @@ export class LawnMowerMowingMap extends LitElement {
     if (!base || !this._canAlign) return;
     this._align = { base, adjustment: { ...IDENTITY_ADJUSTMENT }, fresh: !this._aligned };
     this._alignError = undefined;
+    this._baseTool = undefined;
     // Leave room around the frame so its corner and rotate handles are reachable.
     const scene = this._scene;
     if (scene) {
@@ -280,6 +296,7 @@ export class LawnMowerMowingMap extends LitElement {
 
   private _cancelAlign = (): void => {
     this._stopHold();
+    this._baseTool = undefined;
     if (this._align) this._fit();
     this._align = undefined;
     this._alignError = undefined;
@@ -297,6 +314,7 @@ export class LawnMowerMowingMap extends LitElement {
       await hass.callService(DREAME_LAWN_MOWER_SERVICE_DOMAIN, "set_georeference",
         georeferenceServiceData(entityId, reference));
       this._saved = { reference, at: Date.now() };
+      this._baseTool = undefined;
       if (this._align === align) {
         this._align = undefined;
         this._fit();
@@ -307,6 +325,25 @@ export class LawnMowerMowingMap extends LitElement {
     } finally {
       this._saving = false;
     }
+  };
+
+  /** The base's map pixel when the integration has observed the mower docked there. */
+  private get _knownBase(): MapPoint | undefined {
+    const overlay = this._scene?.overlay;
+    return overlay?.position_status === "known_dock" && overlay.position
+      ? { x: overlay.position.x, y: overlay.position.y } : undefined;
+  }
+
+  private _toggleBaseTool = (): void => {
+    this._baseTool = this._baseTool ? undefined : { step: "move", pivot: this._knownBase };
+  };
+
+  private _baseToolNext = (): void => {
+    if (this._baseTool?.pivot) this._baseTool = { ...this._baseTool, step: "pull" };
+  };
+
+  private _baseToolRestart = (): void => {
+    this._baseTool = { step: "move", pivot: this._knownBase };
   };
 
   private _showNotice(key: TranslationKey): void {
@@ -423,7 +460,7 @@ export class LawnMowerMowingMap extends LitElement {
     signal.throwIfAborted();
     // Signed URLs are credentials. Accept only the exact local requested route,
     // never render/log them, and fetch the image into a private object URL.
-    if (!signed || signed.split("?", 1)[0] !== path) throw new Error("Invalid signed path");
+    if (!signed || !signedPathMatches(path, signed)) throw new Error("Invalid signed path");
     const response = await fetch(hass.hassUrl(signed), {
       credentials: "same-origin", signal, cache: "no-store",
     });
@@ -442,8 +479,9 @@ export class LawnMowerMowingMap extends LitElement {
     try {
       const response = await this._fetch(path, controller.signal);
       const scene = readMowingMapScene(await response.json(), path);
-      if (scene.revision !== this._scene?.revision || !this._image) {
-        const background = await this._fetch(scene.background_path, controller.signal);
+      const backgroundPath = backgroundRequestPath(scene);
+      if (backgroundPath !== this._imagePath || !this._image) {
+        const background = await this._fetch(backgroundPath, controller.signal);
         const blob = await background.blob();
         if (blob.type !== "image/png" || blob.size > 4 * 1024 * 1024) {
           throw new Error("Invalid map background");
@@ -466,6 +504,7 @@ export class LawnMowerMowingMap extends LitElement {
       if (image) {
         this._releaseImage();
         this._image = image;
+        this._imagePath = backgroundPath;
         image = undefined;
         this._view = fitMap(scene.width, scene.height);
       }
@@ -544,6 +583,13 @@ export class LawnMowerMowingMap extends LitElement {
       const onMap = pointOnMap(this._align.adjustment, scene.width, scene.height,
         this._point({ x: event.clientX, y: event.clientY }));
       this._drag = alignGesture(1, handle ?? undefined, onMap);
+      const tool = this._baseTool;
+      if (tool && this._drag === "move-map") {
+        const grabbed = unadjustPoint(this._align.adjustment, mapCentre(scene.width, scene.height),
+          this._point({ x: event.clientX, y: event.clientY }));
+        if (!tool.pivot) this._baseTool = { ...tool, pivot: grabbed };
+        else if (tool.step === "pull") { this._drag = "pull"; this._grab = grabbed; }
+      }
     }
   }
 
@@ -565,6 +611,15 @@ export class LawnMowerMowingMap extends LitElement {
         dx: adjustment.dx + newCentre.x - oldCentre.x, dy: adjustment.dy + newCentre.y - oldCentre.y }));
       return;
     }
+    if (gesture === "pull") {
+      const pivot = this._baseTool?.pivot, grab = this._grab;
+      const minimum = 24 * Math.max(this._view.width / this._size.width, this._view.height / this._size.height);
+      if (pivot && grab) {
+        this._adjust((adjustment, mapMiddle) =>
+          pullAboutPivot(adjustment, mapMiddle, pivot, grab, newCentre, minimum) ?? adjustment);
+      }
+      return;
+    }
     if (gesture === "scale" || gesture === "rotate") {
       this._adjust((adjustment, mapMiddle) => dragHandle(adjustment, mapMiddle, gesture, oldCentre, newCentre));
       return;
@@ -584,6 +639,7 @@ export class LawnMowerMowingMap extends LitElement {
     // Lifting one of two fingers continues as a view pan, never as a map move.
     if (this._pointers.size === 0) this._drag = undefined;
     else this._drag = "view";
+    this._grab = undefined;
   }
 
   private _wheel(event: WheelEvent): void {
@@ -671,6 +727,46 @@ export class LawnMowerMowingMap extends LitElement {
       ${dim?.veil ? html`<div class="world-veil" aria-hidden="true" style=${`opacity:${dim.veil}`}></div>` : nothing}`;
   }
 
+  /**
+   * Zone names (when the integration lists them) as upright HTML text at a
+   * constant screen size over every background; they follow the mower map,
+   * also while aligning.
+   */
+  private _renderOverlayText(scene: MowingMapScene, align: AlignSession | undefined) {
+    const projection = scene.projection;
+    if (!projection) return nothing;
+    const centre = mapCentre(scene.width, scene.height);
+    const toScreen = (pixel: MapPoint) => mapToScreen(
+      align ? adjustPoint(align.adjustment, centre, pixel) : pixel, this._view, this._size);
+    const labels = cardDrawsZoneLabels(scene) ? placeZoneLabels((scene.zones ?? []).map((zone) => ({
+      name: zone.name, ...toScreen(nativeToPixel(projection, { x: zone.label_x, y: zone.label_y })),
+    })), this._size, ZONE_LABEL_PX) : [];
+    if (!labels.some((label) => label.visible)) return nothing;
+    return html`<div class="map-text" aria-hidden="true">
+      ${labels.filter((label) => label.visible).map((label) => html`
+        <span class="zone-label" style=${`left:${label.x}px;top:${label.y}px;font-size:${ZONE_LABEL_PX}px`}
+          >${label.name}</span>`)}
+    </div>`;
+  }
+
+  /** The base pin (pivot) of "Align from the base", and the pull line while pulling. */
+  private _renderBasePin(scene: MowingMapScene, align: AlignSession) {
+    const pivot = this._baseTool?.pivot;
+    if (!pivot) return nothing;
+    const centre = mapCentre(scene.width, scene.height);
+    const at = (point: MapPoint) => mapToScreen(adjustPoint(align.adjustment, centre, point), this._view, this._size);
+    const pin = at(pivot);
+    const grab = this._drag === "pull" && this._grab ? at(this._grab) : undefined;
+    const fixed = this._baseTool?.step === "pull";
+    return html`<div class="map-text" aria-hidden="true">
+      ${grab ? html`<svg class="pull-line" width=${this._size.width} height=${this._size.height}>
+        <line x1=${pin.x} y1=${pin.y} x2=${grab.x} y2=${grab.y} /><circle cx=${grab.x} cy=${grab.y} r="9" /></svg>` : nothing}
+      <span class=${`base-pin${fixed ? " fixed" : ""}`} style=${`left:${pin.x}px;top:${pin.y}px`}>
+        <svg viewBox="-12 -12 24 24"><circle r="9" /><circle class="core" r="3.5" /></svg>
+        <span>${this._t("mowingMap.basePin")}</span></span>
+    </div>`;
+  }
+
   private _renderAttribution(world: WorldBackground) {
     const source = worldTileSource(world, this.tiles?.[world]);
     if (!source.attribution) return nothing;
@@ -700,7 +796,18 @@ export class LawnMowerMowingMap extends LitElement {
         aria-label=${this._t(label)} title=${this._t(label)}>${content}</button>`;
     return html`
       <div class="align-bar" role="group" aria-label=${this._t("mowingMap.alignTools")}>
-        <p class="align-help">${this._t("mowingMap.alignHint")}</p>
+        ${this._baseTool ? nothing : html`<p class="align-help">${this._t("mowingMap.alignHint")}</p>`}
+        <div class="align-row base-tool">
+          <button aria-pressed=${this._baseTool ? "true" : "false"} @click=${this._toggleBaseTool}
+            >${this._t("mowingMap.baseTool")}</button>
+          ${this._baseTool ? html`
+            <span class="align-step" role="status">${this._t(!this._baseTool.pivot ? "mowingMap.baseToolPick"
+              : this._baseTool.step === "move" ? "mowingMap.baseToolMove" : "mowingMap.baseToolPull")}</span>
+            ${this._baseTool.step === "move"
+              ? html`<button class="primary" ?disabled=${!this._baseTool.pivot} @click=${this._baseToolNext}
+                  >${this._t("mowingMap.baseToolNext")}</button>`
+              : html`<button @click=${this._baseToolRestart}>${this._t("mowingMap.baseToolRestart")}</button>`}` : nothing}
+        </div>
         <div class="align-row">
           <div class="stepper" role="group" aria-label=${this._t("mowingMap.alignRotation", { value: degrees })}>
             <span class="stepper-label">${this._t("mowingMap.rotationLabel")}</span>
@@ -833,6 +940,8 @@ export class LawnMowerMowingMap extends LitElement {
             </g>
             ${align ? this._renderHandles(scene, align, unitsPerScreenPixel) : nothing}
           </svg>
+          ${this._renderOverlayText(scene, align)}
+          ${align ? this._renderBasePin(scene, align) : nothing}
           ${world ? this._renderAttribution(world) : nothing}
           ${world && !align && !this._aligned ? html`
             <div class="map-notice">${this._t("mowingMap.notAligned")}</div>` : this._notice ? html`

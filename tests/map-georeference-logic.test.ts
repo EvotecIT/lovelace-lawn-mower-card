@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  adjustPoint, adjustmentMatrix, alignGesture, alignHandlePositions, dragHandle, pointOnMap, unadjustPoint, alignedGeoreference, composeAdjustment, DEFAULT_WORLD_TILES,
+  adjustPoint, adjustmentMatrix, alignGesture, alignHandlePositions, dragHandle, pointOnMap, unadjustPoint, mapToScreen, placeZoneLabels, adjustmentFromPairs, pullAboutPivot, alignedGeoreference, composeAdjustment, DEFAULT_WORLD_TILES,
   defaultGeoreference, geoToNative, geoToPixel, geoToTile, georeferenceServiceData, IDENTITY_ADJUSTMENT,
   nativeToGeo, nativeToPixel, pixelToGeo, pixelToNative, readMapGeoreference, sameGeoreference, screenMatrix, colorSchemeFor,
   tileMatrix, tileTemplate, tileToGeo, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
@@ -261,4 +261,65 @@ test("the corner handle resizes and the rotate handle turns about the drawn cent
   near(turned.rotation, 100, 1e-9); near(turned.scale, 1, 1e-9);
   near(turned.dx, start.dx, 1e-9); near(turned.dy, start.dy, 1e-9);
   assert.deepEqual(dragHandle(start, centre, "scale", middle, corner), start);
+});
+
+test("zone labels are placed through the projection and stay upright on screen", () => {
+  // Native (10000, -10000) is unrotated pixel (510, 1010); at 90 degrees (H - 1 - v, u).
+  assert.deepEqual(nativeToPixel(projection, { x: 10000, y: -10000 }), { x: 510, y: 1010 });
+  assert.deepEqual(nativeToPixel({ ...projection, rotation: 90 }, { x: 10000, y: -10000 }), { x: 509, y: 510 });
+  // Letterboxed view: 400 x 200 viewBox in a 400 x 400 canvas leaves 100 px above.
+  assert.deepEqual(mapToScreen({ x: 300, y: 150 }, { x: 100, y: 50, width: 400, height: 200 },
+    { width: 400, height: 400 }), { x: 200, y: 200 });
+});
+
+test("zone names hide when they leave the canvas, collide or have no room", () => {
+  const size = { width: 400, height: 300 };
+  const placed = placeZoneLabels([
+    { name: "Main lawn", x: 200, y: 100 },
+    { name: "Back", x: 205, y: 104 }, // overlaps Main lawn
+    { name: "Orchard", x: 390, y: 250 }, // runs off the right edge
+    { name: "Side", x: 100, y: 250 },
+  ], size, 14);
+  assert.deepEqual(placed.map((label) => label.visible), [false, false, false, true]);
+  // Main lawn was hidden only because "Back" sits 6 px away: alone it shows.
+  assert.equal(placeZoneLabels([{ name: "Main lawn", x: 200, y: 100 }], size, 14)[0].visible, true);
+  // Two names far enough apart both show; zoomed out (points 30 px apart) neither long name fits.
+  const apart = placeZoneLabels([{ name: "Front", x: 100, y: 100 }, { name: "Back", x: 300, y: 100 }], size, 14);
+  assert.deepEqual(apart.map((label) => label.visible), [true, true]);
+  const crowded = placeZoneLabels([
+    { name: "Front garden", x: 100, y: 100 }, { name: "Back garden", x: 130, y: 100 }], size, 14);
+  assert.deepEqual(crowded.map((label) => label.visible), [false, false]);
+  assert.ok(Math.abs(placed[0].width - (9 * 14 * 0.62 + 8)) < 1e-9);
+});
+
+test("pin and pull: the base stays fixed and the pulled point lands on its real place", () => {
+  const width = 2520, height = 1520;
+  const centre = { x: width / 2, y: height / 2 };
+  // Tiles drawn with an arbitrary starting alignment near the reference place.
+  const start: MapGeoreference = { anchor_x: 0, anchor_y: 0, latitude: 45.3175, longitude: -73.837,
+    heading: 180, scale: 0.001 };
+  const pivot = nativeToPixel(projection, { x: 1160, y: -20 });
+  const grabbed = nativeToPixel(projection, { x: -5676, y: -20165 });
+  const baseGround = geoToPixel(projection, start, { latitude: 45.317421, longitude: -73.837131 });
+  const pointGround = geoToPixel(projection, start, { latitude: 45.3174986, longitude: -73.836883 });
+  // Step 1: drag the map so the base sits on its real place.
+  const moved = { ...IDENTITY_ADJUSTMENT, dx: baseGround.x - pivot.x, dy: baseGround.y - pivot.y };
+  // Step 2: pull the other point onto its real place, the base stays put.
+  const pulled = pullAboutPivot(moved, centre, pivot, grabbed, pointGround, 24);
+  assert.ok(pulled);
+  const base = adjustPoint(pulled, centre, pivot), point = adjustPoint(pulled, centre, grabbed);
+  near(base.x, baseGround.x, 1e-6); near(base.y, baseGround.y, 1e-6);
+  near(point.x, pointGround.x, 1e-6); near(point.y, pointGround.y, 1e-6);
+  const saved = alignedGeoreference(projection, start, pulled, width, height);
+  // GPS rounded to 1e-7 degree (about 1 cm) over 21 m: about 0.03 degree and 0.05 %.
+  near(saved.heading, 227.33, 0.05, "heading");
+  near(saved.scale, 0.001, 0.000001, "scale");
+  const gps = nativeToGeo(saved, { x: 1160, y: -20 });
+  near(gps.latitude, 45.317421, 2e-7); near(gps.longitude, -73.837131, 2e-7);
+  // A grab or a target next to the pivot is ignored.
+  const nearPivot = { x: pivot.x + 5, y: pivot.y };
+  assert.equal(pullAboutPivot(moved, centre, pivot, nearPivot, pointGround, 24), null);
+  assert.equal(pullAboutPivot(moved, centre, pivot, grabbed, { x: baseGround.x + 3, y: baseGround.y }, 24), null);
+  // Pairs: the same similarity, and coinciding points are refused.
+  assert.equal(adjustmentFromPairs(centre, { map: pivot, ground: baseGround }, { map: pivot, ground: pointGround }), null);
 });

@@ -455,5 +455,12 @@ export const es = {
   "editor.mowerLength": "Longitud del cortacésped (cm)",
   "editor.mowerWidth": "Anchura del cortacésped (cm)",
   "editor.worldBackgroundDim": "Atenuar mapa de calles y satélite (0–100)",
-  "editor.worldBackgroundDimHint": "Cuánto se difumina el mapa o el satélite detrás del jardín para destacar las zonas. 45 por defecto; 0 deja las teselas intactas. Ajustar siempre las muestra nítidas."
+  "editor.worldBackgroundDimHint": "Cuánto se difumina el mapa o el satélite detrás del jardín para destacar las zonas. 45 por defecto; 0 deja las teselas intactas. Ajustar siempre las muestra nítidas.",
+  "mowingMap.baseTool": "Ajustar desde la base",
+  "mowingMap.baseToolPick": "Pulsa la base en el mapa del cortacésped y arrástrala a su lugar real",
+  "mowingMap.baseToolMove": "Arrastra el mapa hasta que la base quede en su lugar real y luego Siguiente",
+  "mowingMap.baseToolPull": "Tira de cualquier punto del mapa hasta su lugar real; la base queda fija",
+  "mowingMap.baseToolNext": "Siguiente",
+  "mowingMap.baseToolRestart": "Empezar de nuevo",
+  "mowingMap.basePin": "Base"
 } satisfies TranslationCatalog;

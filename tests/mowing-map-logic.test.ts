@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  availableMapBackgrounds, constrainViewport, effectiveMapBackground, fitMap, mowingMapPath,
+  availableMapBackgrounds, backgroundRequestPath, constrainViewport, signedPathMatches, effectiveMapBackground, fitMap, mowingMapPath,
   DEFAULT_MOWER_SIZE, DEFAULT_WORLD_DIM, gardenEmphasis, MARKER_BODY, mowerMarkerSize, mowerMarkerTransform, worldDim,
   normalizeMapBackground, viewLimits, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
@@ -194,4 +194,27 @@ test("geographic tiles are softened by the configured amount", () => {
   const emphasis = gardenEmphasis(2);
   assert.equal(emphasis.alphaSlope, 2.2);
   assert.equal(emphasis.halo, 5);
+});
+
+test("zone names: the card draws them only when the integration lists them", () => {
+  const plain = readMowingMapScene(payload(), path);
+  assert.equal(plain.zones, null);
+  assert.equal(backgroundRequestPath(plain), plain.background_path);
+  const zones = [{ zone_id: 1, name: " Zone1 ", label_x: 100, label_y: -200 },
+    { zone_id: 2, name: "", label_x: 0, label_y: 0 }, { zone_id: 3, name: "Bad", label_x: "x", label_y: 0 }];
+  const withZones = readMowingMapScene({ ...payload(), zones, projection: {
+    max_x: 20000, min_y: -30000, scale: 0.05, padding: 10, native_width: 1520, native_height: 1020, rotation: 0,
+  } }, path);
+  assert.deepEqual(withZones.zones, [{ zone_id: 1, name: "Zone1", label_x: 100, label_y: -200 }]);
+  assert.equal(backgroundRequestPath(withZones), `${withZones.background_path}?labels=0`);
+  // Zones without a projection cannot be placed: keep the integration's own names.
+  const unplaced = readMowingMapScene({ ...payload(), zones }, path);
+  assert.equal(backgroundRequestPath(unplaced), unplaced.background_path);
+  // Signed URLs keep the requested parameters and add only the signature.
+  const requested = `${path}/background/${"a".repeat(64)}?labels=0`;
+  assert.equal(signedPathMatches(requested, `${path}/background/${"a".repeat(64)}?labels=0&authSig=x`), true);
+  assert.equal(signedPathMatches(requested, `${path}/background/${"a".repeat(64)}?authSig=x`), false);
+  assert.equal(signedPathMatches(requested, `${path}/background/${"a".repeat(64)}?labels=0&x=1&authSig=y`), false);
+  assert.equal(signedPathMatches(path, `${path}?authSig=x`), true);
+  assert.equal(signedPathMatches(path, `/api/other?authSig=x`), false);
 });

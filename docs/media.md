@@ -40,6 +40,12 @@ its heading, on every background. It grows with the zoom, which can then go up
 to 32×; further out it keeps the fixed icon so it stays visible.
 `mower_marker: fixed` always uses the fixed icon.
 
+When the integration lists its zones with label points, the card asks for the
+background without names (`labels=0`) and writes the zone names itself: bold,
+with a dark halo, at a constant size on every background. A name that would
+overlap another one or has no room at the current zoom is hidden until you zoom
+in. While aligning, the names follow the mower map.
+
 ## Street map and satellite
 
 When the integration describes how its map pixels relate to the mower's own
@@ -60,6 +66,11 @@ home location (north up, 1 mm per map unit).
   **rotate handle** above the frame to turn it. Handles keep their size on screen.
 - Two fingers, the mouse wheel, the **+** and **−** buttons, or dragging outside
   the map only zoom and move the view; they never change the alignment.
+- **Align from the base**: drag the map until the base (station) sits on its
+  real place, then **Next**; the base is then pinned and pulling any other point
+  of the map onto its real place turns and resizes the map about it. Pull as
+  many points as needed; **Start over** returns to the first step. When the
+  integration has not located the base, press it on the mower map first.
 - **Rotation** and **Map size** buttons turn by 0.5° and resize by 0.5%; hold a
   button to repeat faster.
 - **Save** sends `dreame_lawn_mower.set_georeference` with the mower entity;

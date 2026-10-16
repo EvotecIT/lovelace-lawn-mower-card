@@ -461,5 +461,12 @@ export const pl = {
   "editor.mowerLength": "Długość kosiarki (cm)",
   "editor.mowerWidth": "Szerokość kosiarki (cm)",
   "editor.worldBackgroundDim": "Przyciemnij mapę ulic i satelitę (0–100)",
-  "editor.worldBackgroundDimHint": "Jak mocno mapa ulic lub satelita blednie za ogrodem, aby strefy były wyraźne. Domyślnie 45; 0 pozostawia kafelki bez zmian. Dopasowanie zawsze pokazuje je ostro."
+  "editor.worldBackgroundDimHint": "Jak mocno mapa ulic lub satelita blednie za ogrodem, aby strefy były wyraźne. Domyślnie 45; 0 pozostawia kafelki bez zmian. Dopasowanie zawsze pokazuje je ostro.",
+  "mowingMap.baseTool": "Dopasuj od stacji",
+  "mowingMap.baseToolPick": "Naciśnij stację na mapie kosiarki i przeciągnij ją na jej prawdziwe miejsce",
+  "mowingMap.baseToolMove": "Przeciągaj mapę, aż stacja znajdzie się na swoim miejscu, potem Dalej",
+  "mowingMap.baseToolPull": "Przeciągnij dowolny punkt mapy na jego prawdziwe miejsce; stacja pozostaje nieruchoma",
+  "mowingMap.baseToolNext": "Dalej",
+  "mowingMap.baseToolRestart": "Zacznij od nowa",
+  "mowingMap.basePin": "Stacja"
 } satisfies TranslationCatalog;

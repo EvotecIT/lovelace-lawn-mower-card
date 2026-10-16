@@ -34,7 +34,10 @@ for (const points of [[[245,420],[240,470]], [[590,450],[645,505]]]) {
     ctx.lineWidth=width;ctx.lineCap="round";ctx.strokeStyle=color;ctx.setLineDash(dash);ctx.stroke();
   }
 }
-ctx.setLineDash([]); ctx.font="600 20px system-ui";ctx.fillStyle="#e5f2e9";
+ctx.setLineDash([]);
+// Like the integration: the same background without zone names for labels=0.
+const unlabelled = canvas.toDataURL("image/png");
+ctx.font="600 20px system-ui";ctx.fillStyle="#e5f2e9";
 ctx.fillText("Main lawn",370,175);ctx.fillText("Side lawn",165,530);ctx.fillText("Orchard",595,570);
 const png = canvas.toDataURL("image/png");
 let sceneUrl;
@@ -42,6 +45,9 @@ let sceneUrl;
 const geo = query.get("geo") ? {
   projection:{max_x:22500,min_y:-16250,scale:0.02,padding:0,native_width:900,native_height:650,rotation:0},
   georeference:query.get("geo")==="new" ? null : {anchor_x:0,anchor_y:0,latitude:52.37285,longitude:4.89366,heading:20,scale:0.001},
+  // Label points in native units (pixel (450,190), (230,520), (670,555) through the projection).
+  zones:[{zone_id:1,name:"Main lawn",label_x:0,label_y:-6750},{zone_id:2,name:"Side lawn",label_x:11000,label_y:9750},
+    {zone_id:3,name:"Orchard",label_x:-11000,label_y:11500}],
 } : {};
 const hass = {
   language:query.get("hassLocale") || query.get("locale") || "en",
@@ -50,11 +56,12 @@ const hass = {
   config:{latitude:52.37285,longitude:4.89366},
   async callWS(message) { return { path: message.path }; },
   hassUrl(route) {
+    if (route.split("&authSig")[0] === `${backgroundPath}?labels=0`) return unlabelled;
     if (route === backgroundPath) return png;
     if (route === path && query.get("map") !== "error") {
       if (sceneUrl) URL.revokeObjectURL(sceneUrl);
       sceneUrl = URL.createObjectURL(new Blob([JSON.stringify({schema_version:1,revision,map_index:0,map_id:1,name:"Garden · three zones",width:900,height:650,background_path:backgroundPath,
-        ...geo,overlay:{position:{x:640,y:330,heading:180},trail:[[[185,220],[665,240],[675,265],[190,245],[195,275],[685,295],[690,320],[200,300],[205,330],[640,350],[640,330]]],position_status:"current",updated_at:new Date(Date.now()-(query.get("map")==="stale"?120000:0)).toISOString(),max_age_seconds:90}})],{type:"application/json"}));
+        ...geo,overlay:{position:{x:640,y:330,heading:180},trail:[[[185,220],[665,240],[675,265],[190,245],[195,275],[685,295],[690,320],[200,300],[205,330],[640,350],[640,330]]],position_status:query.get("dock")?"known_dock":"current",docked:Boolean(query.get("dock")),position_observed_at:new Date().toISOString(),updated_at:new Date(Date.now()-(query.get("map")==="stale"?120000:0)).toISOString(),max_age_seconds:90}})],{type:"application/json"}));
       return sceneUrl;
     }
     return route;

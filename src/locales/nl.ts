@@ -503,5 +503,12 @@ export const nl = {
   "editor.mowerLength": "Lengte van de maaier (cm)",
   "editor.mowerWidth": "Breedte van de maaier (cm)",
   "editor.worldBackgroundDim": "Stratenkaart en satelliet dempen (0–100)",
-  "editor.worldBackgroundDimHint": "Hoeveel de stratenkaart of satelliet vervaagt achter de tuin zodat de zones opvallen. Standaard 45; 0 laat de tegels ongewijzigd. Uitlijnen toont ze altijd scherp."
+  "editor.worldBackgroundDimHint": "Hoeveel de stratenkaart of satelliet vervaagt achter de tuin zodat de zones opvallen. Standaard 45; 0 laat de tegels ongewijzigd. Uitlijnen toont ze altijd scherp.",
+  "mowingMap.baseTool": "Uitlijnen vanaf de basis",
+  "mowingMap.baseToolPick": "Druk op de basis op de maaikaart en sleep hem naar zijn echte plek",
+  "mowingMap.baseToolMove": "Sleep de kaart tot de basis op zijn echte plek ligt, dan Volgende",
+  "mowingMap.baseToolPull": "Trek een willekeurig kaartpunt naar zijn echte plek; de basis blijft vast",
+  "mowingMap.baseToolNext": "Volgende",
+  "mowingMap.baseToolRestart": "Opnieuw beginnen",
+  "mowingMap.basePin": "Basis"
 } satisfies TranslationCatalog;

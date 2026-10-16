@@ -173,5 +173,12 @@ export const it = {
   "editor.mowerLength": "Lunghezza del rasaerba (cm)",
   "editor.mowerWidth": "Larghezza del rasaerba (cm)",
   "editor.worldBackgroundDim": "Attenua mappa stradale e satellite (0–100)",
-  "editor.worldBackgroundDimHint": "Quanto la mappa o il satellite si attenuano dietro il giardino per far risaltare le zone. Predefinito 45; 0 lascia le tessere invariate. Allinea le mostra sempre nitide."
+  "editor.worldBackgroundDimHint": "Quanto la mappa o il satellite si attenuano dietro il giardino per far risaltare le zone. Predefinito 45; 0 lascia le tessere invariate. Allinea le mostra sempre nitide.",
+  "mowingMap.baseTool": "Allinea dalla base",
+  "mowingMap.baseToolPick": "Premi la base sulla mappa del rasaerba e trascinala nella sua posizione reale",
+  "mowingMap.baseToolMove": "Trascina la mappa finché la base è nella sua posizione reale, poi Avanti",
+  "mowingMap.baseToolPull": "Tira un punto qualsiasi della mappa nella sua posizione reale; la base resta ferma",
+  "mowingMap.baseToolNext": "Avanti",
+  "mowingMap.baseToolRestart": "Ricomincia",
+  "mowingMap.basePin": "Base"
 } satisfies TranslationCatalog;

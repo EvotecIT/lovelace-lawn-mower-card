@@ -173,5 +173,12 @@ export const de = {
   "editor.mowerLength": "Länge des Mähers (cm)",
   "editor.mowerWidth": "Breite des Mähers (cm)",
   "editor.worldBackgroundDim": "Straßenkarte und Satellit abschwächen (0–100)",
-  "editor.worldBackgroundDimHint": "Wie stark Straßenkarte oder Satellitenbild hinter dem Garten zurücktreten, damit die Zonen hervortreten. Standard 45; 0 lässt die Kacheln unverändert. Beim Ausrichten bleiben sie scharf."
+  "editor.worldBackgroundDimHint": "Wie stark Straßenkarte oder Satellitenbild hinter dem Garten zurücktreten, damit die Zonen hervortreten. Standard 45; 0 lässt die Kacheln unverändert. Beim Ausrichten bleiben sie scharf.",
+  "mowingMap.baseTool": "Von der Basis ausrichten",
+  "mowingMap.baseToolPick": "Drücken Sie auf der Mähkarte auf die Basis und ziehen Sie sie an ihren echten Ort",
+  "mowingMap.baseToolMove": "Ziehen Sie die Karte, bis die Basis an ihrem echten Ort liegt, dann Weiter",
+  "mowingMap.baseToolPull": "Ziehen Sie einen beliebigen Kartenpunkt an seinen echten Ort; die Basis bleibt fest",
+  "mowingMap.baseToolNext": "Weiter",
+  "mowingMap.baseToolRestart": "Neu beginnen",
+  "mowingMap.basePin": "Basis"
 } satisfies TranslationCatalog;

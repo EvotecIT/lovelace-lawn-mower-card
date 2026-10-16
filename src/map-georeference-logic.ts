@@ -536,3 +536,81 @@ export function alignHandlePositions(
     },
   };
 }
+
+/** Map pixel to CSS pixel in the canvas (letterboxed "xMidYMid meet" viewBox). */
+export function mapToScreen(point: MapPoint, view: MapViewport, size: { width: number; height: number }): MapPoint {
+  const [, , , , x, y] = screenMatrix([1, 0, 0, 1, point.x, point.y], view, size);
+  return { x, y };
+}
+
+export type ZoneLabel = { name: string; x: number; y: number };
+export type PlacedZoneLabel = ZoneLabel & { visible: boolean; width: number; height: number };
+
+/**
+ * Decide which zone names to show at a constant font size. A name is hidden
+ * when it would leave the canvas, collide with a name already placed, or be
+ * wider than the room to its nearest neighbouring label point (the contract
+ * has no zone outlines, so the neighbour stands in for the zone's extent).
+ * Text width is estimated at 0.62 em per character (bold sans-serif).
+ */
+export function placeZoneLabels(
+  labels: readonly ZoneLabel[], size: { width: number; height: number }, fontPx: number,
+): PlacedZoneLabel[] {
+  const gap = 4;
+  const boxes = labels.map((label) => ({
+    ...label, width: label.name.length * fontPx * 0.62 + 8, height: fontPx * 1.35, visible: false,
+  }));
+  const placed: typeof boxes = [];
+  for (const box of boxes) {
+    const inside = box.x - box.width / 2 >= 0 && box.x + box.width / 2 <= size.width &&
+      box.y - box.height / 2 >= 0 && box.y + box.height / 2 <= size.height;
+    const nearest = Math.min(...boxes.filter((other) => other !== box)
+      .map((other) => Math.hypot(other.x - box.x, other.y - box.y)), Infinity);
+    const roomy = box.width <= nearest * 1.6;
+    const clear = placed.every((other) =>
+      Math.abs(other.x - box.x) * 2 >= other.width + box.width + gap * 2 ||
+      Math.abs(other.y - box.y) * 2 >= other.height + box.height + gap * 2);
+    box.visible = inside && roomy && clear;
+    if (box.visible) placed.push(box);
+  }
+  return boxes;
+}
+
+/** A point on the mower map (map pixels) and where it really is (drawn coordinates over the tiles). */
+export type PointPair = { map: MapPoint; ground: MapPoint };
+
+/**
+ * The exact similarity (move, turn, uniform size) that puts two map points
+ * on their two ground points, as an adjustment about the map centre. Null
+ * when the points coincide (no direction) or the size leaves the allowed range.
+ */
+export function adjustmentFromPairs(
+  centre: MapPoint, first: PointPair, second: PointPair, minDistance = 1,
+): MapAdjustment | null {
+  const mapX = second.map.x - first.map.x, mapY = second.map.y - first.map.y;
+  const groundX = second.ground.x - first.ground.x, groundY = second.ground.y - first.ground.y;
+  const mapLength = Math.hypot(mapX, mapY), groundLength = Math.hypot(groundX, groundY);
+  if (!(mapLength >= minDistance) || !(groundLength >= minDistance)) return null;
+  const scale = groundLength / mapLength;
+  if (scale < MIN_ADJUSTMENT_SCALE || scale > MAX_ADJUSTMENT_SCALE) return null;
+  let rotation = (Math.atan2(groundY, groundX) - Math.atan2(mapY, mapX)) / RAD;
+  rotation = ((rotation + 540) % 360) - 180;
+  const turned = adjustPoint({ dx: 0, dy: 0, rotation, scale }, centre, first.map);
+  return { dx: first.ground.x - turned.x, dy: first.ground.y - turned.y, rotation, scale };
+}
+
+/**
+ * "Pin and pull": with the pivot (a map point, e.g. the base) fixed where it
+ * is drawn, turn and resize the map about it so the grabbed map point lands
+ * on `target` (drawn coordinates). Null, to be ignored, when the grab or the
+ * target is closer than `minDistance` to the pivot (no usable direction).
+ */
+export function pullAboutPivot(
+  adjustment: MapAdjustment, centre: MapPoint, pivot: MapPoint, grabbed: MapPoint, target: MapPoint,
+  minDistance = 1,
+): MapAdjustment | null {
+  const fixed = adjustPoint(adjustment, centre, pivot);
+  const grabbedNow = adjustPoint(adjustment, centre, grabbed);
+  if (Math.hypot(grabbedNow.x - fixed.x, grabbedNow.y - fixed.y) < minDistance) return null;
+  return adjustmentFromPairs(centre, { map: pivot, ground: fixed }, { map: grabbed, ground: target }, minDistance);
+}

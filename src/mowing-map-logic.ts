@@ -19,6 +19,8 @@ export type MowingMapScene = {
   projection: MapProjection | null;
   /** Saved GPS alignment; null until one is saved. */
   georeference: MapGeoreference | null;
+  /** Zone names and label points in native units; null with older integrations. */
+  zones: MowingMapZone[] | null;
   overlay: {
     position: (MapPoint & { heading: number | null }) | null;
     trail: number[][][];
@@ -89,6 +91,7 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
       ? data.real_scene_path : null,
     projection: readMapProjection(data.projection),
     georeference: readMapGeoreference(data.georeference),
+    zones: readZones(data.zones),
     overlay: {
       position: (status === "current" || retained) && validPoint(position)
         ? { x: position.x as number, y: position.y as number,
@@ -104,6 +107,51 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
         ? Math.max(1, Math.min(90, overlay.max_age_seconds)) : 90,
     },
   };
+}
+
+export type MowingMapZone = { zone_id: number | string; name: string; label_x: number; label_y: number };
+
+/** Bounded zone list; entries without a name or a finite label point are skipped. */
+function readZones(value: unknown): MowingMapZone[] | null {
+  if (!Array.isArray(value)) return null;
+  const zones: MowingMapZone[] = [];
+  for (const entry of value.slice(0, 128)) {
+    const zone = record(entry);
+    const name = typeof zone.name === "string" ? zone.name.trim().slice(0, 64) : "";
+    const id = zone.zone_id;
+    if (!name || !finite(zone.label_x) || !finite(zone.label_y) ||
+        !((typeof id === "number" && Number.isFinite(id)) || typeof id === "string")) continue;
+    zones.push({ zone_id: id as number | string, name, label_x: zone.label_x, label_y: zone.label_y });
+  }
+  return zones;
+}
+
+/**
+ * The card draws zone names itself when the integration lists them and the
+ * projection can place them; the background is then requested without its
+ * own names (labels=0). Older integrations keep the unchanged request.
+ */
+export function cardDrawsZoneLabels(scene: Pick<MowingMapScene, "zones" | "projection">): boolean {
+  return Boolean(scene.zones && scene.projection);
+}
+
+export function backgroundRequestPath(scene: Pick<MowingMapScene, "background_path" | "zones" | "projection">): string {
+  if (!cardDrawsZoneLabels(scene)) return scene.background_path;
+  return `${scene.background_path}${scene.background_path.includes("?") ? "&" : "?"}labels=0`;
+}
+
+/**
+ * A signed URL must be the exact local route requested, keep every query
+ * parameter that was requested, and add only the signature.
+ */
+export function signedPathMatches(requested: string, signed: string): boolean {
+  const [base, query = ""] = requested.split("?", 2);
+  const [signedBase, signedQuery = ""] = signed.split("?", 2);
+  if (signedBase !== base) return false;
+  const wanted = new URLSearchParams(query), got = new URLSearchParams(signedQuery);
+  for (const [key, value] of wanted) if (got.get(key) !== value) return false;
+  for (const key of got.keys()) if (!wanted.has(key) && key !== "authSig") return false;
+  return true;
 }
 
 export const MAP_BACKGROUNDS = ["standard", "real_scene", "map", "satellite"] as const;

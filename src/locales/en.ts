@@ -514,7 +514,14 @@ export const en = {
   "editor.mowerLength": "Mower length (cm)",
   "editor.mowerWidth": "Mower width (cm)",
   "editor.worldBackgroundDim": "Soften street map and satellite (0–100)",
-  "editor.worldBackgroundDimHint": "How much the street map or satellite fades behind the garden so zones stand out. Default 45; 0 keeps the tiles unchanged. Align always shows them crisp."
+  "editor.worldBackgroundDimHint": "How much the street map or satellite fades behind the garden so zones stand out. Default 45; 0 keeps the tiles unchanged. Align always shows them crisp.",
+  "mowingMap.baseTool": "Align from the base",
+  "mowingMap.baseToolPick": "Press the base on the mower map and drag it onto its real place",
+  "mowingMap.baseToolMove": "Drag the map until the base sits on its real place, then Next",
+  "mowingMap.baseToolPull": "Pull any point of the map onto its real place; the base stays fixed",
+  "mowingMap.baseToolNext": "Next",
+  "mowingMap.baseToolRestart": "Start over",
+  "mowingMap.basePin": "Base"
 } as const satisfies Record<string, TranslationMessage>;
 
 export type TranslationKey = keyof typeof en;

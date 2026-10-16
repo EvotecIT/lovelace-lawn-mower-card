@@ -106,6 +106,23 @@ export const mowingMapStyles = css`
     transform-origin:0 0; user-select:none; -webkit-user-drag:none; }
   .canvas.world .map-canvas { position:relative; }
   .mower-layer.over-world { opacity:var(--mower-map-world-overlay-opacity,1); }
+  .map-text { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+  .zone-label { position:absolute; transform:translate(-50%,-50%); white-space:nowrap;
+    font-weight:700; line-height:1.2; letter-spacing:.01em; color:#fff;
+    text-shadow:0 0 2px #000, 0 0 3px #000, 0 1px 3px rgba(0,0,0,.9), 0 0 6px rgba(0,0,0,.6); }
+  .base-tool { gap:8px; }
+  .align-step { flex:1 1 160px; min-width:0; font-size:13px; font-weight:700; color:var(--map-accent); }
+  .base-pin { position:absolute; display:flex; align-items:center; gap:4px; transform:translate(-12px,-12px);
+    font-size:12px; font-weight:700; color:#fff; white-space:nowrap;
+    text-shadow:0 0 2px #000, 0 0 3px #000, 0 1px 2px rgba(0,0,0,.9); }
+  .base-pin svg { width:24px; height:24px; flex:none; overflow:visible; }
+  .base-pin circle { fill:rgba(0,0,0,.35); stroke:#ffd54a; stroke-width:3; }
+  .base-pin .core { fill:#ffd54a; stroke:#000; stroke-width:1; }
+  .base-pin.fixed circle { stroke:#ff8a3d; }
+  .base-pin.fixed .core { fill:#ff8a3d; }
+  .pull-line { position:absolute; inset:0; overflow:visible; }
+  .pull-line line { stroke:#ffd54a; stroke-width:2.5; stroke-dasharray:6 4; }
+  .pull-line circle { fill:none; stroke:#ffd54a; stroke-width:2.5; }
   .world-veil { position:absolute; inset:0; pointer-events:none; background:var(--map-surface); }
   .garden-halo { flood-color:var(--mower-map-garden-halo, #0b1410); flood-opacity:.62; }
   .mower-layer.over-world:not(.aligning) .trail { stroke-width:3.5px; stroke-opacity:1; }
