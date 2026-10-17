@@ -459,6 +459,24 @@ export const DEFAULT_WORLD_TILES: Readonly<Record<WorldBackground, WorldTileSour
 
 export type WorldTileOptions = { url?: unknown; attribution?: unknown; maxZoom?: unknown };
 
+/** A missing tile is temporary evidence, never a permanent source capability. */
+export type TileFallback = { maxZoom: number; retryAt: number };
+export const TILE_RETRY_MS = 60_000;
+
+export function tileZoomLimit(fallback: TileFallback | undefined, now = Date.now()): number | undefined {
+  return fallback && now < fallback.retryAt ? fallback.maxZoom : undefined;
+}
+
+export function lowerTileZoomLimit(
+  fallback: TileFallback | undefined, failedZoom: number, now = Date.now(),
+): TileFallback | undefined {
+  const limit = tileZoomLimit(fallback, now);
+  // Ignore delayed errors from tiles above an already lowered limit.
+  if (failedZoom <= 1 || (limit !== undefined && limit < failedZoom)) return fallback;
+  return { maxZoom: failedZoom - 1,
+    retryAt: limit === undefined ? now + TILE_RETRY_MS : fallback!.retryAt };
+}
+
 /** A custom URL keeps its own attribution; the default keeps the provider's. */
 export function worldTileSource(kind: WorldBackground, options: WorldTileOptions = {}): WorldTileSource {
   const fallback = DEFAULT_WORLD_TILES[kind];

@@ -16,10 +16,10 @@ import {
 import {
   adjustmentMatrix, alignedGeoreference, colorSchemeFor, composeAdjustment, defaultGeoreference,
   georeferenceServiceData, IDENTITY_ADJUSTMENT, mapCentre, metresPerMapPixel, sameGeoreference,
-  screenMatrix, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
+  screenMatrix, tileUrl, tileZoomFor, visibleTiles, worldTileSource, tileZoomLimit, lowerTileZoomLimit,
   alignGesture, alignHandlePositions, dragHandle, pointOnMap, pullAboutPivot, unadjustPoint, adjustPoint, mapToScreen,
   nativeToPixel, placeZoneLabels,
-  type AlignGesture, type AlignHandle, type GeoPoint, type MapAdjustment, type MapGeoreference, type WorldBackground, type WorldTileOptions,
+  type AlignGesture, type AlignHandle, type GeoPoint, type MapAdjustment, type MapGeoreference, type WorldBackground, type WorldTileOptions, type TileFallback,
 } from "./map-georeference-logic";
 
 /** Tile options per geographic background, from the card configuration. */
@@ -93,8 +93,8 @@ export class LawnMowerMowingMap extends LitElement {
   @state() private _saving = false;
   @state() private _alignError?: string;
   @state() private _notice?: TranslationKey;
-  /** Highest level each tile source answered at, lowered on tile errors. */
-  @state() private _tileCaps: Record<string, number> = {};
+  /** Temporary fallback; periodic scene renders probe full detail after expiry. */
+  @state() private _tileCaps: Record<string, TileFallback> = {};
   /** Just-saved alignment shown until the integration reports it back. */
   private _saved?: { reference: MapGeoreference; at: number; context: string };
   private _noticeTimer?: number;
@@ -420,8 +420,9 @@ export class LawnMowerMowingMap extends LitElement {
 
   private _tileFailed(template: string, zoom: number): void {
     const cap = this._tileCaps[template];
-    if (zoom > 1 && (cap === undefined || cap >= zoom)) {
-      this._tileCaps = { ...this._tileCaps, [template]: zoom - 1 };
+    const next = lowerTileZoomLimit(cap, zoom);
+    if (next && next !== cap) {
+      this._tileCaps = { ...this._tileCaps, [template]: next };
     }
   }
 
@@ -536,8 +537,8 @@ export class LawnMowerMowingMap extends LitElement {
         image = undefined;
         this._view = fitMap(scene.width, scene.height);
       }
-      if (this._align && this._align.context !== this._alignmentContext(scene)) this._cancelAlign();
       this._scene = scene;
+      if (this._align && this._align.context !== this._alignmentContext(scene)) this._cancelAlign();
       if (this._saved && (this._saved.context !== this._alignmentContext(scene) ||
           sameGeoreference(scene.georeference, this._saved.reference) ||
           Date.now() - this._saved.at > SAVED_GRACE_MS)) this._saved = undefined;
@@ -739,7 +740,7 @@ export class LawnMowerMowingMap extends LitElement {
     const unitsPerScreenPixel = Math.max(this._view.width / this._size.width, this._view.height / this._size.height);
     const density = Math.min(2, Math.max(1, globalThis.devicePixelRatio || 1));
     const metresPerScreenPixel = unitsPerScreenPixel * metresPerMapPixel(projection, reference) / density;
-    const maxZoom = Math.min(source.maxZoom, this._tileCaps[source.template] ?? source.maxZoom);
+    const maxZoom = Math.min(source.maxZoom, tileZoomLimit(this._tileCaps[source.template]) ?? source.maxZoom);
     const zoom = tileZoomFor(metresPerScreenPixel, reference.latitude, maxZoom);
     // The SVG letterboxes its viewBox; cover the whole visible canvas, not just the viewBox.
     const shown = {

@@ -5,6 +5,7 @@ import {
   defaultGeoreference, geoToNative, geoToPixel, geoToTile, georeferenceServiceData, IDENTITY_ADJUSTMENT,
   nativeToGeo, nativeToPixel, pixelToGeo, pixelToNative, readMapGeoreference, sameGeoreference, screenMatrix, colorSchemeFor,
   tileMatrix, tileTemplate, tileToGeo, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
+  lowerTileZoomLimit, tileZoomLimit, TILE_RETRY_MS,
   type MapGeoreference, type MapProjection,
 } from "../src/map-georeference-logic.ts";
 
@@ -18,6 +19,20 @@ const projection: MapProjection = {
 function near(actual: number, expected: number, tolerance: number, label = "") {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${label} ${actual} vs ${expected}`);
 }
+
+test("tile failures fall back briefly and retry detail after recovery", () => {
+  const first = lowerTileZoomLimit(undefined, 21, 1000);
+  assert.deepEqual(first, { maxZoom: 20, retryAt: 1000 + TILE_RETRY_MS });
+  const lower = lowerTileZoomLimit(first, 20, 2000);
+  assert.deepEqual(lower, { maxZoom: 19, retryAt: first!.retryAt });
+  assert.equal(lowerTileZoomLimit(lower, 21, 3000), lower);
+  assert.equal(tileZoomLimit(lower, first!.retryAt - 1), 19);
+  assert.equal(tileZoomLimit(lower, first!.retryAt), undefined);
+  const nextOutage = lowerTileZoomLimit(lower, 21, first!.retryAt + 1);
+  assert.equal(nextOutage?.maxZoom, 20);
+  assert.equal(nextOutage?.retryAt, first!.retryAt + 1 + TILE_RETRY_MS);
+  assert.equal(lowerTileZoomLimit({ maxZoom: 1, retryAt: 10000 }, 1, 3000)?.maxZoom, 1);
+});
 
 test("native to GPS matches the measured reference point", () => {
   const geo = nativeToGeo(reference, { x: -5676, y: -20165 });
