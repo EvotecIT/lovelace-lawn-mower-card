@@ -19,12 +19,13 @@ import { customElement, property, state } from "lit/decorators.js";
 import "./lawn-mower-card-editor";
 import { mowerHassChanged } from "./card-update-scope";
 import { MediaVisibility } from "./media-visibility";
-import { mowingMapPath } from "./mowing-map-logic";
+import { mowerMarkerSize, mowingMapPath } from "./mowing-map-logic";
 import { photoAlbumAvailable } from "./photo-album-logic";
 import { mowingAreaProgress, type MowingAreaProgress } from "./mowing-progress";
 
 import {
   getStubConfig,
+  worldTileConfig,
   type HassEntity,
   type HomeAssistant,
   type LawnMowerActionConfig,
@@ -563,6 +564,9 @@ export class LawnMowerCard extends LitElement {
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
                           .background=${this._config.map_background}
+                          .entityId=${this._config.entity} .tiles=${worldTileConfig(this._config)}
+                          .mowerSize=${mowerMarkerSize(this._config)}
+                          .worldDim=${this._config.world_background_dim}
                           .path=${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)}
                           .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
                           .active=${this._mediaVisible}></lawn-mower-mowing-map>`
@@ -817,6 +821,10 @@ export class LawnMowerCard extends LitElement {
       area: coverage.area,
       mowingMapPath: scenePath,
       mapBackground: this._config.map_background,
+      mowerEntityId: this._config.entity,
+      worldTiles: worldTileConfig(this._config),
+      mowerSize: mowerMarkerSize(this._config),
+      worldDim: this._config.world_background_dim,
       photoEntityId: this._config.entity,
       mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,
       heroImage: normalizeHeroImage(this._config.hero_image),

@@ -73,7 +73,9 @@ the increment on `auto` unless the original label decision must be overridden.
 
 The integration owns mower commands and safety checks. Interactive map and
 no-go editing are outside the card's current scope; any future editing UI needs
-a verified backend write and readback contract first.
+a verified backend write and readback contract first. Map alignment follows that
+rule: **Align** writes only through `dreame_lawn_mower.set_georeference`, and the
+saved `georeference` is read back from the mowing-map response.
 
 ## Media implementation and diagnostics
 

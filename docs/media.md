@@ -34,6 +34,77 @@ integration or a camera without the attribute continues to show its map image.
 
 ![Live-path map inside the Lawn Mower Card Hero layout](../assets/lawn-mower-card-map.png)
 
+When the integration also sends the map projection, the mower is drawn at its
+real size (`mower_length` × `mower_width`, default 65.9 × 43.9 cm) and turned to
+its heading, on every background. It grows with the zoom, which can then go up
+to 32×; further out it keeps the fixed icon so it stays visible.
+`mower_marker: fixed` always uses the fixed icon.
+
+When the integration lists its zones with label points, the card asks for the
+background without names (`labels=0`) and writes the zone names itself: bold,
+with a dark halo, at a constant size on every background. A name that would
+overlap another one or has no room at the current zoom is hidden until you zoom
+in. While aligning, the names follow the mower map.
+
+## Street map and satellite
+
+When the integration describes how its map pixels relate to the mower's own
+coordinates (`projection` in the map response), the background picker in the
+map toolbar offers **Standard**, **Real scene** (when available), **Map** and
+**Satellite**. Map and Satellite draw web-map tiles under the garden map; zones,
+the route and the mower stay on top. The picture keeps the mower map's
+orientation, so the tiles are turned to match it.
+
+The garden is placed on the ground with a saved alignment (`georeference`).
+Without one, choosing Map or Satellite opens **Align** from your Home Assistant
+home location (north up, 1 mm per map unit).
+
+**Align** opens full screen. The mower map becomes see-through over the tiles:
+
+- Drag the mower map (one finger or the mouse) to move it; the arrow keys nudge it.
+- Drag a **corner handle** to resize it (proportions kept) and the round
+  **rotate handle** above the frame to turn it. Handles keep their size on screen.
+- Two fingers, the mouse wheel, the **+** and **−** buttons, or dragging outside
+  the map only zoom and move the view; they never change the alignment.
+- **Align from the base**: drag the map until the base (station) sits on its
+  real place, then **Next**; the base is then pinned and pulling any other point
+  of the map onto its real place turns and resizes the map about it. Pull as
+  many points as needed; **Start over** returns to the first step. When the
+  integration has not located the base, press it on the mower map first.
+- **Rotation** and **Map size** buttons turn by 0.5° and resize by 0.5%; hold a
+  button to repeat faster.
+- **Save** sends `dreame_lawn_mower.set_georeference` with the mower entity;
+  **Cancel** or Escape keeps the previous alignment.
+
+Alignments belong to a verified mower map and its revision. Switching or
+replacing that map closes an open alignment session; reopen Align on the new
+map. Each saved map keeps its own alignment. Align is available when the
+integration supplies a verified map revision and the calibration action.
+
+The default street map is Esri World Street Map and the default satellite source
+is Esri World Imagery. These optional defaults work without a configured API key;
+[Esri's access and use constraints](https://doc.arcgis.com/en/arcgis-online/reference/access-use-constraints.htm)
+and each service's terms apply. Keep the displayed provider attribution visible.
+Where a source has no tiles at a
+level, the card steps down to the deepest level it serves and enlarges those
+tiles (street map: level 19 at most). Tiles are fetched by your browser from the
+provider, which therefore receives your browser's IP and the area being viewed;
+requests use the Home Assistant origin as the Referer. Geographic tiles are
+requested only while Map or Satellite is selected. The standard mower map
+does not contact a tile provider. You can configure another provider URL and
+its required attribution in the card options.
+
+OpenStreetMap's own tile servers can be used instead, with their attribution:
+
+```yaml
+map_tile_url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+map_tile_attribution: © OpenStreetMap contributors
+map_tile_max_zoom: 19
+```
+
+Follow the [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/);
+it refuses requests that carry no Referer.
+
 ## 3D Point Clouds
 
 The Dreame Lawn Mower integration can provide a 3D point cloud through its Map

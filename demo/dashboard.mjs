@@ -34,20 +34,35 @@ for (const points of [[[245,420],[240,470]], [[590,450],[645,505]]]) {
     ctx.lineWidth=width;ctx.lineCap="round";ctx.strokeStyle=color;ctx.setLineDash(dash);ctx.stroke();
   }
 }
-ctx.setLineDash([]); ctx.font="600 20px system-ui";ctx.fillStyle="#e5f2e9";
+ctx.setLineDash([]);
+// Like the integration: the same background without zone names for labels=0.
+const unlabelled = canvas.toDataURL("image/png");
+ctx.font="600 20px system-ui";ctx.fillStyle="#e5f2e9";
 ctx.fillText("Main lawn",370,175);ctx.fillText("Side lawn",165,530);ctx.fillText("Orchard",595,570);
 const png = canvas.toDataURL("image/png");
 let sceneUrl;
+// Optional geographic fixture (?geo=1 aligned, ?geo=new unaligned) at a neutral, non-garden location.
+const geo = query.get("geo") ? {
+  map_revision:"b".repeat(32),
+  projection:{max_x:22500,min_y:-16250,scale:0.02,padding:0,native_width:900,native_height:650,rotation:0},
+  georeference:query.get("geo")==="new" ? null : {anchor_x:0,anchor_y:0,latitude:52.37285,longitude:4.89366,heading:20,scale:0.001},
+  // Label points in native units (pixel (450,190), (230,520), (670,555) through the projection).
+  zones:[{zone_id:1,name:"Main lawn",label_x:0,label_y:-6750},{zone_id:2,name:"Side lawn",label_x:11000,label_y:9750},
+    {zone_id:3,name:"Orchard",label_x:-11000,label_y:11500}],
+} : {};
 const hass = {
   language:query.get("hassLocale") || query.get("locale") || "en",
-  states:{}, entities:{}, services:{lawn_mower:{start_mowing:{},pause:{},dock:{}}},
+  states:{}, entities:{}, services:{lawn_mower:{start_mowing:{},pause:{},dock:{}},
+    ...(query.get("geo")?{dreame_lawn_mower:{set_georeference:{}}}:{})},
+  config:{latitude:52.37285,longitude:4.89366},
   async callWS(message) { return { path: message.path }; },
   hassUrl(route) {
+    if (route.split("&authSig")[0] === `${backgroundPath}?labels=0`) return unlabelled;
     if (route === backgroundPath) return png;
     if (route === path && query.get("map") !== "error") {
       if (sceneUrl) URL.revokeObjectURL(sceneUrl);
       sceneUrl = URL.createObjectURL(new Blob([JSON.stringify({schema_version:1,revision,map_index:0,map_id:1,name:"Garden · three zones",width:900,height:650,background_path:backgroundPath,
-        overlay:{position:{x:640,y:330,heading:180},trail:[[[185,220],[665,240],[675,265],[190,245],[195,275],[685,295],[690,320],[200,300],[205,330],[640,350],[640,330]]],position_status:"current",updated_at:new Date(Date.now()-(query.get("map")==="stale"?120000:0)).toISOString(),max_age_seconds:90}})],{type:"application/json"}));
+        ...geo,overlay:{position:{x:640,y:330,heading:180},trail:[[[185,220],[665,240],[675,265],[190,245],[195,275],[685,295],[690,320],[200,300],[205,330],[640,350],[640,330]]],position_status:query.get("dock")?"known_dock":"current",docked:Boolean(query.get("dock")),position_observed_at:new Date().toISOString(),updated_at:new Date(Date.now()-(query.get("map")==="stale"?120000:0)).toISOString(),max_age_seconds:90}})],{type:"application/json"}));
       return sceneUrl;
     }
     return route;
@@ -67,13 +82,14 @@ entity("sensor.demo_progress","62",{friendly_name:"Mission progress",unit_of_mea
 entity("sensor.demo_area","329",{unit_of_measurement:"m²"});
 entity("sensor.demo_total","531",{unit_of_measurement:"m²"});
 if (query.get("status")) entity("sensor.demo_status",query.get("status"),{});
-entity("image.demo_map","ready",{friendly_name:"Garden",mowing_map_api_path:path});
+entity("image.demo_map","ready",{friendly_name:"Garden",mowing_map_api_path:path,entity_picture:png});
 entity("camera.demo","idle",{friendly_name:"Mower camera",supported_features:2,...(query.get("camera")==="blocked"?{video_block_reason:"Demo privacy lock"}:{})});
 // A local preview avoids camera_proxy requests from the disconnected fixture.
 hass.states["camera.demo"].attributes.entity_picture=png;
 delete hass.states["camera.demo"].last_updated;
+delete hass.states["image.demo_map"].last_updated;
 const card=document.getElementById("mower");
-card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",hero_default_tab:query.get("defaultTab") || undefined,name:"Garden mower",locale:query.get("locale") || "en",appearance:query.get("preset")==="legacy"?undefined:"native",
+card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",hero_default_tab:query.get("defaultTab") || undefined,name:"Garden mower",locale:query.get("locale") || "en",map_background:query.get("background") || undefined,appearance:query.get("preset")==="legacy"?undefined:"native",
   dashboard_panels:query.get("panels")==="none"?[]:query.get("panels")==="camera"?["camera"]:query.get("panels")==="mission"?["mission"]:undefined,
   status_entity:query.get("status")?"sensor.demo_status":undefined,
   map_entity:query.get("map")==="none"?undefined:"image.demo_map",show_map:query.get("map")!=="none",show_point_cloud:false,

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  fitMap, mowingMapPath, normalizeMapBackground, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
+  availableMapBackgrounds, backgroundRequestPath, nextRefreshDelay, SCENE_TIMEOUT_MS, constrainViewport, signedPathMatches, effectiveMapBackground, fitMap, mowingMapPath,
+  DEFAULT_MOWER_SIZE, DEFAULT_WORLD_DIM, gardenEmphasis, MARKER_BODY, mowerMarkerSize, mowerMarkerTransform, worldDim,
+  normalizeMapBackground, viewLimits, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
 
 const path = "/api/dreame_lawn_mower/mowing-map/entry";
@@ -13,6 +15,13 @@ function payload() {
       position_status: "current", updated_at: "2026-09-06T12:00:00Z", max_age_seconds: 90 },
   };
 }
+
+test("alignment identity accepts a verified native revision while older scenes remain readable", () => {
+  assert.equal(readMowingMapScene({ ...payload(), map_revision: "b".repeat(32) }, path).map_revision, "b".repeat(32));
+  for (const map_revision of [undefined, null, "image-only", 7]) {
+    assert.equal(readMowingMapScene({ ...payload(), map_revision }, path).map_revision, null);
+  }
+});
 
 test("map delivery cannot redirect a signed request outside its exact entry", () => {
   assert.equal(mowingMapPath(path), path);
@@ -111,9 +120,116 @@ test("a real-scene layer is accepted only for the same entry and revision", () =
   }
 });
 
-test("only real_scene selects the photo background", () => {
-  assert.equal(normalizeMapBackground("real_scene"), "real_scene");
-  for (const value of [undefined, "standard", "photo", 1]) {
+test("map backgrounds accept the four known choices and keep standard otherwise", () => {
+  for (const value of ["real_scene", "map", "satellite", "standard"]) {
+    assert.equal(normalizeMapBackground(value), value);
+  }
+  for (const value of [undefined, "photo", "Satellite", 1]) {
     assert.equal(normalizeMapBackground(value), "standard");
   }
+});
+
+const projection = { max_x: 20000, min_y: -30000, scale: 0.05, padding: 10,
+  native_width: 1520, native_height: 1020, rotation: 0 };
+const georeference = { anchor_x: 1160, anchor_y: -20, latitude: 45.317421,
+  longitude: -73.837131, heading: 227.33, scale: 0.001 };
+
+test("geographic backgrounds need a projection and an alignment or a home", () => {
+  const scene = readMowingMapScene(payload(), path);
+  assert.equal(scene.projection, null);
+  assert.equal(scene.georeference, null);
+  assert.deepEqual(availableMapBackgrounds(scene, true), ["standard"]);
+  const projected = readMowingMapScene({ ...payload(), projection, georeference: null }, path);
+  assert.deepEqual(projected.projection, projection);
+  assert.deepEqual(availableMapBackgrounds(projected, false), ["standard"]);
+  assert.deepEqual(availableMapBackgrounds(projected, true), ["standard", "map", "satellite"]);
+  const aligned = readMowingMapScene({ ...payload(), projection, georeference }, path);
+  assert.deepEqual(aligned.georeference, georeference);
+  assert.deepEqual(availableMapBackgrounds(aligned, false), ["standard", "map", "satellite"]);
+  assert.equal(effectiveMapBackground("satellite", ["standard"]), "standard");
+  assert.equal(effectiveMapBackground("map", availableMapBackgrounds(aligned, false)), "map");
+  for (const broken of [{ ...projection, rotation: 45 }, { ...projection, scale: 0 }, "x"]) {
+    assert.equal(readMowingMapScene({ ...payload(), projection: broken }, path).projection, null);
+  }
+  assert.equal(readMowingMapScene({ ...payload(), projection,
+    georeference: { ...georeference, latitude: 95 } }, path).georeference, null);
+});
+
+test("geographic views may zoom out and roam further than the map alone", () => {
+  const fit = fitMap(1000, 600);
+  const anchor = { x: 500, y: 300 };
+  assert.equal(zoomMap(fit, 0.00001, anchor, 1000, 600, WORLD_VIEW_LIMITS).width, 4000);
+  assert.equal(constrainViewport({ ...fit, x: -5000 }, 1000, 600).x, -500);
+  assert.equal(constrainViewport({ ...fit, x: -5000 }, 1000, 600, WORLD_VIEW_LIMITS).x, -1500);
+  // A known map scale allows a deeper zoom, to see the real-size mower up close.
+  assert.equal(zoomMap(fit, 10000, anchor, 1000, 600, viewLimits(false, false)).width, 1000 / 12);
+  assert.equal(zoomMap(fit, 10000, anchor, 1000, 600, viewLimits(false, true)).width, 1000 / 32);
+  assert.equal(zoomMap(fit, 0.00001, anchor, 1000, 600, viewLimits(false, true)).width, 1000);
+  assert.equal(viewLimits(true, true), WORLD_VIEW_LIMITS);
+});
+
+test("the mower marker is drawn at real size when the scale is known", () => {
+  assert.deepEqual(mowerMarkerSize({}), DEFAULT_MOWER_SIZE);
+  assert.deepEqual(mowerMarkerSize({ mower_length: 74, mower_width: "53,2" }), { length: 740, width: 532 });
+  assert.deepEqual(mowerMarkerSize({ mower_length: 5, mower_width: "wide" }), DEFAULT_MOWER_SIZE);
+  assert.equal(mowerMarkerSize({ mower_marker: "fixed" }), null);
+  // 0.05 map px per mm: a 659 mm mower is 32.95 map px long.
+  const zoomedIn = mowerMarkerTransform(0.25, 0.05, DEFAULT_MOWER_SIZE);
+  assert.equal(zoomedIn.realSize, true);
+  assert.equal(zoomedIn.scale, 1);
+  assert.ok(Math.abs(zoomedIn.y * MARKER_BODY.length - 659 * 0.05) < 1e-9);
+  assert.ok(Math.abs(zoomedIn.x * MARKER_BODY.width - 439 * 0.05) < 1e-9);
+  // On screen that is 131.8 px; zooming in twice doubles it.
+  const closer = mowerMarkerTransform(0.125, 0.05, DEFAULT_MOWER_SIZE);
+  assert.equal(closer.y, zoomedIn.y);
+  // Below the fixed icon's 37.8 px the fixed icon stays, so it remains visible.
+  assert.deepEqual(mowerMarkerTransform(2, 0.05, DEFAULT_MOWER_SIZE), { scale: 40, x: 1, y: 1, realSize: false });
+  assert.equal(mowerMarkerTransform(0.8716, 0.05, DEFAULT_MOWER_SIZE).realSize, true);
+  assert.equal(mowerMarkerTransform(0.8718, 0.05, DEFAULT_MOWER_SIZE).realSize, false);
+  // Without a projection or with the fixed option, the icon is unchanged.
+  assert.equal(mowerMarkerTransform(0.25, undefined, DEFAULT_MOWER_SIZE).realSize, false);
+  assert.equal(mowerMarkerTransform(0.25, 0.05, null).realSize, false);
+});
+
+test("geographic tiles are softened by the configured amount", () => {
+  assert.deepEqual(worldDim(undefined), { veil: 0.405, saturate: 0.64 });
+  assert.deepEqual(worldDim(0), { veil: 0, saturate: 1 });
+  assert.deepEqual(worldDim(100), { veil: 0.9, saturate: 0.2 });
+  assert.deepEqual(worldDim("50"), { veil: 0.45, saturate: 0.6 });
+  assert.deepEqual(worldDim(250), worldDim(100));
+  assert.deepEqual(worldDim("dark"), worldDim(DEFAULT_WORLD_DIM));
+  const emphasis = gardenEmphasis(2);
+  assert.equal(emphasis.alphaSlope, 2.2);
+  assert.equal(emphasis.halo, 5);
+});
+
+test("zone names: the card draws them only when the integration lists them", () => {
+  const plain = readMowingMapScene(payload(), path);
+  assert.equal(plain.zones, null);
+  assert.equal(backgroundRequestPath(plain), plain.background_path);
+  const zones = [{ zone_id: 1, name: " Zone1 ", label_x: 100, label_y: -200 },
+    { zone_id: 2, name: "", label_x: 0, label_y: 0 }, { zone_id: 3, name: "Bad", label_x: "x", label_y: 0 }];
+  const withZones = readMowingMapScene({ ...payload(), zones, projection: {
+    max_x: 20000, min_y: -30000, scale: 0.05, padding: 10, native_width: 1520, native_height: 1020, rotation: 0,
+  } }, path);
+  assert.deepEqual(withZones.zones, [{ zone_id: 1, name: "Zone1", label_x: 100, label_y: -200 }]);
+  assert.equal(backgroundRequestPath(withZones), `${withZones.background_path}?labels=0`);
+  // Zones without a projection cannot be placed: keep the integration's own names.
+  const unplaced = readMowingMapScene({ ...payload(), zones }, path);
+  assert.equal(backgroundRequestPath(unplaced), unplaced.background_path);
+  // Signed URLs keep the requested parameters and add only the signature.
+  const requested = `${path}/background/${"a".repeat(64)}?labels=0`;
+  assert.equal(signedPathMatches(requested, `${path}/background/${"a".repeat(64)}?labels=0&authSig=x`), true);
+  assert.equal(signedPathMatches(requested, `${path}/background/${"a".repeat(64)}?authSig=x`), false);
+  assert.equal(signedPathMatches(requested, `${path}/background/${"a".repeat(64)}?labels=0&x=1&authSig=y`), false);
+  assert.equal(signedPathMatches(path, `${path}?authSig=x`), true);
+  assert.equal(signedPathMatches(path, `/api/other?authSig=x`), false);
+});
+
+test("a map that has not loaded yet retries quickly after a stalled request", () => {
+  assert.equal(SCENE_TIMEOUT_MS, 8000);
+  assert.equal(nextRefreshDelay(true, 0), 5000);
+  assert.equal(nextRefreshDelay(false, 0), 5000);
+  assert.deepEqual([1, 2, 3, 4, 9].map((n) => nextRefreshDelay(false, n)), [2000, 4000, 8000, 8000, 8000]);
+  assert.equal(nextRefreshDelay(true, 1), 15_000);
 });

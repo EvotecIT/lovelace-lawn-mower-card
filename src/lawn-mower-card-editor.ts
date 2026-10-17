@@ -130,6 +130,29 @@ export class LawnMowerCardEditor extends LitElement {
         ${this._mapFitField(normalizeMapFit(config.map_fit))}
         ${this._mapPositionField(normalizeMapPosition(config.map_position))}
         ${this._mapBackgroundField(normalizeMapBackground(config.map_background))}
+        ${this._field(
+          this._t("editor.mapTileUrl"),
+          config.map_tile_url,
+          "map_tile_url",
+          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+          this._t("editor.mapTileUrlHint"),
+        )}
+        ${this._field(
+          this._t("editor.satelliteTileUrl"),
+          config.satellite_tile_url,
+          "satellite_tile_url",
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          this._t("editor.satelliteTileUrlHint"),
+        )}
+        <label>
+          <span>${this._t("editor.worldBackgroundDim")}</span>
+          <input type="number" min="0" max="100" step="5" inputmode="numeric" placeholder="45"
+            .value=${config.world_background_dim === undefined ? "" : String(config.world_background_dim)}
+            @input=${(event: Event) => this._numberChanged("world_background_dim",
+              (event.currentTarget as HTMLInputElement).value)} />
+          <span class="hint">${this._t("editor.worldBackgroundDimHint")}</span>
+        </label>
+        ${this._mowerMarkerFields(config)}
         ${this._toggle(
           this._t("editor.showPointCloud"),
           config.show_point_cloud ??
@@ -310,9 +333,44 @@ export class LawnMowerCardEditor extends LitElement {
         <select data-key="map_background" .value=${value} @change=${this._valueChanged}>
           <option value="standard">${this._t("editor.mapBackgroundStandard")}</option>
           <option value="real_scene">${this._t("editor.mapBackgroundRealScene")}</option>
+          <option value="map">${this._t("editor.mapBackgroundMap")}</option>
+          <option value="satellite">${this._t("editor.mapBackgroundSatellite")}</option>
         </select>
+        <span class="hint">${this._t("editor.mapBackgroundHint")}</span>
       </label>
     `;
+  }
+
+  private _mowerMarkerFields(config: LawnMowerCardConfig) {
+    const fixed = config.mower_marker === "fixed";
+    const size = (key: "mower_length" | "mower_width", label: string, placeholder: string) => html`
+      <label>
+        <span>${label}</span>
+        <input type="number" min="10" max="300" step="0.1" inputmode="decimal" placeholder=${placeholder}
+          .value=${config[key] === undefined ? "" : String(config[key])}
+          @input=${(event: Event) => this._numberChanged(key, (event.currentTarget as HTMLInputElement).value)} />
+      </label>`;
+    return html`
+      <label>
+        <span>${this._t("editor.mowerMarker")}</span>
+        <select data-key="mower_marker" .value=${fixed ? "fixed" : "real_size"} @change=${this._valueChanged}>
+          <option value="real_size">${this._t("editor.mowerMarkerRealSize")}</option>
+          <option value="fixed">${this._t("editor.mowerMarkerFixed")}</option>
+        </select>
+        <span class="hint">${this._t("editor.mowerMarkerHint")}</span>
+      </label>
+      ${fixed ? nothing : html`
+        ${size("mower_length", this._t("editor.mowerLength"), "65.9")}
+        ${size("mower_width", this._t("editor.mowerWidth"), "43.9")}`}
+    `;
+  }
+
+  private _numberChanged(key: "mower_length" | "mower_width" | "world_background_dim", raw: string) {
+    const next: LawnMowerCardConfig = { ...(this._config || getStubConfig()) };
+    const value = Number(raw.trim().replace(",", "."));
+    if (raw.trim() && Number.isFinite(value)) next[key] = value;
+    else delete next[key];
+    this._emitConfigChanged(next);
   }
 
   private _mapFitField(value: MapFit) {

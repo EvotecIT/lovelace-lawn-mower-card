@@ -15,6 +15,8 @@ export type HomeAssistant = {
   user?: { id: string };
   language?: string;
   locale?: { language?: string };
+  /** Home location; the starting point for aligning an unaligned map. */
+  config?: { latitude?: number; longitude?: number };
   states: Record<string, HassEntity>;
   entities?: Record<
     string,
@@ -82,7 +84,22 @@ export type LawnMowerCardConfig = {
   hero_image_position?: HeroImagePosition;
   map_entity?: string;
   map_fit?: MapFit;
-  map_background?: "standard" | "real_scene";
+  map_background?: "standard" | "real_scene" | "map" | "satellite";
+  /** Tile template with {z}, {x}, {y} for the street map background. */
+  map_tile_url?: string;
+  map_tile_attribution?: string;
+  map_tile_max_zoom?: number;
+  /** Tile template with {z}, {x}, {y} for the satellite background. */
+  satellite_tile_url?: string;
+  satellite_tile_attribution?: string;
+  satellite_tile_max_zoom?: number;
+  /** real_size (default) draws the mower to scale when the map scale is known. */
+  mower_marker?: "real_size" | "fixed";
+  /** Softening of street map and satellite tiles, 0 (none) to 100; default 45. */
+  world_background_dim?: number;
+  /** Mower length and width in centimetres for the real-size marker. */
+  mower_length?: number;
+  mower_width?: number;
   map_position?: MapPosition;
   camera_entity?: string;
   schedule_calendar_entity?: string;
@@ -124,6 +141,16 @@ export type LawnMowerCardConfig = {
 export type ConfigChangedDetail = {
   config: LawnMowerCardConfig;
 };
+
+/** Geographic tile options for the interactive map, from the card configuration. */
+export function worldTileConfig(config: LawnMowerCardConfig) {
+  return {
+    map: { url: config.map_tile_url, attribution: config.map_tile_attribution,
+      maxZoom: config.map_tile_max_zoom },
+    satellite: { url: config.satellite_tile_url, attribution: config.satellite_tile_attribution,
+      maxZoom: config.satellite_tile_max_zoom },
+  };
+}
 
 export function getStubConfig(): LawnMowerCardConfig {
   return {
