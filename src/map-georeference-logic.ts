@@ -388,10 +388,12 @@ export function alignedGeoreference(
 
 /** Service data for dreame_lawn_mower.set_georeference. */
 export function georeferenceServiceData(
-  entityId: string, reference: MapGeoreference,
+  entityId: string, reference: MapGeoreference, mapIndex: number, mapRevision: string,
 ): Record<string, unknown> {
   return {
     entity_id: entityId,
+    map_index: mapIndex,
+    map_revision: mapRevision,
     anchor_x: reference.anchor_x,
     anchor_y: reference.anchor_y,
     latitude: reference.latitude,
@@ -434,7 +436,7 @@ export type WorldTileSource = {
 };
 
 /**
- * Free, keyless defaults. Esri answers 404 (blankTile=false) where it has no
+ * Optional Esri defaults (provider terms apply). Esri answers 404 (blankTile=false) where it has no
  * imagery at a level, so the viewer can step down instead of showing
  * "Map data not yet available" placeholders.
  */
@@ -443,12 +445,14 @@ export const DEFAULT_WORLD_TILES: Readonly<Record<WorldBackground, WorldTileSour
   // Assistant pages do not send; OSM stays available through map_tile_url.
   map: {
     template: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}?blankTile=false",
-    attribution: "Powered by Esri · Esri, HERE, Garmin, USGS, NRCan, © OpenStreetMap contributors, and the GIS User Community",
+    attribution: "Powered by Esri · Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, © OpenStreetMap contributors, and the GIS User Community",
+    attributionUrl: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
     maxZoom: 19,
   },
   satellite: {
     template: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?blankTile=false",
-    attribution: "Powered by Esri · Esri, Maxar, Earthstar Geographics",
+    attribution: "Powered by Esri · Esri, Vantor, Earthstar Geographics, and the GIS User Community",
+    attributionUrl: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
     maxZoom: 21,
   },
 });

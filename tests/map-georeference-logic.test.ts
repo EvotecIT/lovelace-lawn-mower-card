@@ -133,7 +133,7 @@ test("tile sources accept only templated http(s) URLs and keep attribution", () 
   assert.equal(osm.template, "https://tile.openstreetmap.org/{z}/{x}/{y}.png");
   assert.equal(osm.attribution, "© OpenStreetMap contributors");
   assert.match(worldTileSource("satellite").template, /World_Imagery/);
-  assert.match(worldTileSource("satellite").attribution, /Esri, Maxar, Earthstar Geographics/);
+  assert.match(worldTileSource("satellite").attribution, /Esri, Vantor, Earthstar Geographics/);
   for (const bad of ["javascript:alert(1)//{z}{x}{y}", "//evil/{z}/{x}/{y}", "https://t/{z}/{x}.png", 4]) {
     assert.equal(tileTemplate(bad, "fallback"), "fallback");
   }
@@ -182,7 +182,9 @@ test("adjustments move, turn and resize the saved alignment", () => {
     const saved = pixelToGeo(projection, next, pixel);
     near(saved.latitude, drawn.latitude, 3e-8); near(saved.longitude, drawn.longitude, 3e-8);
   }
-  assert.deepEqual(georeferenceServiceData("lawn_mower.m", next), { entity_id: "lawn_mower.m", ...next });
+  assert.deepEqual(georeferenceServiceData("lawn_mower.m", next, 2, "a".repeat(32)), {
+    entity_id: "lawn_mower.m", map_index: 2, map_revision: "a".repeat(32), ...next,
+  });
 });
 
 test("gestures compose about a pivot and keep the size bounded", () => {

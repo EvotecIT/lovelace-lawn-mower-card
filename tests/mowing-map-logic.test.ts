@@ -16,6 +16,13 @@ function payload() {
   };
 }
 
+test("alignment identity accepts a verified native revision while older scenes remain readable", () => {
+  assert.equal(readMowingMapScene({ ...payload(), map_revision: "b".repeat(32) }, path).map_revision, "b".repeat(32));
+  for (const map_revision of [undefined, null, "image-only", 7]) {
+    assert.equal(readMowingMapScene({ ...payload(), map_revision }, path).map_revision, null);
+  }
+});
+
 test("map delivery cannot redirect a signed request outside its exact entry", () => {
   assert.equal(mowingMapPath(path), path);
   for (const invalid of ["https://example.com", "//example.com", `${path}?token=secret`, `${path}/../other`]) {

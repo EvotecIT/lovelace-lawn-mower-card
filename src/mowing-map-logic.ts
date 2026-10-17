@@ -8,6 +8,8 @@ export type MapViewport = MapPoint & { width: number; height: number };
 export type MowingMapScene = {
   revision: string;
   map_index: number;
+  /** Verified native revision used to bind an alignment save; absent on older backends. */
+  map_revision?: string | null;
   map_id: number;
   name: string;
   width: number;
@@ -84,6 +86,8 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
   return {
     revision: data.revision, width, height,
     map_index: data.map_index as number, map_id: data.map_id as number,
+    map_revision: typeof data.map_revision === "string" && /^[a-f0-9]{32}$/.test(data.map_revision)
+      ? data.map_revision : null,
     name: typeof data.name === "string" ? data.name.slice(0, 256) : "",
     background_path: data.background_path as string,
     real_scene_path: typeof data.real_scene_path === "string" &&

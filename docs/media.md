@@ -76,12 +76,23 @@ home location (north up, 1 mm per map unit).
 - **Save** sends `dreame_lawn_mower.set_georeference` with the mower entity;
   **Cancel** or Escape keeps the previous alignment.
 
+Alignments belong to a verified mower map and its revision. Switching or
+replacing that map closes an open alignment session; reopen Align on the new
+map. Each saved map keeps its own alignment. Align is available when the
+integration supplies a verified map revision and the calibration action.
+
 The default street map is Esri World Street Map and the default satellite source
-is Esri World Imagery, both free without a key. Where a source has no tiles at a
+is Esri World Imagery. These optional defaults work without a configured API key;
+[Esri's access and use constraints](https://doc.arcgis.com/en/arcgis-online/reference/access-use-constraints.htm)
+and each service's terms apply. Keep the displayed provider attribution visible.
+Where a source has no tiles at a
 level, the card steps down to the deepest level it serves and enlarges those
 tiles (street map: level 19 at most). Tiles are fetched by your browser from the
-provider, which therefore sees the area being viewed; they send only your Home
-Assistant origin as the Referer.
+provider, which therefore receives your browser's IP and the area being viewed;
+requests use the Home Assistant origin as the Referer. Geographic tiles are
+requested only while Map or Satellite is selected. The standard mower map
+does not contact a tile provider. You can configure another provider URL and
+its required attribution in the card options.
 
 OpenStreetMap's own tile servers can be used instead, with their attribution:
 

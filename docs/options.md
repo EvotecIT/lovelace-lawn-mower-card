@@ -62,11 +62,12 @@
   garden, 0 (unchanged) to 100; default 45. Zones, labels and the route are then
   emphasised. **Align** always shows the tiles crisp.
 - `mower_marker`: `real_size` (default) draws the mower on the interactive map
-  at its real size when the integration provides the map projection, oriented
+  using the configured footprint when the integration provides the map projection, oriented
   by its heading; far out, the fixed icon is kept so it stays visible. `fixed`
   always uses the fixed icon.
 - `mower_length` / `mower_width`: real-size footprint in centimetres (10–300).
   Defaults: 65.9 × 43.9 cm (MOVA LiDAX Ultra 1000; the AWD variant is 74 × 53.2 cm).
+  Set these for your mower's dimensions; the card does not infer them from the model.
 - `camera_entity`: optional live-video camera used by the Hero Camera view. A
   compatible companion camera is detected automatically when this is omitted.
 - `schedule_calendar_entity`: optional `calendar` entity for the Schedule helper

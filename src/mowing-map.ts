@@ -26,6 +26,8 @@ import {
 export type WorldTileConfig = Partial<Record<WorldBackground, WorldTileOptions>>;
 
 type AlignSession = {
+  /** Freeze the entity, native revision and displayed projection for this editor. */
+  context: string;
   /** Alignment the tiles are drawn with while the mower map moves over them. */
   base: MapGeoreference;
   adjustment: MapAdjustment;
@@ -94,7 +96,7 @@ export class LawnMowerMowingMap extends LitElement {
   /** Highest level each tile source answered at, lowered on tile errors. */
   @state() private _tileCaps: Record<string, number> = {};
   /** Just-saved alignment shown until the integration reports it back. */
-  private _saved?: { reference: MapGeoreference; at: number };
+  private _saved?: { reference: MapGeoreference; at: number; context: string };
   private _noticeTimer?: number;
   private _holdTimer?: number;
   private _photoPath?: string;
@@ -140,8 +142,10 @@ export class LawnMowerMowingMap extends LitElement {
     if (dialog && !dialog.open) {
       try { dialog.showModal(); } catch { dialog.setAttribute("open", ""); }
     }
-    if (changed.has("path")) {
+    if (changed.has("path") || changed.has("entityId")) {
       this._stop();
+      this._cancelAlign();
+      this._saved = undefined;
       this._releaseImage();
       this._releasePhoto();
       this._scene = undefined;
@@ -171,6 +175,8 @@ export class LawnMowerMowingMap extends LitElement {
     this._releaseImage();
     this._releasePhoto();
     this._scene = undefined;
+    this._align = undefined;
+    this._saved = undefined;
     super.disconnectedCallback();
   }
 
@@ -230,7 +236,8 @@ export class LawnMowerMowingMap extends LitElement {
 
   /** Without a saved alignment, geographic backgrounds are offered only when one can be made. */
   private get _backgrounds(): MapBackground[] {
-    return availableMapBackgrounds(this._scene, Boolean(this._home) && this._serviceAvailable);
+    return availableMapBackgrounds(this._scene, Boolean(this._home) &&
+      this._serviceAvailable && Boolean(this._scene?.map_revision));
   }
 
   /** What is drawn: the picker choice, else the configured default, when the scene allows it. */
@@ -268,7 +275,12 @@ export class LawnMowerMowingMap extends LitElement {
   }
 
   private get _canAlign(): boolean {
-    return Boolean(this._serviceAvailable && this._scene?.projection && this._reference);
+    return Boolean(this._serviceAvailable && this._scene?.projection &&
+      this._scene.map_revision && this._reference);
+  }
+
+  private _alignmentContext(scene: MowingMapScene): string {
+    return `${this.path}:${this.entityId}:${scene.map_index}:${scene.map_revision}:${scene.revision}`;
   }
 
   private _chooseBackground = (event: Event): void => {
@@ -287,7 +299,8 @@ export class LawnMowerMowingMap extends LitElement {
   private _startAlign = (): void => {
     const base = this._reference;
     if (!base || !this._canAlign) return;
-    this._align = { base, adjustment: { ...IDENTITY_ADJUSTMENT }, fresh: !this._aligned };
+    this._align = { base, adjustment: { ...IDENTITY_ADJUSTMENT }, fresh: !this._aligned,
+      context: this._alignmentContext(this._scene!) };
     this._alignError = undefined;
     this._baseTool = undefined;
     // Leave room around the frame so its corner and rotate handles are reachable.
@@ -308,7 +321,11 @@ export class LawnMowerMowingMap extends LitElement {
 
   private _saveAlign = async (): Promise<void> => {
     const scene = this._scene, align = this._align, hass = this.hass, entityId = this.entityId;
-    if (!scene?.projection || !align || !hass || !entityId || this._saving) return;
+    if (!scene?.projection || !scene.map_revision || !align || !hass || !entityId || this._saving) return;
+    if (align.context !== this._alignmentContext(scene)) {
+      this._cancelAlign();
+      return;
+    }
     this._stopHold();
     const reference = alignedGeoreference(scene.projection, align.base, align.adjustment,
       scene.width, scene.height);
@@ -316,8 +333,10 @@ export class LawnMowerMowingMap extends LitElement {
     this._alignError = undefined;
     try {
       await hass.callService(DREAME_LAWN_MOWER_SERVICE_DOMAIN, "set_georeference",
-        georeferenceServiceData(entityId, reference));
-      this._saved = { reference, at: Date.now() };
+        georeferenceServiceData(entityId, reference, scene.map_index, scene.map_revision));
+      if (!this.isConnected || !this._scene ||
+          align.context !== this._alignmentContext(this._scene)) return;
+      this._saved = { reference, at: Date.now(), context: align.context };
       this._baseTool = undefined;
       if (this._align === align) {
         this._align = undefined;
@@ -325,7 +344,9 @@ export class LawnMowerMowingMap extends LitElement {
       }
       this._showNotice("mowingMap.alignSaved");
     } catch (error) {
-      this._alignError = this._t("mowingMap.alignFailed", { detail: actionErrorDetail(error) ?? "" }).trim();
+      if (this._align?.context === align.context) {
+        this._alignError = this._t("mowingMap.alignFailed", { detail: actionErrorDetail(error) ?? "" }).trim();
+      }
     } finally {
       this._saving = false;
     }
@@ -515,8 +536,10 @@ export class LawnMowerMowingMap extends LitElement {
         image = undefined;
         this._view = fitMap(scene.width, scene.height);
       }
+      if (this._align && this._align.context !== this._alignmentContext(scene)) this._cancelAlign();
       this._scene = scene;
-      if (this._saved && (sameGeoreference(scene.georeference, this._saved.reference) ||
+      if (this._saved && (this._saved.context !== this._alignmentContext(scene) ||
+          sameGeoreference(scene.georeference, this._saved.reference) ||
           Date.now() - this._saved.at > SAVED_GRACE_MS)) this._saved = undefined;
       if (this._align && !scene.projection) this._cancelAlign();
       this._expireOverlay(scene);
