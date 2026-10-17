@@ -560,6 +560,21 @@ export function alignHandlePositions(
 }
 
 /** Map pixel to CSS pixel in the canvas (letterboxed "xMidYMid meet" viewBox). */
+/**
+ * Client (viewport) pixel to map pixel for an SVG whose box is `rect`
+ * ("xMidYMid meet" viewBox): the inverse of mapToScreen, without asking the
+ * browser for getScreenCTM (which forces a layout on every pointer move).
+ */
+export function clientToMap(
+  client: MapPoint, rect: { left: number; top: number; width: number; height: number }, view: MapViewport,
+): MapPoint {
+  const k = Math.min(rect.width / view.width, rect.height / view.height);
+  if (!(k > 0) || !Number.isFinite(k)) return { x: view.x + view.width / 2, y: view.y + view.height / 2 };
+  const left = rect.left + (rect.width - view.width * k) / 2;
+  const top = rect.top + (rect.height - view.height * k) / 2;
+  return { x: view.x + (client.x - left) / k, y: view.y + (client.y - top) / k };
+}
+
 export function mapToScreen(point: MapPoint, view: MapViewport, size: { width: number; height: number }): MapPoint {
   const [, , , , x, y] = screenMatrix([1, 0, 0, 1, point.x, point.y], view, size);
   return { x, y };
