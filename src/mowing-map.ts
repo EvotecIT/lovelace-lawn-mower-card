@@ -71,6 +71,8 @@ export class LawnMowerMowingMap extends LitElement {
   @property({ attribute: false }) public mowerSize: MowerSize | null = DEFAULT_MOWER_SIZE;
   /** world_background_dim (0–100): how much geographic tiles are softened. */
   @property({ attribute: false }) public worldDim?: unknown;
+  /** Stable parent configuration identity; changes can alter inherited colours. */
+  @property({ attribute: false }) public appearanceContext?: object;
 
   @state() private _scene?: MowingMapScene;
   @state() private _image?: string;
@@ -121,6 +123,7 @@ export class LawnMowerMowingMap extends LitElement {
   private _themeKey?: string;
   private _themes?: HomeAssistant["themes"];
   private _invalidateCanvasRect = (): void => { this._rect = undefined; };
+  private _scrollRoots: ShadowRoot[] = [];
 
   private get _t() { return createTranslator(this.locale); }
 
@@ -147,7 +150,7 @@ export class LawnMowerMowingMap extends LitElement {
     // the theme may have changed, never on every pan step, poll or state update.
     const themes = this.hass?.themes;
     const themeKey = `${themes?.darkMode}|${themes?.theme}`;
-    const surface = viewportChanged || themes !== this._themes || themeKey !== this._themeKey
+    const surface = viewportChanged || changed.has("appearanceContext") || themes !== this._themes || themeKey !== this._themeKey
       ? this.renderRoot.querySelector<HTMLElement>(".viewport") : null;
     if (surface) {
       this._themeKey = themeKey;
@@ -181,12 +184,22 @@ export class LawnMowerMowingMap extends LitElement {
     super.connectedCallback();
     window.addEventListener("scroll", this._invalidateCanvasRect, {capture: true, passive: true});
     window.addEventListener("resize", this._invalidateCanvasRect);
+    // Native scroll events do not cross a shadow boundary. HA embeds cards in
+    // nested shadow roots, any of which can contain a scrolling ancestor.
+    let root = this.getRootNode();
+    while (root instanceof ShadowRoot) {
+      root.addEventListener("scroll", this._invalidateCanvasRect, {capture: true, passive: true});
+      this._scrollRoots.push(root);
+      root = root.host.getRootNode();
+    }
     this.requestUpdate();
   }
 
   public disconnectedCallback(): void {
     window.removeEventListener("scroll", this._invalidateCanvasRect, true);
     window.removeEventListener("resize", this._invalidateCanvasRect);
+    for (const root of this._scrollRoots) root.removeEventListener("scroll", this._invalidateCanvasRect, true);
+    this._scrollRoots = [];
     this._stop();
     if (this._noticeTimer !== undefined) window.clearTimeout(this._noticeTimer);
     this._noticeTimer = undefined;
@@ -594,8 +607,8 @@ export class LawnMowerMowingMap extends LitElement {
   }
 
   /**
-   * Client pixel to map pixel. The canvas box is read once per gesture (it does
-   * not move while dragging); the view is applied arithmetically.
+   * Client pixel to map pixel. Reuse the gesture's canvas box until scrolling,
+   * resize or canvas replacement invalidates it; apply the view arithmetically.
    */
   private _point(client: MapPoint): MapPoint {
     const rect = this._pointers.size ? this._rect ?? this._canvasRect() : this._canvasRect();

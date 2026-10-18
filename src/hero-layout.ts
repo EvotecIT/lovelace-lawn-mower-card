@@ -85,6 +85,7 @@ export type HeroLayoutModel = {
   density?: "comfortable" | "compact";
   theme?: "dark" | "auto";
   appearance: CardAppearance;
+  appearanceContext?: object;
   tileColumns?: number;
   hass: object;
   supportsStart: boolean;
