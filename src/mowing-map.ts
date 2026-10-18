@@ -119,6 +119,8 @@ export class LawnMowerMowingMap extends LitElement {
   private _rect?: DOMRect;
   /** Theme the color-scheme was last derived for. */
   private _themeKey?: string;
+  private _themes?: HomeAssistant["themes"];
+  private _invalidateCanvasRect = (): void => { this._rect = undefined; };
 
   private get _t() { return createTranslator(this.locale); }
 
@@ -126,10 +128,13 @@ export class LawnMowerMowingMap extends LitElement {
     if (!this.isConnected) return;
     if (changed.has("fallbackUrl")) this._fallbackFailed = false;
     const viewport = this.renderRoot.querySelector(".canvas");
-    if (viewport && viewport !== this._observed) {
+    const viewportChanged = viewport && viewport !== this._observed;
+    if (viewportChanged) {
+      this._invalidateCanvasRect();
       this._resize ??= new ResizeObserver(([entry]) => {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0 && (width !== this._size.width || height !== this._size.height)) {
+          this._invalidateCanvasRect();
           this._size = { width, height };
         }
       });
@@ -140,10 +145,13 @@ export class LawnMowerMowingMap extends LitElement {
     // Native pickers follow color-scheme, not the card's colours: match the theme surface.
     // Reading the computed colour forces a style recalculation, so it is done only when
     // the theme may have changed, never on every pan step, poll or state update.
-    const themeKey = `${this.hass?.themes?.darkMode}|${this.hass?.themes?.theme}`;
-    const surface = themeKey !== this._themeKey ? this.renderRoot.querySelector<HTMLElement>(".viewport") : null;
+    const themes = this.hass?.themes;
+    const themeKey = `${themes?.darkMode}|${themes?.theme}`;
+    const surface = viewportChanged || themes !== this._themes || themeKey !== this._themeKey
+      ? this.renderRoot.querySelector<HTMLElement>(".viewport") : null;
     if (surface) {
       this._themeKey = themeKey;
+      this._themes = themes;
       const scheme = colorSchemeFor(getComputedStyle(surface).backgroundColor);
       if (scheme && this.style.colorScheme !== scheme) this.style.colorScheme = scheme;
     }
@@ -171,10 +179,14 @@ export class LawnMowerMowingMap extends LitElement {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    window.addEventListener("scroll", this._invalidateCanvasRect, {capture: true, passive: true});
+    window.addEventListener("resize", this._invalidateCanvasRect);
     this.requestUpdate();
   }
 
   public disconnectedCallback(): void {
+    window.removeEventListener("scroll", this._invalidateCanvasRect, true);
+    window.removeEventListener("resize", this._invalidateCanvasRect);
     this._stop();
     if (this._noticeTimer !== undefined) window.clearTimeout(this._noticeTimer);
     this._noticeTimer = undefined;

@@ -353,3 +353,12 @@ test("client pixels map back to map pixels without asking the browser for a matr
   assert.deepEqual(clientToMap({ x: 30, y: 170 }, rect, view), { x: 100, y: 50 });
   assert.deepEqual(clientToMap({ x: 0, y: 0 }, { left: 0, top: 0, width: 0, height: 0 }, view), { x: 300, y: 150 });
 });
+
+test("client mapping preserves horizontal letterboxing, scale and a panned origin", () => {
+  assert.deepEqual(clientToMap({x:230,y:70}, {left:30,top:70,width:800,height:200},
+    {x:100,y:50,width:400,height:200}), {x:100,y:50});
+  assert.deepEqual(clientToMap({x:630,y:270}, {left:30,top:70,width:800,height:200},
+    {x:100,y:50,width:400,height:200}), {x:500,y:250});
+  assert.deepEqual(clientToMap({x:110,y:280}, {left:-40,top:-20,width:300,height:600},
+    {x:-100,y:-50,width:200,height:400}), {x:0,y:150});
+});
