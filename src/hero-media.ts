@@ -38,6 +38,7 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
         class=${`hero-layer hero-mowing-map${model.activeView === "map" ? " active" : ""}`}
         .hass=${model.hass} .path=${model.mowingMapPath} .locale=${model.locale}
         .appearanceContext=${model.appearanceContext}
+        .layoutContext=${model}
         .background=${model.mapBackground}
         .entityId=${model.mowerEntityId} .tiles=${model.worldTiles} .mowerSize=${model.mowerSize ?? null}
         .worldDim=${model.worldDim}

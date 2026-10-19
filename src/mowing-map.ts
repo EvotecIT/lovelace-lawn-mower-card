@@ -73,6 +73,8 @@ export class LawnMowerMowingMap extends LitElement {
   @property({ attribute: false }) public worldDim?: unknown;
   /** Stable parent configuration identity; changes can alter inherited colours. */
   @property({ attribute: false }) public appearanceContext?: object;
+  /** Parent render identity: sibling content can move the canvas. */
+  @property({ attribute: false }) public layoutContext?: object;
 
   @state() private _scene?: MowingMapScene;
   @state() private _image?: string;
@@ -130,7 +132,7 @@ export class LawnMowerMowingMap extends LitElement {
   protected updated(changed: PropertyValues): void {
     if (!this.isConnected) return;
     // Parent summaries/headings can move the canvas without changing its size.
-    if (changed.has("hass") || changed.has("appearanceContext")) this._invalidateCanvasRect();
+    if (changed.has("hass") || changed.has("appearanceContext") || changed.has("layoutContext")) this._invalidateCanvasRect();
     if (changed.has("fallbackUrl")) this._fallbackFailed = false;
     const viewport = this.renderRoot.querySelector(".canvas");
     const viewportChanged = viewport && viewport !== this._observed;

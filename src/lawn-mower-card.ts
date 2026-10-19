@@ -564,6 +564,7 @@ export class LawnMowerCard extends LitElement {
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
                           .appearanceContext=${this._config}
+                          .layoutContext=${headerSummary}
                           .background=${this._config.map_background}
                           .entityId=${this._config.entity} .tiles=${worldTileConfig(this._config)}
                           .mowerSize=${mowerMarkerSize(this._config)}
