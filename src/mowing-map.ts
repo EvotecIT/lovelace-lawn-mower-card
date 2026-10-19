@@ -129,6 +129,8 @@ export class LawnMowerMowingMap extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (!this.isConnected) return;
+    // Parent summaries/headings can move the canvas without changing its size.
+    if (changed.has("hass") || changed.has("appearanceContext")) this._invalidateCanvasRect();
     if (changed.has("fallbackUrl")) this._fallbackFailed = false;
     const viewport = this.renderRoot.querySelector(".canvas");
     const viewportChanged = viewport && viewport !== this._observed;
