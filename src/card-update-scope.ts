@@ -21,7 +21,8 @@ export function mowerHassChanged(
   if (!previous || !next || !config) return true;
   if (
     previous.language !== next.language || previous.locale !== next.locale ||
-    previous.entities !== next.entities || previous.services !== next.services
+    previous.entities !== next.entities || previous.services !== next.services ||
+    previous.themes !== next.themes
   ) return true;
   if (previous.states === next.states) return false;
 

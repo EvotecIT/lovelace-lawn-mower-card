@@ -15,6 +15,8 @@ export type HomeAssistant = {
   user?: { id: string };
   language?: string;
   locale?: { language?: string };
+  /** Active theme; `darkMode` is true when Home Assistant renders in dark mode. */
+  themes?: { darkMode?: boolean; theme?: string };
   /** Home location; the starting point for aligning an unaligned map. */
   config?: { latitude?: number; longitude?: number };
   states: Record<string, HassEntity>;

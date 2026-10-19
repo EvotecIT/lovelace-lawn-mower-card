@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  adjustPoint, adjustmentMatrix, alignGesture, alignHandlePositions, dragHandle, pointOnMap, unadjustPoint, mapToScreen, placeZoneLabels, adjustmentFromPairs, pullAboutPivot, alignedGeoreference, composeAdjustment, DEFAULT_WORLD_TILES,
+  adjustPoint, adjustmentMatrix, alignGesture, alignHandlePositions, dragHandle, pointOnMap, unadjustPoint, mapToScreen, clientToMap, placeZoneLabels, adjustmentFromPairs, pullAboutPivot, alignedGeoreference, composeAdjustment, DEFAULT_WORLD_TILES,
   defaultGeoreference, geoToNative, geoToPixel, geoToTile, georeferenceServiceData, IDENTITY_ADJUSTMENT,
   nativeToGeo, nativeToPixel, pixelToGeo, pixelToNative, readMapGeoreference, sameGeoreference, screenMatrix, colorSchemeFor,
   tileMatrix, tileTemplate, tileToGeo, tileUrl, tileZoomFor, visibleTiles, worldTileSource,
@@ -339,4 +339,26 @@ test("pin and pull: the base stays fixed and the pulled point lands on its real 
   assert.equal(pullAboutPivot(moved, centre, pivot, grabbed, { x: baseGround.x + 3, y: baseGround.y }, 24), null);
   // Pairs: the same similarity, and coinciding points are refused.
   assert.equal(adjustmentFromPairs(centre, { map: pivot, ground: baseGround }, { map: pivot, ground: pointGround }), null);
+});
+
+test("client pixels map back to map pixels without asking the browser for a matrix", () => {
+  const view = { x: 100, y: 50, width: 400, height: 200 };
+  const rect = { left: 30, top: 70, width: 400, height: 400 };
+  for (const point of [{ x: 100, y: 50 }, { x: 333, y: 123 }, { x: 500, y: 250 }]) {
+    const screen = mapToScreen(point, view, rect);
+    const back = clientToMap({ x: screen.x + rect.left, y: screen.y + rect.top }, rect, view);
+    near(back.x, point.x, 1e-9); near(back.y, point.y, 1e-9);
+  }
+  // Letterboxed: 100 px band above the 400 x 200 viewBox in a 400 x 400 box.
+  assert.deepEqual(clientToMap({ x: 30, y: 170 }, rect, view), { x: 100, y: 50 });
+  assert.deepEqual(clientToMap({ x: 0, y: 0 }, { left: 0, top: 0, width: 0, height: 0 }, view), { x: 300, y: 150 });
+});
+
+test("client mapping preserves horizontal letterboxing, scale and a panned origin", () => {
+  assert.deepEqual(clientToMap({x:230,y:70}, {left:30,top:70,width:800,height:200},
+    {x:100,y:50,width:400,height:200}), {x:100,y:50});
+  assert.deepEqual(clientToMap({x:630,y:270}, {left:30,top:70,width:800,height:200},
+    {x:100,y:50,width:400,height:200}), {x:500,y:250});
+  assert.deepEqual(clientToMap({x:110,y:280}, {left:-40,top:-20,width:300,height:600},
+    {x:-100,y:-50,width:200,height:400}), {x:0,y:150});
 });

@@ -563,6 +563,8 @@ export class LawnMowerCard extends LitElement {
                     ${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
+                          .appearanceContext=${this._config}
+                          .layoutContext=${headerSummary}
                           .background=${this._config.map_background}
                           .entityId=${this._config.entity} .tiles=${worldTileConfig(this._config)}
                           .mowerSize=${mowerMarkerSize(this._config)}
@@ -868,6 +870,7 @@ export class LawnMowerCard extends LitElement {
       density: this._config.hero_density,
       theme: cardAppearance(this._config).theme,
       appearance: cardAppearance(this._config),
+      appearanceContext: this._config,
       tileColumns: tileColumns(this._config.tile_columns),
       details: this._config.show_advanced_details ? html`
         ${this._plannedRunDetails(mower) ? this._renderPlannedRunPanel(this._plannedRunDetails(mower)!) : nothing}

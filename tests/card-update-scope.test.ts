@@ -59,6 +59,19 @@ test("discovery, removal, locale and service changes update the card", () => {
   }, config), true);
 });
 
+test("theme selection and same-name definition reloads render without state changes", () => {
+  const old = { ...base(), themes: { theme: "Garden", darkMode: false } };
+  assert.equal(mowerHassChanged(old, { ...old }, config), false);
+  for (const themes of [
+    { ...old.themes, theme: "Evening" },
+    { ...old.themes, darkMode: true },
+    { ...old.themes },
+    undefined,
+  ]) {
+    assert.equal(mowerHassChanged(old, { ...old, themes }, config), true);
+  }
+});
+
 test("explicit condition history updates redraw even when mower activity is unchanged", () => {
   const old = base();
   const id = "sensor.renamed_history";

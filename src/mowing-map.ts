@@ -14,7 +14,7 @@ import {
   type MapBackground, type MapPoint, type MapViewport, type MowerSize, type MowingMapScene,
 } from "./mowing-map-logic";
 import {
-  adjustmentMatrix, alignedGeoreference, colorSchemeFor, composeAdjustment, defaultGeoreference,
+  adjustmentMatrix, alignedGeoreference, clientToMap, colorSchemeFor, composeAdjustment, defaultGeoreference,
   georeferenceServiceData, IDENTITY_ADJUSTMENT, mapCentre, metresPerMapPixel, sameGeoreference,
   screenMatrix, tileUrl, tileZoomFor, visibleTiles, worldTileSource, tileZoomLimit, lowerTileZoomLimit,
   alignGesture, alignHandlePositions, dragHandle, pointOnMap, pullAboutPivot, unadjustPoint, adjustPoint, mapToScreen,
@@ -71,6 +71,10 @@ export class LawnMowerMowingMap extends LitElement {
   @property({ attribute: false }) public mowerSize: MowerSize | null = DEFAULT_MOWER_SIZE;
   /** world_background_dim (0–100): how much geographic tiles are softened. */
   @property({ attribute: false }) public worldDim?: unknown;
+  /** Stable parent configuration identity; changes can alter inherited colours. */
+  @property({ attribute: false }) public appearanceContext?: object;
+  /** Parent render identity: sibling content can move the canvas. */
+  @property({ attribute: false }) public layoutContext?: object;
 
   @state() private _scene?: MowingMapScene;
   @state() private _image?: string;
@@ -115,17 +119,29 @@ export class LawnMowerMowingMap extends LitElement {
   private _timer?: number;
   private _expiryTimer?: number;
   private _pointers = new Map<number, MapPoint>();
+  /** Canvas box for the current gesture. */
+  private _rect?: DOMRect;
+  /** Theme the color-scheme was last derived for. */
+  private _themeKey?: string;
+  private _themes?: HomeAssistant["themes"];
+  private _invalidateCanvasRect = (): void => { this._rect = undefined; };
+  private _scrollRoots: ShadowRoot[] = [];
 
   private get _t() { return createTranslator(this.locale); }
 
   protected updated(changed: PropertyValues): void {
     if (!this.isConnected) return;
+    // Parent summaries/headings can move the canvas without changing its size.
+    if (changed.has("hass") || changed.has("appearanceContext") || changed.has("layoutContext")) this._invalidateCanvasRect();
     if (changed.has("fallbackUrl")) this._fallbackFailed = false;
     const viewport = this.renderRoot.querySelector(".canvas");
-    if (viewport && viewport !== this._observed) {
+    const viewportChanged = viewport && viewport !== this._observed;
+    if (viewportChanged) {
+      this._invalidateCanvasRect();
       this._resize ??= new ResizeObserver(([entry]) => {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0 && (width !== this._size.width || height !== this._size.height)) {
+          this._invalidateCanvasRect();
           this._size = { width, height };
         }
       });
@@ -134,9 +150,18 @@ export class LawnMowerMowingMap extends LitElement {
       this._observed = viewport;
     }
     // Native pickers follow color-scheme, not the card's colours: match the theme surface.
-    const surface = this.renderRoot.querySelector<HTMLElement>(".viewport");
-    const scheme = surface ? colorSchemeFor(getComputedStyle(surface).backgroundColor) : undefined;
-    if (scheme && this.style.colorScheme !== scheme) this.style.colorScheme = scheme;
+    // Reading the computed colour forces a style recalculation, so it is done only when
+    // the theme may have changed, never on every pan step, poll or state update.
+    const themes = this.hass?.themes;
+    const themeKey = `${themes?.darkMode}|${themes?.theme}`;
+    const surface = viewportChanged || changed.has("appearanceContext") || themes !== this._themes || themeKey !== this._themeKey
+      ? this.renderRoot.querySelector<HTMLElement>(".viewport") : null;
+    if (surface) {
+      this._themeKey = themeKey;
+      this._themes = themes;
+      const scheme = colorSchemeFor(getComputedStyle(surface).backgroundColor);
+      if (scheme && this.style.colorScheme !== scheme) this.style.colorScheme = scheme;
+    }
     // Aligning happens full screen on phones: a modal dialog escapes the card's height.
     const dialog = this.renderRoot.querySelector<HTMLDialogElement>("dialog.align-dialog");
     if (dialog && !dialog.open) {
@@ -161,10 +186,24 @@ export class LawnMowerMowingMap extends LitElement {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    window.addEventListener("scroll", this._invalidateCanvasRect, {capture: true, passive: true});
+    window.addEventListener("resize", this._invalidateCanvasRect);
+    // Native scroll events do not cross a shadow boundary. HA embeds cards in
+    // nested shadow roots, any of which can contain a scrolling ancestor.
+    let root = this.getRootNode();
+    while (root instanceof ShadowRoot) {
+      root.addEventListener("scroll", this._invalidateCanvasRect, {capture: true, passive: true});
+      this._scrollRoots.push(root);
+      root = root.host.getRootNode();
+    }
     this.requestUpdate();
   }
 
   public disconnectedCallback(): void {
+    window.removeEventListener("scroll", this._invalidateCanvasRect, true);
+    window.removeEventListener("resize", this._invalidateCanvasRect);
+    for (const root of this._scrollRoots) root.removeEventListener("scroll", this._invalidateCanvasRect, true);
+    this._scrollRoots = [];
     this._stop();
     if (this._noticeTimer !== undefined) window.clearTimeout(this._noticeTimer);
     this._noticeTimer = undefined;
@@ -192,6 +231,7 @@ export class LawnMowerMowingMap extends LitElement {
     this._timer = undefined;
     this._clearExpiry();
     this._pointers.clear();
+    this._rect = undefined;
   }
 
   private _clearExpiry(): void {
@@ -570,12 +610,20 @@ export class LawnMowerMowingMap extends LitElement {
     }
   }
 
+  /**
+   * Client pixel to map pixel. Reuse the gesture's canvas box until scrolling,
+   * resize or canvas replacement invalidates it; apply the view arithmetically.
+   */
   private _point(client: MapPoint): MapPoint {
-    const canvas = this.renderRoot.querySelector<SVGSVGElement>(".map-canvas");
-    const matrix = canvas?.getScreenCTM()?.inverse();
-    if (!matrix) return { x: this._view.width / 2, y: this._view.height / 2 };
-    const point = new DOMPoint(client.x, client.y).matrixTransform(matrix);
-    return { x: point.x, y: point.y };
+    const rect = this._pointers.size ? this._rect ?? this._canvasRect() : this._canvasRect();
+    if (!rect) return { x: this._view.x + this._view.width / 2, y: this._view.y + this._view.height / 2 };
+    return clientToMap(client, rect, this._view);
+  }
+
+  private _canvasRect(): DOMRect | undefined {
+    const rect = this.renderRoot.querySelector<SVGSVGElement>(".map-canvas")?.getBoundingClientRect();
+    if (this._pointers.size) this._rect = rect;
+    return rect;
   }
 
   private _zoom(factor: number, anchor?: MapPoint): void {
@@ -674,6 +722,7 @@ export class LawnMowerMowingMap extends LitElement {
 
   private _up(event: PointerEvent): void {
     this._pointers.delete(event.pointerId);
+    if (!this._pointers.size) this._rect = undefined;
     // Lifting one of two fingers continues as a view pan, never as a map move.
     if (this._pointers.size === 0) this._drag = undefined;
     else this._drag = "view";
