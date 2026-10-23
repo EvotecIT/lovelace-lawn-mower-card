@@ -468,5 +468,15 @@ export const pl = {
   "mowingMap.baseToolPull": "Przeciągnij dowolny punkt mapy na jego prawdziwe miejsce; stacja pozostaje nieruchoma",
   "mowingMap.baseToolNext": "Dalej",
   "mowingMap.baseToolRestart": "Zacznij od nowa",
-  "mowingMap.basePin": "Stacja"
+  "mowingMap.basePin": "Stacja",
+  "automation.title": "Automatyczne koszenie",
+  "automation.enableLabel": "Włącz automatyczne koszenie HA",
+  "automation.setupHint": "Ustaw wilgotność gleby, nawadnianie i harmonogram bez YAML.",
+  "automation.disabledHint": "Wyłączone. Oczekujące starty i automatyczne wznowienia są anulowane.",
+  "automation.managed": "Zarządzany cykl",
+  "automation.permitted": "Warunki pozwalają na start; nadal obowiązują kontrole kosiarki.",
+  "automation.blocked": "Oczekiwanie na zezwolenie ogrodu.",
+  "automation.edit": "Edytuj ustawienia",
+  "automation.setup": "Skonfiguruj",
+
 } satisfies TranslationCatalog;

@@ -27,6 +27,15 @@ export function mowerHassChanged(
   if (previous.states === next.states) return false;
 
   const explicit = configuredEntities(config);
+  for (const source of [previous, next]) {
+    const automation = source.states[config.entity]?.attributes.mowing_automation;
+    if (automation && typeof automation === "object" && !Array.isArray(automation)) {
+      for (const key of ["enable_entity", "permission_entity"]) {
+        const id = (automation as Record<string, unknown>)[key];
+        if (typeof id === "string") explicit.add(id);
+      }
+    }
+  }
   const objectId = config.entity.split(".", 2)[1];
   const owner = next.entities?.[config.entity]?.device_id;
   const ids = new Set([...Object.keys(previous.states), ...Object.keys(next.states)]);

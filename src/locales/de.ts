@@ -180,5 +180,15 @@ export const de = {
   "mowingMap.baseToolPull": "Ziehen Sie einen beliebigen Kartenpunkt an seinen echten Ort; die Basis bleibt fest",
   "mowingMap.baseToolNext": "Weiter",
   "mowingMap.baseToolRestart": "Neu beginnen",
-  "mowingMap.basePin": "Basis"
+  "mowingMap.basePin": "Basis",
+  "automation.title": "Mähautomatik",
+  "automation.enableLabel": "HA-Mähautomatik aktivieren",
+  "automation.setupHint": "Bodenfeuchte, Bewässerung und Wochenplan ohne YAML einrichten.",
+  "automation.disabledHint": "Deaktiviert. Wartende Starts und automatische Fortsetzungen sind abgebrochen.",
+  "automation.managed": "Verwalteter Lauf",
+  "automation.permitted": "Gartenbedingungen erlauben den Start; Mäherprüfungen gelten weiterhin.",
+  "automation.blocked": "Warten auf Gartenfreigabe.",
+  "automation.edit": "Einrichtung bearbeiten",
+  "automation.setup": "Einrichten",
+
 } satisfies TranslationCatalog;

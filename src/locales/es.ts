@@ -462,5 +462,15 @@ export const es = {
   "mowingMap.baseToolPull": "Tira de cualquier punto del mapa hasta su lugar real; la base queda fija",
   "mowingMap.baseToolNext": "Siguiente",
   "mowingMap.baseToolRestart": "Empezar de nuevo",
-  "mowingMap.basePin": "Base"
+  "mowingMap.basePin": "Base",
+  "automation.title": "Corte automático",
+  "automation.enableLabel": "Activar el corte automático de HA",
+  "automation.setupHint": "Configura humedad, riego y horario semanal sin YAML.",
+  "automation.disabledHint": "Desactivado. Se cancelan los inicios pendientes y la reanudación automática.",
+  "automation.managed": "Tarea gestionada",
+  "automation.permitted": "El jardín permite iniciar; se mantienen las comprobaciones del cortacésped.",
+  "automation.blocked": "Esperando permiso del jardín.",
+  "automation.edit": "Editar configuración",
+  "automation.setup": "Configurar",
+
 } satisfies TranslationCatalog;

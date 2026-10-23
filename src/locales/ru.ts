@@ -180,5 +180,15 @@ export const ru = {
   "mowingMap.baseToolPull": "Потяните любую точку карты на её настоящее место; база остаётся на месте",
   "mowingMap.baseToolNext": "Далее",
   "mowingMap.baseToolRestart": "Начать заново",
-  "mowingMap.basePin": "База"
+  "mowingMap.basePin": "База",
+  "automation.title": "Автоматическое кошение",
+  "automation.enableLabel": "Включить автоматическое кошение HA",
+  "automation.setupHint": "Настройте влажность, полив и недельное расписание без YAML.",
+  "automation.disabledHint": "Отключено. Ожидающие запуски и автоматические продолжения отменены.",
+  "automation.managed": "Управляемая задача",
+  "automation.permitted": "Условия сада разрешают запуск; проверки косилки остаются активны.",
+  "automation.blocked": "Ожидание разрешения сада.",
+  "automation.edit": "Изменить настройки",
+  "automation.setup": "Настроить",
+
 } satisfies TranslationCatalog;

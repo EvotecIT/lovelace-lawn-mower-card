@@ -1152,6 +1152,35 @@
       };
 
       const previewParameters = new URLSearchParams(window.location.search);
+      const automationScenario = previewParameters.get("automation");
+      if (automationScenario) {
+        const enableId = "switch.backyard_mower_mowing_automation";
+        const permissionId = "binary_sensor.backyard_mower_mowing_permitted";
+        stateStore[enableId] = {
+          entity_id: enableId,
+          state: automationScenario === "disabled" ? "off" : automationScenario === "unavailable" ? "unavailable" : "on",
+          attributes: { friendly_name: "Mowing automation" },
+        };
+        stateStore[permissionId] = {
+          entity_id: permissionId,
+          state: automationScenario === "permitted" ? "on" : "off",
+          attributes: { reason: automationScenario === "permitted"
+            ? "Garden conditions permit mowing" : "Soil is too wet; waiting for the dry threshold" },
+        };
+        stateStore["lawn_mower.backyard_mower"].attributes.mowing_automation = {
+          version: 1, configured: automationScenario !== "unconfigured", entry_id: "demo-entry",
+          enable_entity: enableId, permission_entity: permissionId,
+          last_outcome: automationScenario === "unconfigured" ? undefined
+            : automationScenario === "disabled"
+            ? { status: "cancelled", reason: "scheduled_run_cancelled" }
+            : { status: "deferred", reason: "external_permission_blocked" },
+        };
+        if (["waiting", "paused"].includes(automationScenario)) {
+          stateStore["lawn_mower.backyard_mower"].attributes.scheduled_automation = {
+            phase: automationScenario, permission_entity: permissionId,
+          };
+        }
+      }
       const pointCloudCapability = previewParameters.get("point-cloud-capability");
       if (["supported", "unknown", "unsupported"].includes(pointCloudCapability)) {
         stateStore["camera.backyard_mower_map"].attributes.feature_capabilities = {
@@ -1282,6 +1311,13 @@
                 ...stateStore[entityId],
                 state: service === "turn_on" ? "on" : "off",
               };
+              if (entityId === "switch.backyard_mower_mowing_automation" && service === "turn_off") {
+                const mower = stateStore["lawn_mower.backyard_mower"];
+                delete mower.attributes.scheduled_automation;
+                mower.attributes.mowing_automation.last_outcome = {
+                  status: "cancelled", reason: "scheduled_run_cancelled",
+                };
+              }
               for (const card of Object.values(cards)) {
                 card.requestUpdate();
               }
