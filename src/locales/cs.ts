@@ -524,5 +524,15 @@ export const cs = {
   "mowingMap.baseToolPull": "Přetáhněte libovolný bod mapy na jeho skutečné místo; základna zůstává pevná",
   "mowingMap.baseToolNext": "Další",
   "mowingMap.baseToolRestart": "Začít znovu",
-  "mowingMap.basePin": "Základna"
+  "mowingMap.basePin": "Základna",
+  "automation.title": "Automatické sečení",
+  "automation.enableLabel": "Povolit automatické sečení HA",
+  "automation.setupHint": "Nastavte vlhkost půdy, závlahu a týdenní rozvrh bez YAML.",
+  "automation.disabledHint": "Vypnuto. Čekající starty a automatické obnovení jsou zrušeny.",
+  "automation.managed": "Spravovaný běh",
+  "automation.permitted": "Podmínky zahrady umožňují start; kontroly sekačky stále platí.",
+  "automation.blocked": "Čekání na povolení zahrady.",
+  "automation.edit": "Upravit nastavení",
+  "automation.setup": "Nastavit",
+
 } satisfies TranslationCatalog;

@@ -180,5 +180,15 @@ export const it = {
   "mowingMap.baseToolPull": "Tira un punto qualsiasi della mappa nella sua posizione reale; la base resta ferma",
   "mowingMap.baseToolNext": "Avanti",
   "mowingMap.baseToolRestart": "Ricomincia",
-  "mowingMap.basePin": "Base"
+  "mowingMap.basePin": "Base",
+  "automation.title": "Taglio automatico",
+  "automation.enableLabel": "Abilita il taglio automatico HA",
+  "automation.setupHint": "Configura umidità, irrigazione e programma settimanale senza YAML.",
+  "automation.disabledHint": "Disabilitato. Avvii in attesa e riprese automatiche annullati.",
+  "automation.managed": "Attività gestita",
+  "automation.permitted": "Il giardino consente l’avvio; restano attivi i controlli del robot.",
+  "automation.blocked": "In attesa del permesso del giardino.",
+  "automation.edit": "Modifica configurazione",
+  "automation.setup": "Configura",
+
 } satisfies TranslationCatalog;

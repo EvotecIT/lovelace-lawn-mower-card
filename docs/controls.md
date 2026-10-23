@@ -216,3 +216,20 @@ companions, it renders a `Live Session` panel that can summarize:
 If a map camera is configured, the panel also reads runtime overlay details
 from the map entity attributes. If no map camera is configured, the panel still
 shows the companion sensor and binary-sensor data it can resolve.
+
+## HA mowing automation
+
+Dreame Lawn Mower can configure soil moisture, irrigation and a weekly HA
+schedule without YAML. Its **Mowing automation** panel shows whether the
+schedule is enabled, whether garden conditions permit mowing, the current
+managed phase and the latest outcome. Turn the switch off to cancel that
+wizard's pending starts and recovery without moving the mower.
+
+Use **Set up** or **Edit setup** to open the matching integration entry, then
+choose **Configure → Mowing automation**. This setup requires HA 2026.7+. The
+[step-by-step integration guide](https://github.com/EvotecIT/homeassistant-dreamelawnmower/blob/main/docs/soil-moisture-mowing.md)
+covers the workflow. The integration runs the rules when the dashboard is
+closed; the card keeps no separate rule settings. The panel appears only when
+the mower advertises this capability, and follows the card's controls visibility.
+Existing native schedule switches remain separate. Disable native plans on
+every map when using HA scheduling, and keep Rain Protection enabled.

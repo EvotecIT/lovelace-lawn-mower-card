@@ -521,7 +521,17 @@ export const en = {
   "mowingMap.baseToolPull": "Pull any point of the map onto its real place; the base stays fixed",
   "mowingMap.baseToolNext": "Next",
   "mowingMap.baseToolRestart": "Start over",
-  "mowingMap.basePin": "Base"
+  "mowingMap.basePin": "Base",
+  "automation.title": "Mowing automation",
+  "automation.enableLabel": "Enable HA mowing automation",
+  "automation.setupHint": "Set up soil moisture, irrigation and a weekly schedule without YAML.",
+  "automation.disabledHint": "Disabled. Pending starts and automatic recovery are cancelled.",
+  "automation.managed": "Managed run",
+  "automation.permitted": "Garden conditions permit a start; mower checks still apply.",
+  "automation.blocked": "Waiting for garden permission.",
+  "automation.edit": "Edit setup",
+  "automation.setup": "Set up",
+
 } as const satisfies Record<string, TranslationMessage>;
 
 export type TranslationKey = keyof typeof en;

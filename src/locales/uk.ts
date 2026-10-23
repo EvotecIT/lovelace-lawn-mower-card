@@ -180,5 +180,15 @@ export const uk = {
   "mowingMap.baseToolPull": "Потягніть будь-яку точку карти на її справжнє місце; база залишається нерухомою",
   "mowingMap.baseToolNext": "Далі",
   "mowingMap.baseToolRestart": "Почати знову",
-  "mowingMap.basePin": "База"
+  "mowingMap.basePin": "База",
+  "automation.title": "Автоматичне косіння",
+  "automation.enableLabel": "Увімкнути автоматичне косіння HA",
+  "automation.setupHint": "Налаштуйте вологість, полив і тижневий розклад без YAML.",
+  "automation.disabledHint": "Вимкнено. Очікувані запуски й автоматичні продовження скасовано.",
+  "automation.managed": "Кероване завдання",
+  "automation.permitted": "Умови саду дозволяють запуск; перевірки косарки залишаються активними.",
+  "automation.blocked": "Очікування дозволу саду.",
+  "automation.edit": "Змінити налаштування",
+  "automation.setup": "Налаштувати",
+
 } satisfies TranslationCatalog;

@@ -43,6 +43,10 @@ fixture—never real garden geometry—for testing the 3D tab and load controls.
 can switch mower states, toggle rain delay, and focus on a single layout preset
 or compare all of them side by side.
 
+Use `/?automation=waiting` to preview the integration-owned mowing automation
+panel. Other scenarios are `blocked`, `permitted`, `paused`, `disabled`,
+`unavailable` and `unconfigured`. These states and switch calls are simulated.
+
 For a focused Dashboard preview, open
 `http://localhost:4173/demo/customization.html?composition=dashboard`. Its
 toolbar switches themes, card widths, and Camera/Mission side panels. Add

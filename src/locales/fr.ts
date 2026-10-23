@@ -180,5 +180,15 @@ export const fr = {
   "mowingMap.baseToolPull": "Tirez un point de la carte sur son vrai emplacement ; la base reste fixe",
   "mowingMap.baseToolNext": "Suivant",
   "mowingMap.baseToolRestart": "Recommencer",
-  "mowingMap.basePin": "Base"
+  "mowingMap.basePin": "Base",
+  "automation.title": "Tonte automatique",
+  "automation.enableLabel": "Activer la tonte automatique HA",
+  "automation.setupHint": "Configurer humidité du sol, arrosage et planning sans YAML.",
+  "automation.disabledHint": "Désactivée. Départs en attente et reprises automatiques annulés.",
+  "automation.managed": "Tâche gérée",
+  "automation.permitted": "Le jardin permet un départ ; les contrôles du robot restent actifs.",
+  "automation.blocked": "En attente de l’autorisation du jardin.",
+  "automation.edit": "Modifier la configuration",
+  "automation.setup": "Configurer",
+
 } satisfies TranslationCatalog;

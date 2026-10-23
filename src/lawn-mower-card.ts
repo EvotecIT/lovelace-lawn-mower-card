@@ -111,6 +111,8 @@ import {
   type ScheduleControl,
 } from "./schedule-controls";
 import { renderSchedulePanel } from "./schedule-panel";
+import { mowingAutomationStatus } from "./mowing-automation";
+import { renderMowingAutomation } from "./mowing-automation-panel";
 import { recentMowerConditions } from "./recent-conditions";
 import { renderRecentConditions } from "./recent-conditions-panel";
 import {
@@ -776,7 +778,9 @@ export class LawnMowerCard extends LitElement {
       this._stringAttribute(mower, "battery_level", "%");
     const progress = this._heroMissionMetric();
     const coverage = this._heroCoverageMetric();
-    const controls = controlEntities.length || scheduleControls.length
+    const controls = controlEntities.length || scheduleControls.length || (
+      !["hidden", "custom"].includes(this._config.controls_mode || "auto") && mowingAutomationStatus(this.hass.states, this._config.entity)
+    )
       ? this._renderControlContent(controlEntities, scheduleControls, true) : undefined;
     const scenePath = this._config.show_map === false ? undefined
       : mowingMapPath(configuredMapEntity?.attributes.mowing_map_api_path);
@@ -1279,7 +1283,15 @@ export class LawnMowerCard extends LitElement {
     const inline = groups.inline.map(id => this._renderEntityControl(id));
     const inlineContent = inline.length ? hero ? inline : html`<div class="selectors">${inline}</div>` : nothing;
     const customFirst = this._config!.controls_mode === "append";
+    const automation = ["hidden", "custom"].includes(this._config!.controls_mode || "auto") ? undefined
+      : mowingAutomationStatus(this.hass.states, this._config!.entity);
     return html`
+      ${automation ? renderMowingAutomation(automation, Boolean(this._mutationInFlight), async () => {
+        const current = mowingAutomationStatus(this.hass.states, this._config!.entity);
+        if (current?.canToggle && current.enableEntity && current.enableEntity === automation.enableEntity) {
+          await this._toggleSwitch(current.enableEntity, current.enabled);
+        }
+      }, this._t) : nothing}
       ${customFirst ? inlineContent : nothing}
       ${schedules.length ? renderSchedulePanel(
         schedules.map(control => ({ ...control, available: control.available && !Boolean(this._mutationInFlight) })),

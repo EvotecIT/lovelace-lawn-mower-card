@@ -510,5 +510,15 @@ export const nl = {
   "mowingMap.baseToolPull": "Trek een willekeurig kaartpunt naar zijn echte plek; de basis blijft vast",
   "mowingMap.baseToolNext": "Volgende",
   "mowingMap.baseToolRestart": "Opnieuw beginnen",
-  "mowingMap.basePin": "Basis"
+  "mowingMap.basePin": "Basis",
+  "automation.title": "Maaiautomatisering",
+  "automation.enableLabel": "HA-maaiautomatisering inschakelen",
+  "automation.setupHint": "Stel bodemvocht, beregening en een weekschema in zonder YAML.",
+  "automation.disabledHint": "Uitgeschakeld. Wachtende starts en automatisch hervatten zijn geannuleerd.",
+  "automation.managed": "Beheerde taak",
+  "automation.permitted": "Tuincondities staan starten toe; maaiercontroles blijven gelden.",
+  "automation.blocked": "Wachten op toestemming van de tuin.",
+  "automation.edit": "Instellingen bewerken",
+  "automation.setup": "Instellen",
+
 } satisfies TranslationCatalog;
