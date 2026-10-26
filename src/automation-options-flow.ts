@@ -32,7 +32,8 @@ type FlowResult = {
 export type SaveResult = { ok: true } | { ok: false; stepId: string; errors: Record<string, string> };
 
 const FLOW = "config/config_entries/options/flow";
-const MENU_STEP = "mowing_automation";
+/** The flow's first form: its schedule picker belongs with the schedule slots. */
+export const MENU_STEP = "mowing_automation";
 /** The confirmation step: submitting it saves, so reading stops before it. */
 export const REVIEW_STEP = "mowing_review";
 /** The wizard's on/off field; the card's switch owns it. */

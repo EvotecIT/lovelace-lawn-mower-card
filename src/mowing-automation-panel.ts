@@ -3,7 +3,7 @@ import type { TranslationKey, Translator } from "./localization";
 import {
   automationReason, mowingAutomationSetupPath, OUTCOME_STATUSES, type MowingAutomationStatus,
 } from "./mowing-automation";
-import { ENABLED_FIELD, sameSections, type FlowSection } from "./automation-options-flow";
+import { ENABLED_FIELD, MENU_STEP, sameSections, type FlowSection } from "./automation-options-flow";
 import {
   sameSchedule, scheduleProblems, shortTime, WEEKDAYS, type ScheduleDraft, type Weekday,
 } from "./schedule-editor";
@@ -256,11 +256,17 @@ export function renderMowingAutomationDialog(
   const canSave = changed && state.status !== "saving" && !(draft && scheduleProblems(draft).length);
   const setupPath = mowingAutomationSetupPath(model.entryId);
   const original = new Map((state.optionsOriginal ?? []).map(section => [section.stepId, section]));
-  const optionTabs: DialogTab[] = state.options?.length && state.optionsStatus !== "unavailable" && customElements.get("ha-form")
-    ? state.options.map(section => ({
+  const formsReady = Boolean(state.options?.length && state.optionsStatus !== "unavailable" && customElements.get("ha-form"));
+  const sectionChanged = (section: FlowSection) =>
+    !sameSections([section], original.has(section.stepId) ? [original.get(section.stepId)!] : []);
+  const sectionError = (section: FlowSection) => Boolean(section.errors && Object.keys(section.errors).length);
+  // The first step only picks the Schedule helper: show it above that helper's slots.
+  const scheduleSection = formsReady ? state.options!.find(section => section.stepId === MENU_STEP) : undefined;
+  const optionTabs: DialogTab[] = formsReady
+    ? state.options!.filter(section => section !== scheduleSection).map(section => ({
       id: `step:${section.stepId}`, label: stepTitle(hass, section.stepId),
-      changed: !sameSections([section], original.has(section.stepId) ? [original.get(section.stepId)!] : []),
-      error: Boolean(section.errors && Object.keys(section.errors).length),
+      changed: sectionChanged(section),
+      error: sectionError(section),
       body: () => renderOptionSection(hass, section, state, actions),
     }))
     : [{
@@ -271,9 +277,12 @@ export function renderMowingAutomationDialog(
     }];
   const tabs: DialogTab[] = [
     {
-      id: "schedule", label: t("automation.scheduleTitle"), changed: scheduleChanged,
-      error: Boolean(draft && scheduleProblems(draft).length) || state.status === "error",
-      body: () => html`${model.scheduleName ? html`<p class="mowing-automation-detail">${model.scheduleName}</p>` : nothing}
+      id: "schedule", label: t("automation.scheduleTitle"),
+      changed: scheduleChanged || Boolean(scheduleSection && sectionChanged(scheduleSection)),
+      error: Boolean(draft && scheduleProblems(draft).length) || state.status === "error" ||
+        Boolean(scheduleSection && sectionError(scheduleSection)),
+      body: () => html`${scheduleSection ? renderOptionSection(hass, scheduleSection, state, actions)
+        : model.scheduleName ? html`<p class="mowing-automation-detail">${model.scheduleName}</p>` : nothing}
         ${renderScheduleDays(state, actions, t, locale)}`,
     },
     ...(settings.length ? [{
