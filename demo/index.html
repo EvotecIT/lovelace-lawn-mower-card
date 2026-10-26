@@ -1186,6 +1186,14 @@
             target_entity: "select.backyard_mower_what_to_mow",
             rest_days_entity: "number.backyard_mower_rest_days_between_zone_mowings",
             max_area_entity: "number.backyard_mower_maximum_area_per_start",
+            rotation_zone_rest_days: { "6": 0 },
+            rotation_zones: [
+              { zone_id: 1, label: "Back lawn", area_m2: 107.7, rest_days: 1, custom_rest_days: false, due_on: null },
+              { zone_id: 2, label: "Side strip", area_m2: 38.9, rest_days: 1, custom_rest_days: false, due_on: null },
+              { zone_id: 6, label: "Front lawn", area_m2: 144, rest_days: 0, custom_rest_days: true, due_on: null },
+              { zone_id: 4, label: "Orchard", area_m2: 70.3, rest_days: 1, custom_rest_days: false,
+                due_on: new Date(Date.now() + 86400000).toISOString().slice(0, 10) },
+            ],
             last_outcome: { status: "skipped", reason: "external_permission_blocked",
               observed_at: new Date(Date.now() - 3600_000).toISOString() },
             plan: { next_start: monday.toISOString(), task_type: "zone", area_m2: 295.1, reason: null, zones: [

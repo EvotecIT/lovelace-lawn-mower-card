@@ -10,6 +10,9 @@ import {
   withBlock, withBlockTime, withoutBlock, type ScheduleDraft,
 } from "./schedule-editor.ts";
 import { acquireMowerMutation, releaseMowerMutation } from "./mower-mutation-lock.ts";
+import {
+  rotationDraft, rotationServiceCalls, sameRotation, withZoneRestDays,
+} from "./rotation-draft.ts";
 
 type DialogContext = {
   hass: () => HomeAssistant;
@@ -69,7 +72,8 @@ export class AutomationDialogController {
     }
     const session = { entityId, entryId: automation.entryId, hass, userId: hass.user.id };
     this.session = session;
-    this.publish({ status: "loading", optionsStatus: "loading" });
+    const rotation = rotationDraft(automation);
+    this.publish({ status: "loading", optionsStatus: "loading", rotation, rotationOriginal: rotation });
     void this.loadOptions(session);
     await this.loadSchedule(session, automation.scheduleEntity);
   }
@@ -153,6 +157,16 @@ export class AutomationDialogController {
         }
       },
       save: () => this.save(),
+      setRotation: change => {
+        if (this.state?.rotation && this.state.status !== "saving") this.publish({
+          ...this.state, rotation: { ...this.state.rotation, ...change },
+        });
+      },
+      setZoneRestDays: (zoneId, restDays) => {
+        if (this.state?.rotation && this.state.status !== "saving") this.publish({
+          ...this.state, rotation: withZoneRestDays(this.state.rotation, zoneId, restDays),
+        });
+      },
     };
   }
 
@@ -172,6 +186,17 @@ export class AutomationDialogController {
     if (!lock) return;
     this.publish({ ...state, status: "saving" });
     try {
+      const automation = this.context.automation();
+      if (automation && state.rotation && state.rotationOriginal &&
+        !sameRotation(state.rotation, state.rotationOriginal)) {
+        // In-place integration settings: no reload, so before the options flow.
+        for (const call of rotationServiceCalls(automation, session.entityId, state.rotationOriginal, state.rotation)) {
+          if (!this.current(session)) return;
+          await session.hass.callService(call.domain, call.service, call.data);
+        }
+        state = { ...state, rotationOriginal: state.rotation };
+      }
+      if (!this.current(session)) return;
       if (state.draft && state.original && !sameSchedule(state.draft, state.original)) {
         await session.hass.callWS(scheduleUpdateMessage(state.draft));
         state = { ...state, original: state.draft };
