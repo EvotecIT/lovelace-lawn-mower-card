@@ -87,3 +87,15 @@ test("unknown fields are never submitted", () => {
   const section = { stepId: "x", schema: [{ name: "a" }], data: { a: 1, injected: 2, b: "" } } as FlowSection;
   assert.deepEqual(submittedData(section), { a: 1 });
 });
+
+test("a failure right after opening the flow still aborts it", async () => {
+  const calls: string[] = [];
+  const api: FlowApi = async <T>(method: "POST" | "DELETE", path: string) => {
+    calls.push(`${method} ${path}`);
+    if (method === "DELETE") return {} as T;
+    if (path.endsWith("/options/flow")) return { type: "menu", flow_id: "f9" } as T;
+    throw new Error("network");
+  };
+  await assert.rejects(readAutomationSteps(api, "entry"), /network/);
+  assert.deepEqual(calls.at(-1), "DELETE config/config_entries/options/flow/f9");
+});

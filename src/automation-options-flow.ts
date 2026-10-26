@@ -64,12 +64,16 @@ export function submittedData(section: FlowSection): Record<string, unknown> {
       section.schema.some(field => field.name === name)));
 }
 
+/** Open the flow at the automation step; a failure after opening aborts it. */
 async function begin(api: FlowApi, entryId: string): Promise<FlowResult> {
   const first = await api<FlowResult>("POST", FLOW, { handler: entryId });
-  if (first.type === "menu") {
-    return api<FlowResult>("POST", `${FLOW}/${first.flow_id}`, { next_step_id: MENU_STEP });
+  if (first.type !== "menu") return first;
+  try {
+    return await api<FlowResult>("POST", `${FLOW}/${first.flow_id}`, { next_step_id: MENU_STEP });
+  } catch (error) {
+    if (first.flow_id) await api("DELETE", `${FLOW}/${first.flow_id}`).catch(() => undefined);
+    throw error;
   }
-  return first;
 }
 
 function failure(result: FlowResult): Error {
