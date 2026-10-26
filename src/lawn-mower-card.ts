@@ -1394,9 +1394,9 @@ export class LawnMowerCard extends LitElement {
     const count = selectedIds.length;
 
     return html`
-      <div class="selector-card">
+      <div class="selector-card zone-selector-card">
         <span class="selector-label" id=${labelId}>${label}</span>
-        <div class="zone-option-list" role="group" aria-labelledby=${labelId}>
+        <div class="zone-option-list" data-columns=${this._config?.zone_picker_columns ?? "auto"} role="group" aria-labelledby=${labelId}>
           ${choices.map((choice) => {
             const checked = selected.has(choice.id);
             return html`

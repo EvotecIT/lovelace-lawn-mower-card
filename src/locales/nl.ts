@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const nl = {
+  "custom.zonePickerColumns": "Kolommen voor zoneselectie",
+  "custom.zonePickerColumnsHint": "Automatisch past zich aan de kaartbreedte aan. Geldt alleen voor het selecteren van meerdere zones.",
   "conditions.recent": "Recente meldingen",
   "conditions.active": "Actief",
   "conditions.cleared": "Opgelost",

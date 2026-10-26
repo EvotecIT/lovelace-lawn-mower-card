@@ -12,6 +12,8 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "custom.zonePickerColumns": "Zone picker columns",
+  "custom.zonePickerColumnsHint": "Automatic fits the available card width. Applies only to the multi-select zone picker.",
   "conditions.recent": "Recent conditions",
   "conditions.active": "Active",
   "conditions.cleared": "Cleared",

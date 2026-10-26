@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const cs = {
+  "custom.zonePickerColumns": "Sloupce výběru zón",
+  "custom.zonePickerColumnsHint": "Automatický režim se přizpůsobí šířce karty. Platí pouze pro výběr více zón.",
   "conditions.recent": "Nedávné události",
   "conditions.active": "Aktivní",
   "conditions.cleared": "Vyřešeno",

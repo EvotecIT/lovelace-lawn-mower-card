@@ -133,6 +133,17 @@ export class CustomizationEditor extends LitElement {
         ["legacy", this.t("custom.existingDefault")], ["auto", this.t("common.automatic")], ["append", this.t("custom.append")], ["custom", this.t("custom.only")], ["hidden", this.t("custom.hidden")],
       ], value => { const next = { ...this.config }; if (value === "legacy") delete next[modeKey]; else next[modeKey] = value as LawnMowerCardConfig[typeof modeKey]; this.change(next); }) : nothing}
       ${modeKey ? html`<span class="hint">${this.t("custom.modeHint")}</span>` : nothing}
+      ${key === "control_entities" ? html`
+        ${this.select(this.t("custom.zonePickerColumns"), String(this.config.zone_picker_columns ?? "auto"), [
+          ["auto", this.t("common.automatic")], ["1", "1"], ["2", "2"],
+        ], value => {
+          const next = { ...this.config };
+          if (value === "auto") delete next.zone_picker_columns;
+          else next.zone_picker_columns = value === "1" ? 1 : 2;
+          this.change(next);
+        })}
+        <span class="hint">${this.t("custom.zonePickerColumnsHint")}</span>
+      ` : nothing}
       ${key === "actions" ? html`<label class="toggle">
         <span>${this.t("editor.showCustomActionLabel")}</span>
         <input

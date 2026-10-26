@@ -99,6 +99,7 @@
 - `control_entities`: optional list of `select`, `number`, `switch`, or `time`
   entities rendered as inline mower controls
 - `controls_mode`: optional `auto`, `append`, `custom`, or `hidden`; omit to keep existing discovery behavior
+- `zone_picker_columns`: optional `auto` (default), `1`, or `2`; controls the columns in the full-width multi-select zone picker, in every layout
 - `summary_mode`: optional `auto`, `append`, `custom`, or `hidden`; omit to keep the existing layout default
 - `summary_entities`: optional list of entity IDs or objects using the same fields as `tiles`, rendered as summary chips in every layout
 - `hero_sections`: optional ordered list of `controls`, `tiles`, `actions`, and `details`; omitted sections are hidden, and an empty list hides all four
