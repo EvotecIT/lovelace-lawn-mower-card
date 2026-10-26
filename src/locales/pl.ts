@@ -504,7 +504,6 @@ export const pl = {
   "automation.manage": "Zarządzaj",
   "automation.loading": "Ładowanie…",
   "automation.adminOnly": "Tylko administrator może zmienić harmonogram.",
-  "automation.scheduleError": "Nie można odczytać ani zapisać harmonogramu: {error}",
   "automation.openHelper": "Otwórz w Home Assistant",
   "automation.blockStart": "Początek",
   "automation.blockEnd": "Koniec",

@@ -24,7 +24,7 @@ test("automation panel uses advertised entities and isolates another automation'
     enableEntity: "switch.renamed_automation", permitted: false, reason: "Soil is wet", phase: undefined, lastOutcome: undefined,
     scheduleEntity: undefined, scheduleName: undefined, rotation: false, targetEntity: undefined,
     restDaysEntity: undefined, maxAreaEntity: undefined, plan: undefined,
-    defaultRestDays: undefined, rotationMaxArea: undefined, rotationZones: [],
+    defaultRestDays: undefined, rotationMaxArea: undefined, rotationMapIndex: undefined, rotationZones: [],
   });
   states["lawn_mower.garden"].attributes.scheduled_automation = {
     phase: "paused", permission_entity: "binary_sensor.renamed_permission",
@@ -132,18 +132,21 @@ test("settings and schedule entities refresh the card", () => {
 test("per-zone rest days and due dates come from the integration summary", () => {
   const states = { "lawn_mower.garden": entity("lawn_mower.garden", "docked", {
     mowing_automation: { version: 1, configured: true, entry_id: "garden", mowing_target: "rotation",
-      rotation_rest_days: 1,
+      rotation_rest_days: 1, rotation_map_index: 0,
       rotation_zones: [
         { zone_id: 6, label: "Front", area_m2: 144, rest_days: 0, custom_rest_days: true, due_on: "2026-10-27" },
         { zone_id: 1, label: "", area_m2: null, rest_days: 1, custom_rest_days: false, due_on: null },
         { zone_id: 2.5, rest_days: 1 }, { zone_id: 3, rest_days: "1" }, { zone_id: 4, rest_days: 1, due_on: "soon" },
+        { zone_id: 5, rest_days: 1, due_on: "2026-02-30" },
       ] },
   }) };
   const model = mowingAutomationStatus(states, "lawn_mower.garden")!;
   assert.equal(model.defaultRestDays, 1);
+  assert.equal(model.rotationMapIndex, 0);
   assert.deepEqual(model.rotationZones, [
     { zoneId: 6, label: "Front", areaM2: 144, restDays: 0, customRestDays: true, dueOn: "2026-10-27" },
     { zoneId: 1, label: "#1", areaM2: undefined, restDays: 1, customRestDays: false, dueOn: undefined },
     { zoneId: 4, label: "#4", areaM2: undefined, restDays: 1, customRestDays: false, dueOn: undefined },
+    { zoneId: 5, label: "#5", areaM2: undefined, restDays: 1, customRestDays: false, dueOn: undefined },
   ]);
 });

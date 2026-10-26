@@ -6,7 +6,7 @@ import {
 import { createTranslator } from "../src/localization.ts";
 
 const model: any = {
-  rotation: true, defaultRestDays: 1, rotationMaxArea: 300,
+  rotation: true, defaultRestDays: 1, rotationMaxArea: 300, rotationMapIndex: 0,
   targetEntity: "select.what", restDaysEntity: "number.rest", maxAreaEntity: "number.area",
   rotationZones: [
     { zoneId: 6, label: "Front", restDays: 0, customRestDays: true },
@@ -29,8 +29,8 @@ test("only changed settings become service calls, zones in order", () => {
   assert.deepEqual(rotationServiceCalls(model, "lawn_mower.garden", original, draft).map(call => [call.service, call.data]), [
     ["select_option", { entity_id: "select.what", option: "all" }],
     ["set_value", { entity_id: "number.rest", value: 2 }],
-    ["set_rotation_zone_rest_days", { entity_id: "lawn_mower.garden", zone_id: 1, rest_days: 3 }],
-    ["set_rotation_zone_rest_days", { entity_id: "lawn_mower.garden", zone_id: 6 }],
+    ["set_rotation_zone_rest_days", { entity_id: "lawn_mower.garden", zone_id: 1, map_index: 0, rest_days: 3 }],
+    ["set_rotation_zone_rest_days", { entity_id: "lawn_mower.garden", zone_id: 6, map_index: 0 }],
   ]);
   assert.deepEqual(rotationServiceCalls(model, "lawn_mower.garden", original, original), []);
 });
@@ -42,4 +42,7 @@ test("rest days read as a frequency", () => {
   const ru = createTranslator("ru");
   assert.equal(frequencyLabel(1, ru), "Каждые 2 дня");
   assert.equal(frequencyLabel(4, ru), "Каждые 5 дней");
+  assert.equal(frequencyLabel(20, ru), "Каждый 21 день");
+  assert.equal(frequencyLabel(20, createTranslator("uk")), "Кожен 21 день");
+  assert.equal(frequencyLabel(4, createTranslator("cs")), "Každých 5 dní");
 });

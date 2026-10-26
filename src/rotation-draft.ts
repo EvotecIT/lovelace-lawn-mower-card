@@ -12,7 +12,13 @@ export type RotationDraft = {
   zoneRestDays: Record<number, number>;
 };
 
-export type ServiceCall = { domain: string; service: string; data: Record<string, unknown> };
+export type ServiceCall = {
+  domain: string;
+  service: string;
+  data: Record<string, unknown>;
+  /** Saved baseline once this individual service call is acknowledged. */
+  applied: RotationDraft;
+};
 
 export const MAX_REST_DAYS = 30;
 
@@ -42,23 +48,40 @@ export function rotationServiceCalls(
   model: MowingAutomationStatus, entityId: string, original: RotationDraft, draft: RotationDraft,
 ): ServiceCall[] {
   const calls: ServiceCall[] = [];
-  if (draft.target !== original.target && model.targetEntity) calls.push({
-    domain: "select", service: "select_option", data: { entity_id: model.targetEntity, option: draft.target },
-  });
-  if (draft.restDays !== original.restDays && model.restDaysEntity) calls.push({
-    domain: "number", service: "set_value", data: { entity_id: model.restDaysEntity, value: draft.restDays },
-  });
-  if (draft.maxArea !== original.maxArea && model.maxAreaEntity) calls.push({
-    domain: "number", service: "set_value", data: { entity_id: model.maxAreaEntity, value: draft.maxArea },
-  });
+  let applied = original;
+  if (draft.target !== original.target && model.targetEntity) {
+    applied = { ...applied, target: draft.target };
+    calls.push({
+      domain: "select", service: "select_option", data: { entity_id: model.targetEntity, option: draft.target },
+      applied,
+    });
+  }
+  if (draft.restDays !== original.restDays && model.restDaysEntity) {
+    applied = { ...applied, restDays: draft.restDays };
+    calls.push({
+      domain: "number", service: "set_value", data: { entity_id: model.restDaysEntity, value: draft.restDays },
+      applied,
+    });
+  }
+  if (draft.maxArea !== original.maxArea && model.maxAreaEntity) {
+    applied = { ...applied, maxArea: draft.maxArea };
+    calls.push({
+      domain: "number", service: "set_value", data: { entity_id: model.maxAreaEntity, value: draft.maxArea },
+      applied,
+    });
+  }
   const zones = new Set([...Object.keys(original.zoneRestDays), ...Object.keys(draft.zoneRestDays)].map(Number));
   for (const zoneId of [...zones].sort((a, b) => a - b)) {
     const before = original.zoneRestDays[zoneId];
     const after = draft.zoneRestDays[zoneId];
     if (before === after) continue;
+    applied = withZoneRestDays(applied, zoneId, after);
     calls.push({
       domain: "dreame_lawn_mower", service: "set_rotation_zone_rest_days",
-      data: { entity_id: entityId, zone_id: zoneId, ...(after === undefined ? {} : { rest_days: after }) },
+      data: { entity_id: entityId, zone_id: zoneId,
+        ...(model.rotationMapIndex === undefined ? {} : { map_index: model.rotationMapIndex }),
+        ...(after === undefined ? {} : { rest_days: after }) },
+      applied,
     });
   }
   return calls;

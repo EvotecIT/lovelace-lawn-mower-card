@@ -10,6 +10,7 @@ import {
   withBlock, withBlockTime, withoutBlock, type ScheduleDraft,
 } from "./schedule-editor.ts";
 import { acquireMowerMutation, releaseMowerMutation } from "./mower-mutation-lock.ts";
+import { actionErrorDetail } from "./action-error.ts";
 import {
   rotationDraft, rotationServiceCalls, sameRotation, withZoneRestDays,
 } from "./rotation-draft.ts";
@@ -28,6 +29,7 @@ type Session = {
   entryId: string;
   hass: HomeAssistant;
   userId?: string;
+  mapIndex?: number;
 };
 
 export class AutomationDialogController {
@@ -53,6 +55,7 @@ export class AutomationDialogController {
     const hass = this.context.hass();
     return this.session === session && this.context.entityId() === session.entityId &&
       this.context.automation()?.entryId === session.entryId &&
+      this.context.automation()?.rotationMapIndex === session.mapIndex &&
       hass.connection === session.hass.connection && hass.user?.id === session.userId &&
       hass.user?.is_admin === true;
   }
@@ -70,7 +73,8 @@ export class AutomationDialogController {
     if (!entityId || !automation.scheduleEntity) {
       this.publish({ status: "error", error: "no schedule" }); return;
     }
-    const session = { entityId, entryId: automation.entryId, hass, userId: hass.user.id };
+    const session = { entityId, entryId: automation.entryId, hass, userId: hass.user.id,
+      mapIndex: automation.rotationMapIndex };
     this.session = session;
     const rotation = rotationDraft(automation);
     this.publish({ status: "loading", optionsStatus: "loading", rotation, rotationOriginal: rotation });
@@ -120,7 +124,7 @@ export class AutomationDialogController {
         : { ...this.state, status: "error", error: schedule });
     } catch (error) {
       if (this.current(session) && read === this.scheduleRead && this.state) this.publish({
-        ...this.state, status: "error", error: String(error),
+        ...this.state, status: "error", error: actionErrorDetail(error) ?? String(error).slice(0, 240),
       });
     }
   }
@@ -193,8 +197,8 @@ export class AutomationDialogController {
         for (const call of rotationServiceCalls(automation, session.entityId, state.rotationOriginal, state.rotation)) {
           if (!this.current(session)) return;
           await session.hass.callService(call.domain, call.service, call.data);
+          state = { ...state, rotationOriginal: call.applied };
         }
-        state = { ...state, rotationOriginal: state.rotation };
       }
       if (!this.current(session)) return;
       if (state.draft && state.original && !sameSchedule(state.draft, state.original)) {
@@ -214,7 +218,8 @@ export class AutomationDialogController {
       }
       if (this.current(session)) this.publish({ ...state, status: "ready", error: undefined });
     } catch (error) {
-      if (this.current(session)) this.publish({ ...state, status: "error", error: String(error) });
+      if (this.current(session)) this.publish({ ...state, status: "error",
+        error: actionErrorDetail(error) ?? String(error).slice(0, 240) });
     } finally {
       releaseMowerMutation(session.entityId, lock);
     }

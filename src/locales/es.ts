@@ -498,7 +498,6 @@ export const es = {
   "automation.manage": "Gestionar",
   "automation.loading": "Cargando…",
   "automation.adminOnly": "Solo un administrador puede cambiar el horario.",
-  "automation.scheduleError": "No se pudo leer ni guardar el horario: {error}",
   "automation.openHelper": "Abrir en Home Assistant",
   "automation.blockStart": "Inicio",
   "automation.blockEnd": "Fin",

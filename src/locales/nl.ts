@@ -546,7 +546,6 @@ export const nl = {
   "automation.manage": "Beheren",
   "automation.loading": "Laden…",
   "automation.adminOnly": "Alleen een beheerder kan het schema wijzigen.",
-  "automation.scheduleError": "Schema kon niet worden gelezen of opgeslagen: {error}",
   "automation.openHelper": "Openen in Home Assistant",
   "automation.blockStart": "Begin",
   "automation.blockEnd": "Einde",

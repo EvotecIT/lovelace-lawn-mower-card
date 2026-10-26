@@ -216,7 +216,6 @@ export const de = {
   "automation.manage": "Verwalten",
   "automation.loading": "Wird geladen…",
   "automation.adminOnly": "Nur ein Administrator kann den Zeitplan ändern.",
-  "automation.scheduleError": "Zeitplan konnte nicht gelesen oder gespeichert werden: {error}",
   "automation.openHelper": "In Home Assistant öffnen",
   "automation.blockStart": "Beginn",
   "automation.blockEnd": "Ende",

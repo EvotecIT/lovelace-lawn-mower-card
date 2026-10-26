@@ -46,7 +46,7 @@ export const mowingAutomationStyles = css`
   .mowing-automation-dialog button.icon { min-width: 40px; padding: 4px 8px; }
   .mowing-automation-dialog button.link { border: none; background: none; min-height: 0; padding: 4px 0; color: var(--primary-color); text-decoration: underline; }
   .dialog-header { display: flex; gap: 8px; align-items: center; }
-  .dialog-header .mowing-automation-title { flex: 1; font-size: 18px; }
+  .dialog-header .mowing-automation-title { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 18px; }
   .schedule-days { display: grid; gap: 6px; }
   .schedule-day { display: grid; grid-template-columns: 96px 1fr auto; gap: 8px; align-items: center; min-height: 44px;
     border-bottom: 1px solid var(--divider-color, #ddd); padding-bottom: 6px; }
@@ -56,7 +56,7 @@ export const mowingAutomationStyles = css`
   .schedule-block.invalid { border-color: var(--error-color, #db4437); }
   .schedule-block input { font: inherit; color: inherit; background: transparent; border: none; min-height: 36px; }
   .schedule-none { color: var(--secondary-text-color); }
-  .schedule-problem { color: var(--error-color, #db4437); }
+  .schedule-problem { color: var(--error-color, #db4437); overflow-wrap: anywhere; }
   .setup-step h3 { text-transform: none; }
   .mowing-automation-dialog ha-form { display: block; }
   .mowing-automation-dialog .dialog-body { min-height: 120px; }
@@ -75,10 +75,29 @@ export const mowingAutomationStyles = css`
   .rotation-area input[type="number"] { width: 96px; }
   .rotation-area .inline { display: inline-flex; gap: 6px; align-items: center; }
   .rotation-zones select { width: 100%; min-width: 120px; }
-  .rotation-zones input { box-sizing: border-box; width: 64px; min-height: 36px; padding: 4px 6px; border: 1px solid var(--divider-color);
-    border-radius: 8px; font: inherit; color: var(--primary-text-color); background: var(--card-background-color); }
+  .rotation-mobile-label { display: none; }
   .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--divider-color, #ddd); }
   @media (max-width: 480px) { .schedule-day { grid-template-columns: 1fr auto; } .schedule-blocks { grid-column: 1 / -1; grid-row: 2; } }
+  @media (max-width: 480px) {
+    .schedule-block { display: grid; grid-template-columns: minmax(0, 1fr) auto; max-width: 100%; box-sizing: border-box; }
+    .schedule-block .time-separator { display: none; }
+    .schedule-block input { grid-column: 1; width: 100%; min-width: 0; }
+    .schedule-block button { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+    .dialog-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; }
+    .dialog-header .mowing-automation-title { grid-column: 1; grid-row: 1; }
+    .dialog-header [role="switch"] { grid-column: 1; grid-row: 2; justify-self: start; }
+    .dialog-header .icon { grid-column: 2; grid-row: 1 / 3; align-self: start; }
+    .rotation-zones, .rotation-zones tbody { display: block; }
+    .rotation-zones thead { display: none; }
+    .rotation-zones tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+      gap: 4px 8px; padding: 8px 0; border-bottom: 1px solid var(--divider-color, #ddd); }
+    .rotation-zones th, .rotation-zones td { border: 0; padding: 2px 0; min-width: 0; }
+    .rotation-zones tbody th { grid-column: 1 / -1; overflow-wrap: anywhere; }
+    .rotation-zones td:nth-child(2) { align-self: center; }
+    .rotation-zones td:last-child { grid-column: 1 / -1; font-size: 12px; color: var(--secondary-text-color); }
+    .rotation-zones select { min-width: 0; }
+    .rotation-mobile-label { display: inline; }
+  }
 `;
 
 function when(value: string, locale: string): string {
@@ -229,8 +248,8 @@ function renderScheduleDays(
   const draft = state.draft;
   if (state.status === "loading") return html`<p class="mowing-automation-detail">${t("automation.loading")}</p>`;
   if (!draft) {
-    return html`<p class="mowing-automation-detail">${state.status === "readonly"
-      ? t("automation.adminOnly") : t("automation.scheduleError", { error: state.error ?? "" })}</p>
+    return html`${state.status === "readonly"
+      ? html`<p class="mowing-automation-detail">${t("automation.adminOnly")}</p>` : nothing}
       ${actions.openHelper ? html`<button type="button" class="link" @click=${actions.openHelper}>${t("automation.openHelper")}</button>` : nothing}`;
   }
   const problems = scheduleProblems(draft);
@@ -243,7 +262,7 @@ function renderScheduleDays(
           class="schedule-block ${problems.some(item => item.day === day && item.index === index) ? "invalid" : ""}">
           <input type="time" step="60" aria-label=${t("automation.blockStart")} .value=${shortTime(block.from)}
             ?disabled=${busy} @change=${(event: Event) => actions.setTime(day, index, "from", (event.target as HTMLInputElement).value)}>
-          –
+          <span class="time-separator" aria-hidden="true">–</span>
           <input type="time" step="60" aria-label=${t("automation.blockEnd")} .value=${block.to === "24:00:00" ? "00:00" : shortTime(block.to)}
             ?disabled=${busy} @change=${(event: Event) => actions.setTime(day, index, "to", (event.target as HTMLInputElement).value)}>
           <button type="button" class="icon" aria-label=${t("automation.removeBlock")} ?disabled=${busy}
@@ -254,7 +273,7 @@ function renderScheduleDays(
     </div>`)}
   </div>
   ${problems.length ? html`<p class="schedule-problem" role="alert">${t("automation.scheduleInvalid")}</p>` : nothing}
-  ${state.status === "error" ? html`<p class="schedule-problem" role="alert">${t("automation.scheduleError", { error: state.error ?? "" })}</p>` : nothing}`;
+  `;
 }
 
 function dueLabel(dueOn: string | undefined, t: Translator, locale: string): string {
@@ -313,7 +332,7 @@ function renderRotation(
         const own = draft.zoneRestDays[zone.zoneId];
         return html`<tr>
           <th scope="row">${zone.label}</th>
-          <td>${zone.areaM2 === undefined ? "—" : Math.round(zone.areaM2)}</td>
+          <td>${zone.areaM2 === undefined ? "—" : Math.round(zone.areaM2)}<span class="rotation-mobile-label"> m²</span></td>
           <td><select aria-label=${t("automation.frequencyFor", { zone: zone.label })} ?disabled=${busy}
             @change=${(event: Event) => {
               const value = (event.target as HTMLSelectElement).value;
@@ -322,7 +341,7 @@ function renderRotation(
             <option value="" ?selected=${own === undefined}>${t("automation.defaultOption")}</option>
             ${frequencyOptions(t, own)}
           </select></td>
-          <td>${dueLabel(zone.dueOn, t, locale)}</td>
+          <td><span class="rotation-mobile-label">${t("automation.dueColumn")}: </span>${dueLabel(zone.dueOn, t, locale)}</td>
         </tr>`;
       })}</tbody>
     </table>
@@ -407,6 +426,7 @@ export function renderMowingAutomationDialog(
     ${model.enabled ? renderPlan(model, t, locale) : nothing}
     ${renderTabs(tabs, active, actions)}
     <div class="dialog-body" role="tabpanel">${active.body()}</div>
+    ${state.status === "error" ? html`<p class="schedule-problem" role="alert">${t("common.error")}: ${state.error ?? ""}</p>` : nothing}
     ${state.optionsMessage ? html`<p class="mowing-automation-detail" role="status">${state.optionsMessage}</p>` : nothing}
     ${optionsChanged ? html`<p class="mowing-automation-detail">${t("automation.reloadNotice")}</p>` : nothing}
     <div class="dialog-actions">

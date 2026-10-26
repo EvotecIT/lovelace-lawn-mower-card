@@ -37,6 +37,8 @@ export type MowingAutomationStatus = {
   /** Default rest days, and each zone's own when it has one. */
   defaultRestDays?: number;
   rotationMaxArea?: number;
+  /** Verified current map that owns the zone-frequency rows. */
+  rotationMapIndex?: number;
   rotationZones: MowingAutomationZone[];
 };
 
@@ -98,9 +100,16 @@ function zonesFrom(value: unknown): MowingAutomationZone[] {
       areaM2: typeof area === "number" && Number.isFinite(area) ? area : undefined,
       restDays,
       customRestDays: zone.custom_rest_days === true,
-      dueOn: typeof due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(due) ? due : undefined,
+      dueOn: calendarDate(due),
     }];
   });
+}
+
+function calendarDate(value: unknown): string | undefined {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+    ? value : undefined;
 }
 
 function planFrom(value: unknown): MowingAutomationPlan | undefined {
@@ -170,6 +179,8 @@ export function mowingAutomationStatus(
       ? value.rotation_rest_days : undefined,
     rotationMaxArea: typeof value.rotation_max_area === "number" && Number.isFinite(value.rotation_max_area)
       ? value.rotation_max_area : undefined,
+    rotationMapIndex: typeof value.rotation_map_index === "number" && Number.isInteger(value.rotation_map_index)
+      && value.rotation_map_index >= 0 ? value.rotation_map_index : undefined,
     rotationZones: zonesFrom(value.rotation_zones),
   };
 }

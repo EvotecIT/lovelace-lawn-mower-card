@@ -216,7 +216,6 @@ export const it = {
   "automation.manage": "Gestisci",
   "automation.loading": "Caricamento…",
   "automation.adminOnly": "Solo un amministratore può modificare il programma.",
-  "automation.scheduleError": "Impossibile leggere o salvare il programma: {error}",
   "automation.openHelper": "Apri in Home Assistant",
   "automation.blockStart": "Inizio",
   "automation.blockEnd": "Fine",

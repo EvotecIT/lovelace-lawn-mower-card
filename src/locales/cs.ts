@@ -560,7 +560,6 @@ export const cs = {
   "automation.manage": "Spravovat",
   "automation.loading": "Načítání…",
   "automation.adminOnly": "Rozvrh může měnit jen správce.",
-  "automation.scheduleError": "Rozvrh nelze načíst ani uložit: {error}",
   "automation.openHelper": "Otevřít v Home Assistantu",
   "automation.blockStart": "Začátek",
   "automation.blockEnd": "Konec",

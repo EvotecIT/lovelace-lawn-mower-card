@@ -557,7 +557,6 @@ export const en = {
   "automation.manage": "Manage",
   "automation.loading": "Loading…",
   "automation.adminOnly": "Only an administrator can change the schedule.",
-  "automation.scheduleError": "Could not read or save the schedule: {error}",
   "automation.openHelper": "Open in Home Assistant",
   "automation.blockStart": "Start",
   "automation.blockEnd": "End",
