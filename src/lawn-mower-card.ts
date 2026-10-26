@@ -112,7 +112,14 @@ import {
 } from "./schedule-controls";
 import { renderSchedulePanel } from "./schedule-panel";
 import { mowingAutomationStatus, type MowingAutomationStatus } from "./mowing-automation";
-import { renderMowingAutomation, type MowingAutomationControls } from "./mowing-automation-panel";
+import {
+  renderMowingAutomation, renderMowingAutomationDialog,
+  type MowingAutomationControls, type ScheduleDialogActions, type ScheduleDialogState,
+} from "./mowing-automation-panel";
+import {
+  scheduleDraft, scheduleProblems, scheduleUpdateMessage, withBlock, withBlockTime, withoutBlock,
+  type ScheduleDraft,
+} from "./schedule-editor";
 import { recentMowerConditions } from "./recent-conditions";
 import { renderRecentConditions } from "./recent-conditions-panel";
 import {
@@ -267,6 +274,7 @@ export class LawnMowerCard extends LitElement {
   @state() private _config?: LawnMowerCardConfig;
   @state() private _pendingCustomAction?: LawnMowerActionConfig;
   @state() private _cancelTaskConfirmationOpen = false;
+  @state() private _scheduleDialog?: ScheduleDialogState;
   @state() private _patrolMenu?: { kind: DreamePatrolKind; keys: ZoneSelectionKeys };
   @state() private _areaMenuContext?: AreaStartContext;
   private _customActionTrigger?: HTMLElement;
@@ -454,6 +462,10 @@ export class LawnMowerCard extends LitElement {
   }
 
   protected updated(): void {
+    const scheduleDialog = this.renderRoot?.querySelector<HTMLDialogElement>("dialog.mowing-automation-dialog");
+    if (scheduleDialog && !scheduleDialog.open) {
+      try { scheduleDialog.showModal(); } catch { scheduleDialog.setAttribute("open", ""); }
+    }
     if (this._pendingCustomAction && !conditionMatches(this._pendingCustomAction.visibility, this.hass.states)) this._closeCustomConfirmation();
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
     if (
@@ -1292,6 +1304,14 @@ export class LawnMowerCard extends LitElement {
           await this._toggleSwitch(current.enableEntity, current.enabled);
         }
       }, this._t, this._automationControls(automation)) : nothing}
+      ${automation && this._scheduleDialog ? renderMowingAutomationDialog(
+        automation, this._scheduleDialog, this._automationSettings(automation),
+        this._scheduleDialogActions(automation), async () => {
+          const current = mowingAutomationStatus(this.hass.states, this._config!.entity);
+          if (current?.canToggle && current.enableEntity && current.enableEntity === automation.enableEntity) {
+            await this._toggleSwitch(current.enableEntity, current.enabled);
+          }
+        }, Boolean(this._mutationInFlight), this._t, this._locale) : nothing}
       ${customFirst ? inlineContent : nothing}
       ${schedules.length ? renderSchedulePanel(
         schedules.map(control => ({ ...control, available: control.available && !Boolean(this._mutationInFlight) })),
@@ -1303,16 +1323,78 @@ export class LawnMowerCard extends LitElement {
   }
 
   /** The integration advertises its own settings entities; render them with the usual controls. */
-  private _automationControls(automation: MowingAutomationStatus): MowingAutomationControls {
-    const ids = [
+  private _automationSettings(automation: MowingAutomationStatus) {
+    return [
       automation.targetEntity,
       ...(automation.rotation ? [automation.restDaysEntity, automation.maxAreaEntity] : []),
-    ].filter((id): id is string => Boolean(id && this.hass.states[id]));
-    const schedule = automation.scheduleEntity;
+    ].filter((id): id is string => Boolean(id && this.hass.states[id]))
+      .map(id => this._renderEntityControl(id));
+  }
+
+  private _automationControls(automation: MowingAutomationStatus): MowingAutomationControls {
     return {
-      settings: ids.map(id => this._renderEntityControl(id)),
-      openSchedule: schedule ? () => this._showMoreInfo(schedule) : undefined,
+      manage: () => void this._openScheduleDialog(automation),
       locale: this._locale,
+    };
+  }
+
+  /** Read the automation's Schedule helper; only administrators may edit helpers. */
+  private async _openScheduleDialog(automation: MowingAutomationStatus): Promise<void> {
+    const schedule = automation.scheduleEntity;
+    if (!schedule) {
+      this._scheduleDialog = { status: "error", error: "no schedule" };
+      return;
+    }
+    if (!this.hass.user?.is_admin) {
+      this._scheduleDialog = { status: "readonly" };
+      return;
+    }
+    this._scheduleDialog = { status: "loading" };
+    try {
+      const entry = await this.hass.callWS<{ unique_id?: unknown }>({
+        type: "config/entity_registry/get", entity_id: schedule,
+      });
+      const items = await this.hass.callWS<unknown[]>({ type: "schedule/list" });
+      const draft = scheduleDraft((Array.isArray(items) ? items : [])
+        .find(item => (item as { id?: unknown })?.id === entry?.unique_id));
+      if (!this._scheduleDialog) return;
+      this._scheduleDialog = draft
+        ? { status: "ready", draft, original: draft }
+        : { status: "error", error: schedule };
+    } catch (error) {
+      if (this._scheduleDialog) {
+        this._scheduleDialog = { status: "error", error: error instanceof Error ? error.message : String(error) };
+      }
+    }
+  }
+
+  private _scheduleDialogActions(automation: MowingAutomationStatus): ScheduleDialogActions {
+    const edit = (change: (draft: ScheduleDraft) => ScheduleDraft) => {
+      const state = this._scheduleDialog;
+      if (state?.draft && state.status !== "saving") {
+        this._scheduleDialog = { ...state, status: "ready", error: undefined, draft: change(state.draft) };
+      }
+    };
+    return {
+      close: () => { this._scheduleDialog = undefined; },
+      addBlock: day => edit(draft => withBlock(draft, day)),
+      removeBlock: (day, index) => edit(draft => withoutBlock(draft, day, index)),
+      setTime: (day, index, end, value) => edit(draft => withBlockTime(draft, day, index, end, value)),
+      openHelper: automation.scheduleEntity
+        ? () => { this._scheduleDialog = undefined; this._showMoreInfo(automation.scheduleEntity); } : undefined,
+      save: async () => {
+        const state = this._scheduleDialog;
+        if (!state?.draft || scheduleProblems(state.draft).length) return;
+        this._scheduleDialog = { ...state, status: "saving" };
+        try {
+          await this.hass.callWS(scheduleUpdateMessage(state.draft));
+          this._scheduleDialog = { status: "ready", draft: state.draft, original: state.draft };
+        } catch (error) {
+          this._scheduleDialog = {
+            ...state, status: "error", error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      },
     };
   }
 

@@ -12,7 +12,7 @@ export type HassEntity = {
 
 export type HomeAssistant = {
   connection?: object;
-  user?: { id: string };
+  user?: { id: string; is_admin?: boolean };
   language?: string;
   locale?: { language?: string };
   /** Active theme; `darkMode` is true when Home Assistant renders in dark mode. */

@@ -554,6 +554,23 @@ export const en = {
   "automation.status.expired": "expired",
   "automation.status.finished": "finished",
   "automation.status.failed": "failed",
+  "automation.manage": "Manage",
+  "automation.loading": "Loading…",
+  "automation.adminOnly": "Only an administrator can change the schedule.",
+  "automation.scheduleError": "Could not read or save the schedule: {error}",
+  "automation.openHelper": "Open in Home Assistant",
+  "automation.blockStart": "Start",
+  "automation.blockEnd": "End",
+  "automation.removeBlock": "Remove this time slot",
+  "automation.noBlock": "none",
+  "automation.addBlock": "+ Time slot",
+  "automation.scheduleInvalid": "Fix the time slots in red: start after end, or overlapping.",
+  "automation.close": "Close",
+  "automation.scheduleTitle": "Schedule",
+  "automation.settingsTitle": "What to mow",
+  "automation.cancel": "Cancel",
+  "automation.save": "Save",
+  "automation.saving": "Saving…",
 
 } as const satisfies Record<string, TranslationMessage>;
 
