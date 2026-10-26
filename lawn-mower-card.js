@@ -775,7 +775,7 @@ var or=Object.defineProperty;var ar=Object.getOwnPropertyDescriptor;var v=(t,n,e
       padding:8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); font-size:12px; color:#fff; }
     .viewer { position:fixed; }
     .viewer-close { position:absolute; z-index:1; top:max(8px, env(safe-area-inset-top, 0px));
-      right:8px; min-width:44px; min-height:44px; color:#fff; font-size:20px;
+      right:max(8px, env(safe-area-inset-right, 0px)); min-width:44px; min-height:44px; color:#fff; font-size:20px;
       background:rgba(0,0,0,.55); border-color:rgba(255,255,255,.4); }
     .viewer-bar button { min-width:40px; min-height:36px; color:#fff; border-color:rgba(255,255,255,.3); }
     .viewer-bar button:disabled { opacity:.35; cursor:default; }
