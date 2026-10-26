@@ -272,12 +272,20 @@ export class LawnMowerCard extends LitElement {
   @state() private _pendingCustomAction?: LawnMowerActionConfig;
   @state() private _cancelTaskConfirmationOpen = false;
   @state() private _scheduleDialog?: ScheduleDialogState;
+  private _automationDialogTrigger?: HTMLElement;
   private _automationDialog = new AutomationDialogController({
     hass: () => this.hass,
     entityId: () => this._config?.entity,
     automation: () => this._config && this.hass
       ? mowingAutomationStatus(this.hass.states, this._config.entity) : undefined,
-    changed: state => { this._scheduleDialog = state; },
+    changed: state => {
+      this._scheduleDialog = state;
+      if (!state && this._automationDialogTrigger) {
+        const trigger = this._automationDialogTrigger;
+        this._automationDialogTrigger = undefined;
+        void this._restoreActionFocus(trigger);
+      }
+    },
     savedMessage: () => this._t("automation.savedReloading"),
     openHelper: entityId => this._showMoreInfo(entityId),
   });
@@ -1342,7 +1350,10 @@ export class LawnMowerCard extends LitElement {
 
   private _automationControls(automation: MowingAutomationStatus): MowingAutomationControls {
     return {
-      manage: () => void this._automationDialog.open(automation),
+      manage: event => {
+        void this._automationDialog.open(automation);
+        this._automationDialogTrigger = event.currentTarget as HTMLElement;
+      },
       locale: this._locale,
     };
   }

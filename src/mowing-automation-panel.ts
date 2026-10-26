@@ -71,7 +71,7 @@ function when(value: string, locale: string): string {
 
 export type MowingAutomationControls = {
   /** Opens the management dialog (schedule and settings). */
-  manage?: () => void;
+  manage?: (event: Event) => void;
   locale: string;
 };
 
