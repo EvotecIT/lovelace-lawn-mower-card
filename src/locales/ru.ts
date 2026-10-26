@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const ru = {
+  "custom.zonePickerColumns": "Столбцы выбора зон",
+  "custom.zonePickerColumnsHint": "Автоматический режим учитывает ширину карточки. Только для выбора нескольких зон.",
   "conditions.recent": "Последние события",
   "conditions.active": "Активно",
   "conditions.cleared": "Устранено",

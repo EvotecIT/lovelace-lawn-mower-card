@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const de = {
+  "custom.zonePickerColumns": "Spalten der Zonenauswahl",
+  "custom.zonePickerColumnsHint": "Automatisch passt sich der Kartenbreite an. Gilt nur für die Zonenauswahl mit Kontrollkästchen.",
   "conditions.recent": "Letzte Meldungen",
   "conditions.active": "Aktiv",
   "conditions.cleared": "Behoben",

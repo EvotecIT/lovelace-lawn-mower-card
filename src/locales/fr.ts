@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const fr = {
+  "custom.zonePickerColumns": "Colonnes du sélecteur de zones",
+  "custom.zonePickerColumnsHint": "Le mode automatique s’adapte à la largeur de la carte. Concerne uniquement la sélection de plusieurs zones.",
   "conditions.recent": "Événements récents",
   "conditions.active": "Actif",
   "conditions.cleared": "Résolu",

@@ -140,6 +140,20 @@ mower-native request. The most recently checked zone remains the preference
 scope for the controls below the selector. Other integrations and older Dreame
 versions keep the original single-zone selector and standard start action.
 
+The multi-select picker uses the full controls row in every layout. Its zone
+choices form two columns automatically when the card has room, with long names
+wrapping inside each choice. On narrow cards it returns to a single column.
+In the visual editor, use **Controls → Zone picker columns** to choose Automatic,
+1, or 2. The same setting is available in YAML:
+
+```yaml
+zone_picker_columns: 2
+```
+
+Use `1` for a single list or `auto` (the default) to follow the available card
+width. This changes only the multi-select layout; the fallback dropdown is
+unchanged.
+
 ## Area Start Menu
 
 When a mower can mow one area at a time, `Start` opens a small menu instead of

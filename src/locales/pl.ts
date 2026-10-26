@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const pl = {
+  "custom.zonePickerColumns": "Kolumny wyboru stref",
+  "custom.zonePickerColumnsHint": "Tryb automatyczny dopasowuje się do szerokości karty. Dotyczy tylko wyboru wielu stref.",
   "conditions.recent": "Ostatnie zdarzenia",
   "conditions.active": "Aktywne",
   "conditions.cleared": "Zakończone",

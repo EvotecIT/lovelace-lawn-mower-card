@@ -1,6 +1,8 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const it = {
+  "custom.zonePickerColumns": "Colonne del selettore zone",
+  "custom.zonePickerColumnsHint": "Automatico si adatta alla larghezza della scheda. Si applica solo alla selezione di più zone.",
   "conditions.recent": "Eventi recenti",
   "conditions.active": "Attivo",
   "conditions.cleared": "Risolto",

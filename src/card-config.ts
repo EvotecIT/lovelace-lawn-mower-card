@@ -125,6 +125,8 @@ export type LawnMowerCardConfig = {
   show_advanced_details?: boolean;
   control_entities?: string[];
   controls_mode?: ContentMode;
+  /** Multi-select zone columns; automatic follows the available card width. */
+  zone_picker_columns?: "auto" | 1 | 2;
   summary_mode?: ContentMode;
   summary_entities?: Array<string | LawnMowerTileConfig>;
   hero_sections?: Array<"tiles" | "actions" | "controls" | "details">;

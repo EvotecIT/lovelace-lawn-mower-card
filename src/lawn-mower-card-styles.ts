@@ -375,10 +375,30 @@ export const lawnMowerCardStyles = [css`
       background: var(--card-background-color);
     }
 
+    .zone-selector-card {
+      grid-column: 1 / -1;
+      min-width: 0;
+      container: zone-picker / inline-size;
+    }
+
     .zone-option-list {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+      grid-template-columns: minmax(0, 1fr);
       gap: 8px;
+    }
+
+    @container zone-picker (min-width: 264px) {
+      .zone-option-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .zone-option-list[data-columns="1"] {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .zone-option-list[data-columns="2"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .zone-option {
@@ -386,6 +406,8 @@ export const lawnMowerCardStyles = [css`
       align-items: center;
       gap: 9px;
       min-width: 0;
+      min-height: 44px;
+      box-sizing: border-box;
       padding: 9px 10px;
       border: 1px solid var(--divider-color);
       border-radius: 8px;
@@ -403,6 +425,16 @@ export const lawnMowerCardStyles = [css`
       flex: 0 0 auto;
       margin: 0;
       accent-color: var(--primary-color);
+    }
+
+    .zone-option:focus-within {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    .zone-option:has(input:disabled) {
+      opacity: 0.6;
+      cursor: default;
     }
 
     .zone-option span {
