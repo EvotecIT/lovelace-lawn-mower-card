@@ -34,6 +34,22 @@ export type MowingAutomationStatus = {
   restDaysEntity?: string;
   maxAreaEntity?: string;
   plan?: MowingAutomationPlan;
+  /** Default rest days, and each zone's own when it has one. */
+  defaultRestDays?: number;
+  rotationMaxArea?: number;
+  /** Verified current map that owns the zone-frequency rows. */
+  rotationMapIndex?: number;
+  rotationZones: MowingAutomationZone[];
+};
+
+export type MowingAutomationZone = {
+  zoneId: number;
+  label: string;
+  areaM2?: number;
+  restDays: number;
+  customRestDays: boolean;
+  /** Local date (YYYY-MM-DD) the zone is due again; undefined means now. */
+  dueOn?: string;
 };
 
 const OBJECT = (value: unknown): Record<string, unknown> | undefined =>
@@ -66,6 +82,34 @@ const KNOWN_REASONS = new Set([
 export function automationReason(reason: string, t: Translator): string {
   return KNOWN_REASONS.has(reason)
     ? t(`automation.reason.${reason}` as TranslationKey) : reason.replaceAll("_", " ");
+}
+
+function zonesFrom(value: unknown): MowingAutomationZone[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(item => {
+    const zone = OBJECT(item);
+    const zoneId = zone?.zone_id;
+    const restDays = zone?.rest_days;
+    if (!zone || typeof zoneId !== "number" || !Number.isInteger(zoneId) ||
+      typeof restDays !== "number" || !Number.isInteger(restDays)) return [];
+    const area = zone.area_m2;
+    const due = zone.due_on;
+    return [{
+      zoneId,
+      label: typeof zone.label === "string" && zone.label ? zone.label : `#${zoneId}`,
+      areaM2: typeof area === "number" && Number.isFinite(area) ? area : undefined,
+      restDays,
+      customRestDays: zone.custom_rest_days === true,
+      dueOn: calendarDate(due),
+    }];
+  });
+}
+
+function calendarDate(value: unknown): string | undefined {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+    ? value : undefined;
 }
 
 function planFrom(value: unknown): MowingAutomationPlan | undefined {
@@ -131,6 +175,13 @@ export function mowingAutomationStatus(
     restDaysEntity: entityIn(value.rest_days_entity, "number"),
     maxAreaEntity: entityIn(value.max_area_entity, "number"),
     plan: planFrom(value.plan),
+    defaultRestDays: typeof value.rotation_rest_days === "number" && Number.isInteger(value.rotation_rest_days)
+      ? value.rotation_rest_days : undefined,
+    rotationMaxArea: typeof value.rotation_max_area === "number" && Number.isFinite(value.rotation_max_area)
+      ? value.rotation_max_area : undefined,
+    rotationMapIndex: typeof value.rotation_map_index === "number" && Number.isInteger(value.rotation_map_index)
+      && value.rotation_map_index >= 0 ? value.rotation_map_index : undefined,
+    rotationZones: zonesFrom(value.rotation_zones),
   };
 }
 
