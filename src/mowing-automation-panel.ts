@@ -253,7 +253,8 @@ export function renderMowingAutomationDialog(
   const scheduleChanged = Boolean(draft && state.original && !sameSchedule(draft, state.original));
   const optionsChanged = !sameSections(state.options, state.optionsOriginal);
   const changed = scheduleChanged || optionsChanged;
-  const canSave = changed && state.status !== "saving" && !(draft && scheduleProblems(draft).length);
+  const canSave = changed && state.status !== "saving" && state.status !== "loading" &&
+    state.optionsStatus !== "loading" && !(draft && scheduleProblems(draft).length);
   const setupPath = mowingAutomationSetupPath(model.entryId);
   const original = new Map((state.optionsOriginal ?? []).map(section => [section.stepId, section]));
   const formsReady = Boolean(state.options?.length && state.optionsStatus !== "unavailable" && customElements.get("ha-form"));
@@ -298,7 +299,7 @@ export function renderMowingAutomationDialog(
       <span class="mowing-automation-title">${t("automation.title")}</span>
       <button type="button" role="switch" class=${model.enabled ? "on" : "off"}
         aria-label=${t("automation.enableLabel")} aria-checked=${String(model.enabled)}
-        ?disabled=${busy || !model.canToggle} @click=${toggle}>
+        ?disabled=${busy || state.status === "saving" || !model.canToggle} @click=${toggle}>
         ${t(model.enabled ? "common.enabled" : "common.disabled")}
       </button>
       <button type="button" class="icon close" aria-label=${t("automation.close")} @click=${actions.close}>✕</button>

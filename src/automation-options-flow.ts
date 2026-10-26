@@ -110,11 +110,15 @@ export async function readAutomationSteps(api: FlowApi, entryId: string): Promis
  */
 export async function saveAutomationSteps(
   api: FlowApi, entryId: string, sections: FlowSection[], enabled: boolean,
+  canSave: () => boolean = () => true,
 ): Promise<SaveResult> {
+  if (!canSave()) throw new Error("Automation changed while saving");
   let result = await begin(api, entryId);
+  const flowId = result.flow_id;
   let finished = false;
   try {
     for (const section of sections) {
+      if (!canSave()) throw new Error("Automation changed while saving");
       if (result.type !== "form" || result.step_id !== section.stepId) throw failure(result);
       const data = submittedData(section);
       if (section.schema.some(field => field.name === ENABLED_FIELD)) data[ENABLED_FIELD] = enabled;
@@ -128,8 +132,8 @@ export async function saveAutomationSteps(
     finished = true;
     return { ok: true };
   } finally {
-    if (!finished && result.flow_id) {
-      await api("DELETE", `${FLOW}/${result.flow_id}`).catch(() => undefined);
+    if (!finished && flowId) {
+      await api("DELETE", `${FLOW}/${flowId}`).catch(() => undefined);
     }
   }
 }
