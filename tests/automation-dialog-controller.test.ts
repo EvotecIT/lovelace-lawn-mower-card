@@ -240,3 +240,26 @@ for (const kind of ["default", "zone"]) test(`retry restores a successful ${kind
   assert.deepEqual(f.state().rotationOriginal, f.state().rotation);
   f.controller.close();
 });
+
+for (const missing of ["targetEntity", "restDaysEntity", "maxAreaEntity"]) {
+  test(`Save rejects a changed setting whose ${missing} control disappeared`, async () => {
+    const f = fixture();
+    Object.assign(f.model, {
+      rotation: true, defaultRestDays: 1, rotationMaxArea: 300, rotationMapIndex: 0,
+      targetEntity: "select.what", restDaysEntity: "number.rest", maxAreaEntity: "number.area",
+      rotationZones: [{ zoneId: 6, label: "Front", restDays: 1, customRestDays: false }],
+    });
+    await f.controller.open(f.model as any); await tick();
+    f.controller.actions().setRotation!({ target: "all", restDays: 2, maxArea: 500 });
+    f.controller.actions().setZoneRestDays!(6, 0);
+    const original = f.state().rotationOriginal;
+    Reflect.deleteProperty(f.model, missing);
+    await f.controller.actions().save();
+    assert.equal(f.state().status, "error");
+    assert.match(f.state().error, /unavailable/i);
+    assert.deepEqual(f.state().rotationOriginal, original);
+    assert.equal(f.calls.filter(call => call.service).length, 0);
+    assert.equal(currentMowerMutation("lawn_mower.dialog_test"), undefined);
+    f.controller.close();
+  });
+}

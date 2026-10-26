@@ -47,6 +47,11 @@ export function sameRotation(first?: RotationDraft, second?: RotationDraft): boo
 export function rotationServiceCalls(
   model: MowingAutomationStatus, entityId: string, original: RotationDraft, draft: RotationDraft,
 ): ServiceCall[] {
+  if ((draft.target !== original.target && !model.targetEntity) ||
+    (draft.restDays !== original.restDays && !model.restDaysEntity) ||
+    (draft.maxArea !== original.maxArea && !model.maxAreaEntity)) {
+    throw new Error("Mowing controls are unavailable. Reopen the dialog and try again.");
+  }
   const calls: ServiceCall[] = [];
   let applied = original;
   if (draft.target !== original.target && model.targetEntity) {
