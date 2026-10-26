@@ -111,8 +111,12 @@ import {
   type ScheduleControl,
 } from "./schedule-controls";
 import { renderSchedulePanel } from "./schedule-panel";
-import { mowingAutomationStatus } from "./mowing-automation";
-import { renderMowingAutomation } from "./mowing-automation-panel";
+import { mowingAutomationStatus, type MowingAutomationStatus } from "./mowing-automation";
+import {
+  renderMowingAutomation, renderMowingAutomationDialog,
+  type MowingAutomationControls, type ScheduleDialogState,
+} from "./mowing-automation-panel";
+import { AutomationDialogController } from "./automation-dialog-controller";
 import { recentMowerConditions } from "./recent-conditions";
 import { renderRecentConditions } from "./recent-conditions-panel";
 import {
@@ -267,6 +271,24 @@ export class LawnMowerCard extends LitElement {
   @state() private _config?: LawnMowerCardConfig;
   @state() private _pendingCustomAction?: LawnMowerActionConfig;
   @state() private _cancelTaskConfirmationOpen = false;
+  @state() private _scheduleDialog?: ScheduleDialogState;
+  private _automationDialogTrigger?: HTMLElement;
+  private _automationDialog = new AutomationDialogController({
+    hass: () => this.hass,
+    entityId: () => this._config?.entity,
+    automation: () => this._config && this.hass
+      ? mowingAutomationStatus(this.hass.states, this._config.entity) : undefined,
+    changed: state => {
+      this._scheduleDialog = state;
+      if (!state && this._automationDialogTrigger) {
+        const trigger = this._automationDialogTrigger;
+        this._automationDialogTrigger = undefined;
+        void this._restoreActionFocus(trigger);
+      }
+    },
+    savedMessage: () => this._t("automation.savedReloading"),
+    openHelper: entityId => this._showMoreInfo(entityId),
+  });
   @state() private _patrolMenu?: { kind: DreamePatrolKind; keys: ZoneSelectionKeys };
   @state() private _areaMenuContext?: AreaStartContext;
   private _customActionTrigger?: HTMLElement;
@@ -344,6 +366,7 @@ export class LawnMowerCard extends LitElement {
       throw new Error("The 'schedule_calendar_entity' option must be a calendar entity id.");
     }
     if (config !== this._config) {
+      this._automationDialog.close();
       this._patrolMenu = undefined;
       this._pendingCustomAction = undefined;
       this._cancelTaskConfirmationOpen = false;
@@ -393,6 +416,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   public disconnectedCallback(): void {
+    this._automationDialog.close();
     this._patrolMenu = undefined;
     this._pendingCustomAction = undefined;
     this._customActionTrigger = undefined;
@@ -445,6 +469,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   protected willUpdate(): void {
+    this._automationDialog.reconcile();
     if (this._patrolMenu && !this._patrolMenuCurrent(this._patrolMenu)) this._patrolMenu = undefined;
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
     if (this._areaMenuContext && (!mower || !this._areaMenuShown(mower))) {
@@ -454,6 +479,10 @@ export class LawnMowerCard extends LitElement {
   }
 
   protected updated(): void {
+    const scheduleDialog = this.renderRoot?.querySelector<HTMLDialogElement>("dialog.mowing-automation-dialog");
+    if (scheduleDialog && !scheduleDialog.open) {
+      try { scheduleDialog.showModal(); } catch { scheduleDialog.setAttribute("open", ""); }
+    }
     if (this._pendingCustomAction && !conditionMatches(this._pendingCustomAction.visibility, this.hass.states)) this._closeCustomConfirmation();
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
     if (
@@ -1291,7 +1320,15 @@ export class LawnMowerCard extends LitElement {
         if (current?.canToggle && current.enableEntity && current.enableEntity === automation.enableEntity) {
           await this._toggleSwitch(current.enableEntity, current.enabled);
         }
-      }, this._t) : nothing}
+      }, this._t, this._automationControls(automation)) : nothing}
+      ${automation && this._scheduleDialog ? renderMowingAutomationDialog(
+        automation, this._scheduleDialog, this._automationSettings(automation),
+        this._automationDialog.actions(), async () => {
+          const current = mowingAutomationStatus(this.hass.states, this._config!.entity);
+          if (current?.canToggle && current.enableEntity && current.enableEntity === automation.enableEntity) {
+            await this._toggleSwitch(current.enableEntity, current.enabled);
+          }
+        }, Boolean(this._mutationInFlight), this._t, this._locale, this.hass) : nothing}
       ${customFirst ? inlineContent : nothing}
       ${schedules.length ? renderSchedulePanel(
         schedules.map(control => ({ ...control, available: control.available && !Boolean(this._mutationInFlight) })),
@@ -1300,6 +1337,25 @@ export class LawnMowerCard extends LitElement {
       ${customFirst ? nothing : inlineContent}
       ${this._renderDeviceSettingsControls(groups.settings)}
       ${this._renderPreferenceControls(groups.preferences)}`;
+  }
+
+  /** The integration advertises its own settings entities; render them with the usual controls. */
+  private _automationSettings(automation: MowingAutomationStatus) {
+    return [
+      automation.targetEntity,
+      ...(automation.rotation ? [automation.restDaysEntity, automation.maxAreaEntity] : []),
+    ].filter((id): id is string => Boolean(id && this.hass.states[id]))
+      .map(id => this._renderEntityControl(id));
+  }
+
+  private _automationControls(automation: MowingAutomationStatus): MowingAutomationControls {
+    return {
+      manage: event => {
+        void this._automationDialog.open(automation);
+        this._automationDialogTrigger = event.currentTarget as HTMLElement;
+      },
+      locale: this._locale,
+    };
   }
 
   private _renderEntityControl(entityId: string) {
@@ -1517,7 +1573,10 @@ export class LawnMowerCard extends LitElement {
           <span class="selector-number-value">${valueLabel}</span>
         </span>
         <input
-          type="range"
+          type=${settings?.box ? "number" : "range"}
+          class=${settings?.box ? "number-box" : ""}
+          inputmode=${settings?.box ? "decimal" : nothing}
+          aria-label=${label}
           min=${settings?.min ?? 0}
           max=${settings?.max ?? 1}
           step=${settings?.step ?? 1}

@@ -30,7 +30,10 @@ export function mowerHassChanged(
   for (const source of [previous, next]) {
     const automation = source.states[config.entity]?.attributes.mowing_automation;
     if (automation && typeof automation === "object" && !Array.isArray(automation)) {
-      for (const key of ["enable_entity", "permission_entity"]) {
+      for (const key of [
+        "enable_entity", "permission_entity", "schedule_entity",
+        "target_entity", "rest_days_entity", "max_area_entity",
+      ]) {
         const id = (automation as Record<string, unknown>)[key];
         if (typeof id === "string") explicit.add(id);
       }
