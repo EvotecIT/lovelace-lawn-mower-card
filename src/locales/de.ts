@@ -226,6 +226,7 @@ export const de = {
   "automation.scheduleInvalid": "Korrigiere die roten Zeitfenster: Beginn nach Ende oder Überschneidung.",
   "automation.close": "Schließen",
   "automation.scheduleTitle": "Zeitplan",
+  "automation.setupTab": "Einrichtung",
   "automation.settingsTitle": "Was gemäht wird",
   "automation.cancel": "Abbrechen",
   "automation.save": "Speichern",

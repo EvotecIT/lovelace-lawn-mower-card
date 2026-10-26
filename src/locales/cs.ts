@@ -570,6 +570,7 @@ export const cs = {
   "automation.scheduleInvalid": "Oprav červené úseky: začátek po konci nebo překryv.",
   "automation.close": "Zavřít",
   "automation.scheduleTitle": "Rozvrh",
+  "automation.setupTab": "Nastavení",
   "automation.settingsTitle": "Co sekat",
   "automation.cancel": "Zrušit",
   "automation.save": "Uložit",

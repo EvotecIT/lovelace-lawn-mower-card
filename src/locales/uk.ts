@@ -226,6 +226,7 @@ export const uk = {
   "automation.scheduleInvalid": "Виправте інтервали, позначені червоним: початок після кінця або перетин.",
   "automation.close": "Закрити",
   "automation.scheduleTitle": "Розклад",
+  "automation.setupTab": "Налаштування",
   "automation.settingsTitle": "Що косити",
   "automation.cancel": "Скасувати",
   "automation.save": "Зберегти",

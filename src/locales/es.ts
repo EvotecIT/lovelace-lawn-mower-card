@@ -508,6 +508,7 @@ export const es = {
   "automation.scheduleInvalid": "Corrige las franjas en rojo: inicio después del fin o solapadas.",
   "automation.close": "Cerrar",
   "automation.scheduleTitle": "Horario",
+  "automation.setupTab": "Configuración",
   "automation.settingsTitle": "Qué cortar",
   "automation.cancel": "Cancelar",
   "automation.save": "Guardar",

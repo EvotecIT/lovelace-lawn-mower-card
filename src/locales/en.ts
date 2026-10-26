@@ -567,6 +567,7 @@ export const en = {
   "automation.scheduleInvalid": "Fix the time slots in red: start after end, or overlapping.",
   "automation.close": "Close",
   "automation.scheduleTitle": "Schedule",
+  "automation.setupTab": "Setup",
   "automation.settingsTitle": "What to mow",
   "automation.cancel": "Cancel",
   "automation.save": "Save",

@@ -26,6 +26,15 @@ export const mowingAutomationStyles = css`
   .mowing-automation-dialog { box-sizing: border-box; width: min(560px, 100vw); max-height: 100dvh; margin: auto; padding: 16px;
     border: 1px solid var(--divider-color, #ddd); border-radius: 16px; color: var(--primary-text-color);
     background: var(--card-background-color, var(--ha-card-background, #fff)); overflow: auto; }
+  .mowing-automation-dialog[open] { display: flex; flex-direction: column; gap: 8px; max-height: min(680px, 100dvh); overflow: hidden; }
+  .dialog-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 2px; }
+  .mowing-automation-dialog[open] > :not(.dialog-body) { flex: none; }
+  .dialog-tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--divider-color, #ddd); scrollbar-width: thin; }
+  .mowing-automation-dialog .dialog-tabs button.tab { flex: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
+    background: none; min-height: 40px; padding: 8px 10px; color: var(--secondary-text-color); white-space: nowrap; }
+  .mowing-automation-dialog .dialog-tabs button.tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+  .dialog-tabs .dot { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--primary-color); vertical-align: middle; }
+  .dialog-tabs .dot.error { background: var(--error-color, #db4437); }
   .mowing-automation-dialog::backdrop { background: rgba(0,0,0,.6); }
   .mowing-automation-dialog h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 600; }
   .mowing-automation-dialog button { border: 1px solid var(--divider-color); color: var(--primary-text-color); background: var(--card-background-color);
@@ -49,7 +58,8 @@ export const mowingAutomationStyles = css`
   .schedule-problem { color: var(--error-color, #db4437); }
   .setup-step h3 { text-transform: none; }
   .mowing-automation-dialog ha-form { display: block; }
-  .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .mowing-automation-dialog .dialog-body { min-height: 120px; }
+  .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--divider-color, #ddd); }
   @media (max-width: 480px) { .schedule-day { grid-template-columns: 1fr auto; } .schedule-blocks { grid-column: 1 / -1; grid-row: 2; } }
 `;
 
@@ -75,6 +85,8 @@ export type ScheduleDialogState = {
   optionsOriginal?: FlowSection[];
   optionsStatus?: "loading" | "ready" | "unavailable";
   optionsMessage?: string;
+  /** The visible tab: "schedule", "target", or "step:<flow step id>". */
+  tab?: string;
 };
 
 export type ScheduleDialogActions = {
@@ -85,6 +97,7 @@ export type ScheduleDialogActions = {
   setTime: (day: Weekday, index: number, end: "from" | "to", value: string) => void;
   openHelper?: () => void;
   setOptions: (stepId: string, value: Record<string, unknown>) => void;
+  setTab: (tab: string) => void;
 };
 
 /** What the dialog needs from Home Assistant to render the integration's forms. */
@@ -99,18 +112,17 @@ function localized(hass: DialogHass, key: string, fallback: string): string {
   return typeof value === "string" && value ? value : fallback;
 }
 
-function renderOptions(
-  hass: DialogHass, state: ScheduleDialogState, actions: ScheduleDialogActions,
-  t: Translator, setupPath: string,
-): TemplateResult | typeof nothing {
-  if (state.optionsStatus === "loading") return html`<p class="mowing-automation-detail">${t("automation.loading")}</p>`;
-  if (!state.options?.length || state.optionsStatus === "unavailable" || !customElements.get("ha-form")) {
-    return html`<a class="link" href=${setupPath}>${t("automation.openSetup")}</a>`;
-  }
-  const busy = state.status === "saving";
-  return html`${state.options.map(section => html`<section class="setup-step">
-    <h3>${localized(hass, `options.step.${section.stepId}.title`, section.stepId.replaceAll("_", " "))}</h3>
-    <ha-form .hass=${hass} .data=${section.data} .disabled=${busy}
+function stepTitle(hass: DialogHass, stepId: string): string {
+  const title = localized(hass, `options.step.${stepId}.title`, stepId.replaceAll("_", " "));
+  // "Mowing automation: wait and recovery" → "wait and recovery"; the dialog already names the automation.
+  const short = title.includes(": ") ? title.slice(title.indexOf(": ") + 2) : title;
+  return short.charAt(0).toLocaleUpperCase() + short.slice(1);
+}
+
+function renderOptionSection(
+  hass: DialogHass, section: FlowSection, state: ScheduleDialogState, actions: ScheduleDialogActions,
+): TemplateResult {
+  return html`<ha-form .hass=${hass} .data=${section.data} .disabled=${state.status === "saving"}
       .schema=${section.schema.filter(field => field.name !== ENABLED_FIELD)}
       .error=${section.errors}
       .computeLabel=${(field: { name: string }) => localized(hass, `options.step.${section.stepId}.data.${field.name}`, field.name)}
@@ -118,10 +130,10 @@ function renderOptions(
       .localizeValue=${(key: string) => localized(hass, `selector.${key}`, key)}
       @value-changed=${(event: CustomEvent<{ value: Record<string, unknown> }>) => actions.setOptions(section.stepId, event.detail.value)}>
     </ha-form>
-    ${section.errors?.base ? html`<p class="schedule-problem" role="alert">${localized(hass, `options.error.${section.errors.base}`, section.errors.base)}</p>` : nothing}
-  </section>`)}
-  ${state.optionsMessage ? html`<p class="mowing-automation-detail" role="status">${state.optionsMessage}</p>` : nothing}`;
+    ${section.errors?.base ? html`<p class="schedule-problem" role="alert">${localized(hass, `options.error.${section.errors.base}`, section.errors.base)}</p>` : nothing}`;
 }
+
+type DialogTab = { id: string; label: string; changed: boolean; error: boolean; body: () => unknown };
 
 /** Monday-first weekday names in the card's language (2024-01-01 was a Monday). */
 function dayName(index: number, locale: string): string {
@@ -221,7 +233,17 @@ function renderScheduleDays(
   ${state.status === "error" ? html`<p class="schedule-problem" role="alert">${t("automation.scheduleError", { error: state.error ?? "" })}</p>` : nothing}`;
 }
 
-/** Schedule blocks and rotation settings for one automation, saved to its Schedule helper. */
+function renderTabs(tabs: DialogTab[], active: DialogTab, actions: ScheduleDialogActions): TemplateResult {
+  return html`<div class="dialog-tabs" role="tablist">
+    ${tabs.map(tab => html`<button type="button" role="tab" aria-selected=${String(tab === active)}
+      class="tab ${tab === active ? "active" : ""}" @click=${() => actions.setTab(tab.id)}>
+      ${tab.label}${tab.error ? html`<span class="dot error" aria-hidden="true"></span>`
+        : tab.changed ? html`<span class="dot" aria-hidden="true"></span>` : nothing}
+    </button>`)}
+  </div>`;
+}
+
+/** Schedule blocks, rotation and the integration's setup forms, one tab at a time. */
 export function renderMowingAutomationDialog(
   model: MowingAutomationStatus, state: ScheduleDialogState, settings: Array<TemplateResult | typeof nothing>,
   actions: ScheduleDialogActions, toggle: () => void | Promise<void>, busy: boolean,
@@ -232,6 +254,35 @@ export function renderMowingAutomationDialog(
   const optionsChanged = !sameSections(state.options, state.optionsOriginal);
   const changed = scheduleChanged || optionsChanged;
   const canSave = changed && state.status !== "saving" && !(draft && scheduleProblems(draft).length);
+  const setupPath = mowingAutomationSetupPath(model.entryId);
+  const original = new Map((state.optionsOriginal ?? []).map(section => [section.stepId, section]));
+  const optionTabs: DialogTab[] = state.options?.length && state.optionsStatus !== "unavailable" && customElements.get("ha-form")
+    ? state.options.map(section => ({
+      id: `step:${section.stepId}`, label: stepTitle(hass, section.stepId),
+      changed: !sameSections([section], original.has(section.stepId) ? [original.get(section.stepId)!] : []),
+      error: Boolean(section.errors && Object.keys(section.errors).length),
+      body: () => renderOptionSection(hass, section, state, actions),
+    }))
+    : [{
+      id: "setup", label: t("automation.setupTab"), changed: false, error: false,
+      body: () => state.optionsStatus === "loading"
+        ? html`<p class="mowing-automation-detail">${t("automation.loading")}</p>`
+        : html`<a class="link" href=${setupPath}>${t("automation.openSetup")}</a>`,
+    }];
+  const tabs: DialogTab[] = [
+    {
+      id: "schedule", label: t("automation.scheduleTitle"), changed: scheduleChanged,
+      error: Boolean(draft && scheduleProblems(draft).length) || state.status === "error",
+      body: () => html`${model.scheduleName ? html`<p class="mowing-automation-detail">${model.scheduleName}</p>` : nothing}
+        ${renderScheduleDays(state, actions, t, locale)}`,
+    },
+    ...(settings.length ? [{
+      id: "target", label: t("automation.settingsTitle"), changed: false, error: false,
+      body: () => html`<div class="mowing-automation-settings">${settings}</div>`,
+    }] : []),
+    ...optionTabs,
+  ];
+  const active = tabs.find(tab => tab.id === state.tab) ?? tabs[0];
   return html`<dialog class="mowing-automation-dialog" aria-label=${t("automation.title")}
     @cancel=${(event: Event) => { event.preventDefault(); actions.close(); }}>
     <div class="dialog-header">
@@ -244,11 +295,9 @@ export function renderMowingAutomationDialog(
       <button type="button" class="icon close" aria-label=${t("automation.close")} @click=${actions.close}>✕</button>
     </div>
     ${model.enabled ? renderPlan(model, t, locale) : nothing}
-    <h3>${model.scheduleName ? t("automation.schedule", { name: model.scheduleName }) : t("automation.scheduleTitle")}</h3>
-    ${renderScheduleDays(state, actions, t, locale)}
-    ${settings.length ? html`<h3>${t("automation.settingsTitle")}</h3>
-      <div class="mowing-automation-settings">${settings}</div>` : nothing}
-    ${renderOptions(hass, state, actions, t, mowingAutomationSetupPath(model.entryId))}
+    ${renderTabs(tabs, active, actions)}
+    <div class="dialog-body" role="tabpanel">${active.body()}</div>
+    ${state.optionsMessage ? html`<p class="mowing-automation-detail" role="status">${state.optionsMessage}</p>` : nothing}
     ${optionsChanged ? html`<p class="mowing-automation-detail">${t("automation.reloadNotice")}</p>` : nothing}
     <div class="dialog-actions">
       <button type="button" @click=${actions.close}>${t(changed ? "automation.cancel" : "automation.close")}</button>

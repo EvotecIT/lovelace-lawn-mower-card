@@ -1419,6 +1419,9 @@ export class LawnMowerCard extends LitElement {
       openHelper: automation.scheduleEntity
         ? () => { this._scheduleDialog = undefined; this._showMoreInfo(automation.scheduleEntity); } : undefined,
       setOptions,
+      setTab: tab => {
+        if (this._scheduleDialog) this._scheduleDialog = { ...this._scheduleDialog, tab };
+      },
       save: async () => {
         let state = this._scheduleDialog;
         if (!state || (state.draft && scheduleProblems(state.draft).length)) return;
@@ -1437,7 +1440,7 @@ export class LawnMowerCard extends LitElement {
             state = saved.ok
               ? { ...state, optionsOriginal: state.options, optionsMessage: this._t("automation.savedReloading") }
               : {
-                ...state,
+                ...state, tab: `step:${saved.stepId}`,
                 options: state.options.map(section => section.stepId === saved.stepId
                   ? { ...section, errors: saved.errors } : section),
               };
@@ -1667,7 +1670,10 @@ export class LawnMowerCard extends LitElement {
           <span class="selector-number-value">${valueLabel}</span>
         </span>
         <input
-          type="range"
+          type=${settings?.box ? "number" : "range"}
+          class=${settings?.box ? "number-box" : ""}
+          inputmode=${settings?.box ? "decimal" : nothing}
+          aria-label=${label}
           min=${settings?.min ?? 0}
           max=${settings?.max ?? 1}
           step=${settings?.step ?? 1}

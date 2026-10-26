@@ -42,6 +42,8 @@ export type NumberControlSettings = {
   max: number;
   step: number;
   unit?: string;
+  /** Home Assistant's `mode: box`: a typed value instead of a slider. */
+  box?: boolean;
 };
 
 type HassStates = Record<string, MinimalHassEntity>;
@@ -924,6 +926,7 @@ export function numberControlSettings(
     max,
     step,
     unit: typeof unit === "string" && unit ? unit : undefined,
+    ...(entity.attributes?.mode === "box" ? { box: true } : {}),
   };
 }
 

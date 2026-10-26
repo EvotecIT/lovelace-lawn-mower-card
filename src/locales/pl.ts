@@ -514,6 +514,7 @@ export const pl = {
   "automation.scheduleInvalid": "Popraw przedziały na czerwono: początek po końcu lub nakładanie.",
   "automation.close": "Zamknij",
   "automation.scheduleTitle": "Harmonogram",
+  "automation.setupTab": "Konfiguracja",
   "automation.settingsTitle": "Co kosić",
   "automation.cancel": "Anuluj",
   "automation.save": "Zapisz",

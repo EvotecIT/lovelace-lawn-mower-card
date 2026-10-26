@@ -556,6 +556,7 @@ export const nl = {
   "automation.scheduleInvalid": "Corrigeer de rode tijdvakken: begin na einde of overlappend.",
   "automation.close": "Sluiten",
   "automation.scheduleTitle": "Schema",
+  "automation.setupTab": "Instellingen",
   "automation.settingsTitle": "Wat maaien",
   "automation.cancel": "Annuleren",
   "automation.save": "Opslaan",

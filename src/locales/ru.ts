@@ -226,6 +226,7 @@ export const ru = {
   "automation.scheduleInvalid": "Исправьте интервалы, выделенные красным: начало после конца или пересечение.",
   "automation.close": "Закрыть",
   "automation.scheduleTitle": "Расписание",
+  "automation.setupTab": "Настройка",
   "automation.settingsTitle": "Что косить",
   "automation.cancel": "Отмена",
   "automation.save": "Сохранить",

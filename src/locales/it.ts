@@ -226,6 +226,7 @@ export const it = {
   "automation.scheduleInvalid": "Correggi le fasce in rosso: inizio dopo la fine o sovrapposte.",
   "automation.close": "Chiudi",
   "automation.scheduleTitle": "Programma",
+  "automation.setupTab": "Configurazione",
   "automation.settingsTitle": "Cosa tagliare",
   "automation.cancel": "Annulla",
   "automation.save": "Salva",

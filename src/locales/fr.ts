@@ -226,6 +226,7 @@ export const fr = {
   "automation.scheduleInvalid": "Corrige les plages en rouge : début après la fin, ou chevauchement.",
   "automation.close": "Fermer",
   "automation.scheduleTitle": "Horaire",
+  "automation.setupTab": "Configuration",
   "automation.settingsTitle": "Quoi tondre",
   "automation.cancel": "Annuler",
   "automation.save": "Enregistrer",

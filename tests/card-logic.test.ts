@@ -989,6 +989,8 @@ test("number control settings preserve Home Assistant bounds and units", () => {
     { value: 4.5, min: 3.5, max: 6, step: 0.5, unit: "cm" },
   );
   assert.equal(numberControlSettings(entity("unavailable")), undefined);
+  assert.equal(numberControlSettings({ state: "300", attributes: { min: 0, max: 100000, step: 1, mode: "box" } })?.box, true);
+  assert.equal(numberControlSettings({ state: "3", attributes: { min: 0, max: 30, step: 1, mode: "slider" } })?.box, undefined);
 });
 
 

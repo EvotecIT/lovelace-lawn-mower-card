@@ -1175,6 +1175,35 @@
             ? { status: "cancelled", reason: "scheduled_run_cancelled" }
             : { status: "deferred", reason: "external_permission_blocked" },
         };
+        if (automationScenario === "rotation") {
+          const automation = stateStore["lawn_mower.backyard_mower"].attributes.mowing_automation;
+          const monday = new Date();
+          monday.setDate(monday.getDate() + ((8 - monday.getDay()) % 7 || 7));
+          monday.setHours(10, 45, 0, 0);
+          Object.assign(automation, {
+            schedule_entity: "schedule.backyard_mowing", mowing_target: "rotation",
+            rotation_rest_days: 1, rotation_max_area: 300,
+            target_entity: "select.backyard_mower_what_to_mow",
+            rest_days_entity: "number.backyard_mower_rest_days_between_zone_mowings",
+            max_area_entity: "number.backyard_mower_maximum_area_per_start",
+            last_outcome: { status: "skipped", reason: "external_permission_blocked",
+              observed_at: new Date(Date.now() - 3600_000).toISOString() },
+            plan: { next_start: monday.toISOString(), task_type: "zone", area_m2: 295.1, reason: null, zones: [
+              { zone_id: 1, label: "Back lawn", area_m2: 107.7 }, { zone_id: 2, label: "Side strip", area_m2: 38.9 },
+              { zone_id: 3, label: "Corner", area_m2: 4.5 }, { zone_id: 6, label: "Front lawn", area_m2: 144 },
+            ] },
+          });
+          stateStore["schedule.backyard_mowing"] = { entity_id: "schedule.backyard_mowing", state: "off",
+            attributes: { friendly_name: "Backyard mowing", next_event: monday.toISOString() } };
+          stateStore["select.backyard_mower_what_to_mow"] = { entity_id: "select.backyard_mower_what_to_mow",
+            state: "rotation", attributes: { friendly_name: "What to mow", options: ["all", "rotation"] } };
+          stateStore["number.backyard_mower_rest_days_between_zone_mowings"] = {
+            entity_id: "number.backyard_mower_rest_days_between_zone_mowings", state: "1",
+            attributes: { friendly_name: "Rest days between zone mowings", min: 0, max: 30, step: 1, mode: "box", unit_of_measurement: "d" } };
+          stateStore["number.backyard_mower_maximum_area_per_start"] = {
+            entity_id: "number.backyard_mower_maximum_area_per_start", state: "300.0",
+            attributes: { friendly_name: "Maximum area per start", min: 0, max: 100000, step: 1, mode: "box", unit_of_measurement: "m²" } };
+        }
         if (["waiting", "paused"].includes(automationScenario)) {
           stateStore["lawn_mower.backyard_mower"].attributes.scheduled_automation = {
             phase: automationScenario, permission_entity: permissionId,
@@ -1199,6 +1228,12 @@
         stateStore["binary_sensor.backyard_mower_docked"].state = "on";
         stateStore["binary_sensor.backyard_mower_charging"].state = "on";
       }
+      const demoSchedule = {
+        id: "backyard_mowing", name: "Backyard mowing", icon: "mdi:robot-mower",
+        monday: [{ from: "10:45:00", to: "13:00:00" }], tuesday: [],
+        wednesday: [{ from: "09:00:00", to: "11:30:00" }, { from: "15:00:00", to: "17:00:00" }],
+        thursday: [], friday: [{ from: "10:00:00", to: "12:00:00" }], saturday: [], sunday: [],
+      };
       const previewLocale = previewParameters.get("locale") || "en";
       const hass = {
         language: previewLocale,
@@ -1228,7 +1263,14 @@
             cancel_current_task: {},
           },
         },
+        user: { id: "demo", is_admin: true },
         async callWS(message) {
+          if (message?.type === "config/entity_registry/get") return { unique_id: "backyard_mowing" };
+          if (message?.type === "schedule/list") return [demoSchedule];
+          if (message?.type === "schedule/update") {
+            Object.assign(demoSchedule, message);
+            return demoSchedule;
+          }
           if (message?.type !== "auth/sign_path") {
             throw new Error(`Unsupported mock WebSocket call: ${message?.type}`);
           }

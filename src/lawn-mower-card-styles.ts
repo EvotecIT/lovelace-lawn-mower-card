@@ -362,6 +362,19 @@ export const lawnMowerCardStyles = [css`
       accent-color: var(--primary-color);
     }
 
+    .selector-card input.number-box {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 40px;
+      margin: 4px 0 0;
+      padding: 6px 10px;
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      font: inherit;
+      color: var(--primary-text-color);
+      background: var(--card-background-color);
+    }
+
     .zone-option-list {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
