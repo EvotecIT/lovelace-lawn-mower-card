@@ -230,5 +230,8 @@ export const ru = {
   "automation.cancel": "Отмена",
   "automation.save": "Сохранить",
   "automation.saving": "Сохранение…",
+  "automation.openSetup": "Открыть мастер настройки",
+  "automation.reloadNotice": "Сохранение этих настроек ненадолго перезагрузит интеграцию.",
+  "automation.savedReloading": "Сохранено. Интеграция перезагружается.",
 
 } satisfies TranslationCatalog;

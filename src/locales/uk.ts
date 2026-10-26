@@ -230,5 +230,8 @@ export const uk = {
   "automation.cancel": "Скасувати",
   "automation.save": "Зберегти",
   "automation.saving": "Збереження…",
+  "automation.openSetup": "Відкрити майстер налаштування",
+  "automation.reloadNotice": "Збереження цих налаштувань ненадовго перезавантажить інтеграцію.",
+  "automation.savedReloading": "Збережено. Інтеграція перезавантажується.",
 
 } satisfies TranslationCatalog;

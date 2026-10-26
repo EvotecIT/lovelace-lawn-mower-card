@@ -230,5 +230,8 @@ export const it = {
   "automation.cancel": "Annulla",
   "automation.save": "Salva",
   "automation.saving": "Salvataggio…",
+  "automation.openSetup": "Apri la configurazione guidata",
+  "automation.reloadNotice": "Salvare queste impostazioni ricarica brevemente l’integrazione.",
+  "automation.savedReloading": "Salvato. L’integrazione si sta ricaricando.",
 
 } satisfies TranslationCatalog;

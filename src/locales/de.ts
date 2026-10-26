@@ -230,5 +230,8 @@ export const de = {
   "automation.cancel": "Abbrechen",
   "automation.save": "Speichern",
   "automation.saving": "Wird gespeichert…",
+  "automation.openSetup": "Einrichtungsassistent öffnen",
+  "automation.reloadNotice": "Das Speichern dieser Einstellungen lädt die Integration kurz neu.",
+  "automation.savedReloading": "Gespeichert. Die Integration wird neu geladen.",
 
 } satisfies TranslationCatalog;

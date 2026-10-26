@@ -560,5 +560,8 @@ export const nl = {
   "automation.cancel": "Annuleren",
   "automation.save": "Opslaan",
   "automation.saving": "Opslaan…",
+  "automation.openSetup": "Installatiewizard openen",
+  "automation.reloadNotice": "Opslaan van deze instellingen laadt de integratie kort opnieuw.",
+  "automation.savedReloading": "Opgeslagen. De integratie wordt opnieuw geladen.",
 
 } satisfies TranslationCatalog;

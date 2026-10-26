@@ -518,5 +518,8 @@ export const pl = {
   "automation.cancel": "Anuluj",
   "automation.save": "Zapisz",
   "automation.saving": "Zapisywanie…",
+  "automation.openSetup": "Otwórz kreator konfiguracji",
+  "automation.reloadNotice": "Zapisanie tych ustawień na chwilę przeładuje integrację.",
+  "automation.savedReloading": "Zapisano. Integracja jest przeładowywana.",
 
 } satisfies TranslationCatalog;

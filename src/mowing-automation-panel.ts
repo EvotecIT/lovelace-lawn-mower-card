@@ -3,6 +3,7 @@ import type { TranslationKey, Translator } from "./localization";
 import {
   automationReason, mowingAutomationSetupPath, OUTCOME_STATUSES, type MowingAutomationStatus,
 } from "./mowing-automation";
+import { ENABLED_FIELD, sameSections, type FlowSection } from "./automation-options-flow";
 import {
   sameSchedule, scheduleProblems, shortTime, WEEKDAYS, type ScheduleDraft, type Weekday,
 } from "./schedule-editor";
@@ -46,6 +47,8 @@ export const mowingAutomationStyles = css`
   .schedule-block input { font: inherit; color: inherit; background: transparent; border: none; min-height: 36px; }
   .schedule-none { color: var(--secondary-text-color); }
   .schedule-problem { color: var(--error-color, #db4437); }
+  .setup-step h3 { text-transform: none; }
+  .mowing-automation-dialog ha-form { display: block; }
   .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
   @media (max-width: 480px) { .schedule-day { grid-template-columns: 1fr auto; } .schedule-blocks { grid-column: 1 / -1; grid-row: 2; } }
 `;
@@ -67,6 +70,11 @@ export type ScheduleDialogState = {
   draft?: ScheduleDraft;
   original?: ScheduleDraft;
   error?: string;
+  /** The integration's own setup forms, read from its options flow. */
+  options?: FlowSection[];
+  optionsOriginal?: FlowSection[];
+  optionsStatus?: "loading" | "ready" | "unavailable";
+  optionsMessage?: string;
 };
 
 export type ScheduleDialogActions = {
@@ -76,7 +84,44 @@ export type ScheduleDialogActions = {
   removeBlock: (day: Weekday, index: number) => void;
   setTime: (day: Weekday, index: number, end: "from" | "to", value: string) => void;
   openHelper?: () => void;
+  setOptions: (stepId: string, value: Record<string, unknown>) => void;
 };
+
+/** What the dialog needs from Home Assistant to render the integration's forms. */
+export type DialogHass = {
+  localize?(key: string, ...args: unknown[]): string;
+};
+
+const INTEGRATION = "dreame_lawn_mower";
+
+function localized(hass: DialogHass, key: string, fallback: string): string {
+  const value = hass.localize?.(`component.${INTEGRATION}.${key}`);
+  return typeof value === "string" && value ? value : fallback;
+}
+
+function renderOptions(
+  hass: DialogHass, state: ScheduleDialogState, actions: ScheduleDialogActions,
+  t: Translator, setupPath: string,
+): TemplateResult | typeof nothing {
+  if (state.optionsStatus === "loading") return html`<p class="mowing-automation-detail">${t("automation.loading")}</p>`;
+  if (!state.options?.length || state.optionsStatus === "unavailable" || !customElements.get("ha-form")) {
+    return html`<a class="link" href=${setupPath}>${t("automation.openSetup")}</a>`;
+  }
+  const busy = state.status === "saving";
+  return html`${state.options.map(section => html`<section class="setup-step">
+    <h3>${localized(hass, `options.step.${section.stepId}.title`, section.stepId.replaceAll("_", " "))}</h3>
+    <ha-form .hass=${hass} .data=${section.data} .disabled=${busy}
+      .schema=${section.schema.filter(field => field.name !== ENABLED_FIELD)}
+      .error=${section.errors}
+      .computeLabel=${(field: { name: string }) => localized(hass, `options.step.${section.stepId}.data.${field.name}`, field.name)}
+      .computeError=${(error: string) => localized(hass, `options.error.${error}`, error)}
+      .localizeValue=${(key: string) => localized(hass, `selector.${key}`, key)}
+      @value-changed=${(event: CustomEvent<{ value: Record<string, unknown> }>) => actions.setOptions(section.stepId, event.detail.value)}>
+    </ha-form>
+    ${section.errors?.base ? html`<p class="schedule-problem" role="alert">${localized(hass, `options.error.${section.errors.base}`, section.errors.base)}</p>` : nothing}
+  </section>`)}
+  ${state.optionsMessage ? html`<p class="mowing-automation-detail" role="status">${state.optionsMessage}</p>` : nothing}`;
+}
 
 /** Monday-first weekday names in the card's language (2024-01-01 was a Monday). */
 function dayName(index: number, locale: string): string {
@@ -180,11 +225,13 @@ function renderScheduleDays(
 export function renderMowingAutomationDialog(
   model: MowingAutomationStatus, state: ScheduleDialogState, settings: Array<TemplateResult | typeof nothing>,
   actions: ScheduleDialogActions, toggle: () => void | Promise<void>, busy: boolean,
-  t: Translator, locale: string,
+  t: Translator, locale: string, hass: DialogHass = {},
 ): TemplateResult {
   const draft = state.draft;
-  const changed = Boolean(draft && state.original && !sameSchedule(draft, state.original));
-  const canSave = changed && state.status !== "saving" && !scheduleProblems(draft!).length;
+  const scheduleChanged = Boolean(draft && state.original && !sameSchedule(draft, state.original));
+  const optionsChanged = !sameSections(state.options, state.optionsOriginal);
+  const changed = scheduleChanged || optionsChanged;
+  const canSave = changed && state.status !== "saving" && !(draft && scheduleProblems(draft).length);
   return html`<dialog class="mowing-automation-dialog" aria-label=${t("automation.title")}
     @cancel=${(event: Event) => { event.preventDefault(); actions.close(); }}>
     <div class="dialog-header">
@@ -201,9 +248,11 @@ export function renderMowingAutomationDialog(
     ${renderScheduleDays(state, actions, t, locale)}
     ${settings.length ? html`<h3>${t("automation.settingsTitle")}</h3>
       <div class="mowing-automation-settings">${settings}</div>` : nothing}
+    ${renderOptions(hass, state, actions, t, mowingAutomationSetupPath(model.entryId))}
+    ${optionsChanged ? html`<p class="mowing-automation-detail">${t("automation.reloadNotice")}</p>` : nothing}
     <div class="dialog-actions">
       <button type="button" @click=${actions.close}>${t(changed ? "automation.cancel" : "automation.close")}</button>
-      ${draft ? html`<button type="button" class="primary" ?disabled=${!canSave} @click=${actions.save}>
+      ${draft || state.options?.length ? html`<button type="button" class="primary" ?disabled=${!canSave} @click=${actions.save}>
         ${t(state.status === "saving" ? "automation.saving" : "automation.save")}</button>` : nothing}
     </div>
   </dialog>`;

@@ -571,6 +571,9 @@ export const en = {
   "automation.cancel": "Cancel",
   "automation.save": "Save",
   "automation.saving": "Saving…",
+  "automation.openSetup": "Open the setup wizard",
+  "automation.reloadNotice": "Saving these settings briefly reloads the integration.",
+  "automation.savedReloading": "Saved. The integration is reloading.",
 
 } as const satisfies Record<string, TranslationMessage>;
 

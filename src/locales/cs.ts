@@ -574,5 +574,8 @@ export const cs = {
   "automation.cancel": "Zrušit",
   "automation.save": "Uložit",
   "automation.saving": "Ukládání…",
+  "automation.openSetup": "Otevřít průvodce nastavením",
+  "automation.reloadNotice": "Uložení těchto nastavení krátce znovu načte integraci.",
+  "automation.savedReloading": "Uloženo. Integrace se znovu načítá.",
 
 } satisfies TranslationCatalog;

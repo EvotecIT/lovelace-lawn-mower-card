@@ -230,5 +230,8 @@ export const fr = {
   "automation.cancel": "Annuler",
   "automation.save": "Enregistrer",
   "automation.saving": "Enregistrement…",
+  "automation.openSetup": "Ouvrir l’assistant de configuration",
+  "automation.reloadNotice": "Enregistrer ces réglages recharge brièvement l’intégration.",
+  "automation.savedReloading": "Enregistré. L’intégration se recharge.",
 
 } satisfies TranslationCatalog;

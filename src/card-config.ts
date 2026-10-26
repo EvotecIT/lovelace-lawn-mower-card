@@ -42,6 +42,9 @@ export type HomeAssistant = {
     data?: Record<string, unknown>,
   ): Promise<void>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
+  callApi?<T>(method: "GET" | "POST" | "DELETE", path: string, data?: Record<string, unknown>): Promise<T>;
+  localize?(key: string, ...args: unknown[]): string;
+  loadBackendTranslation?(category: string, integration?: string): Promise<unknown>;
   hassUrl(path: string): string;
 };
 

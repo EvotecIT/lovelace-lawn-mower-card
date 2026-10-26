@@ -512,5 +512,8 @@ export const es = {
   "automation.cancel": "Cancelar",
   "automation.save": "Guardar",
   "automation.saving": "Guardando…",
+  "automation.openSetup": "Abrir el asistente de configuración",
+  "automation.reloadNotice": "Guardar estos ajustes recarga brevemente la integración.",
+  "automation.savedReloading": "Guardado. La integración se está recargando.",
 
 } satisfies TranslationCatalog;

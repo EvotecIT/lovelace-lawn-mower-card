@@ -117,9 +117,12 @@ import {
   type MowingAutomationControls, type ScheduleDialogActions, type ScheduleDialogState,
 } from "./mowing-automation-panel";
 import {
-  scheduleDraft, scheduleProblems, scheduleUpdateMessage, withBlock, withBlockTime, withoutBlock,
+  sameSchedule, scheduleDraft, scheduleProblems, scheduleUpdateMessage, withBlock, withBlockTime, withoutBlock,
   type ScheduleDraft,
 } from "./schedule-editor";
+import {
+  readAutomationSteps, sameSections, saveAutomationSteps, type FlowApi,
+} from "./automation-options-flow";
 import { recentMowerConditions } from "./recent-conditions";
 import { renderRecentConditions } from "./recent-conditions-panel";
 import {
@@ -1311,7 +1314,7 @@ export class LawnMowerCard extends LitElement {
           if (current?.canToggle && current.enableEntity && current.enableEntity === automation.enableEntity) {
             await this._toggleSwitch(current.enableEntity, current.enabled);
           }
-        }, Boolean(this._mutationInFlight), this._t, this._locale) : nothing}
+        }, Boolean(this._mutationInFlight), this._t, this._locale, this.hass) : nothing}
       ${customFirst ? inlineContent : nothing}
       ${schedules.length ? renderSchedulePanel(
         schedules.map(control => ({ ...control, available: control.available && !Boolean(this._mutationInFlight) })),
@@ -1349,7 +1352,8 @@ export class LawnMowerCard extends LitElement {
       this._scheduleDialog = { status: "readonly" };
       return;
     }
-    this._scheduleDialog = { status: "loading" };
+    this._scheduleDialog = { status: "loading", optionsStatus: "loading" };
+    void this._loadAutomationOptions(automation);
     try {
       const entry = await this.hass.callWS<{ unique_id?: unknown }>({
         type: "config/entity_registry/get", entity_id: schedule,
@@ -1359,12 +1363,35 @@ export class LawnMowerCard extends LitElement {
         .find(item => (item as { id?: unknown })?.id === entry?.unique_id));
       if (!this._scheduleDialog) return;
       this._scheduleDialog = draft
-        ? { status: "ready", draft, original: draft }
-        : { status: "error", error: schedule };
+        ? { ...this._scheduleDialog, status: "ready", draft, original: draft }
+        : { ...this._scheduleDialog, status: "error", error: schedule };
     } catch (error) {
       if (this._scheduleDialog) {
-        this._scheduleDialog = { status: "error", error: error instanceof Error ? error.message : String(error) };
+        this._scheduleDialog = {
+          ...this._scheduleDialog, status: "error", error: error instanceof Error ? error.message : String(error),
+        };
       }
+    }
+  }
+
+  private _flowApi(): FlowApi | undefined {
+    const callApi = this.hass.callApi?.bind(this.hass);
+    return callApi ? (method, path, data) => callApi(method, path, data) : undefined;
+  }
+
+  /** The integration's own setup forms; the flow is opened, read and aborted. */
+  private async _loadAutomationOptions(automation: MowingAutomationStatus): Promise<void> {
+    const api = this._flowApi();
+    try {
+      if (!api) throw new Error("callApi");
+      await Promise.all(["options", "selector"].map(category =>
+        this.hass.loadBackendTranslation?.(category, "dreame_lawn_mower")));
+      const options = await readAutomationSteps(api, automation.entryId);
+      if (this._scheduleDialog) {
+        this._scheduleDialog = { ...this._scheduleDialog, options, optionsOriginal: options, optionsStatus: "ready" };
+      }
+    } catch {
+      if (this._scheduleDialog) this._scheduleDialog = { ...this._scheduleDialog, optionsStatus: "unavailable" };
     }
   }
 
@@ -1375,6 +1402,15 @@ export class LawnMowerCard extends LitElement {
         this._scheduleDialog = { ...state, status: "ready", error: undefined, draft: change(state.draft) };
       }
     };
+    const setOptions = (stepId: string, value: Record<string, unknown>) => {
+      const state = this._scheduleDialog;
+      if (!state?.options || state.status === "saving") return;
+      this._scheduleDialog = {
+        ...state, optionsMessage: undefined,
+        options: state.options.map(section => section.stepId === stepId
+          ? { ...section, data: { ...value }, errors: undefined } : section),
+      };
+    };
     return {
       close: () => { this._scheduleDialog = undefined; },
       addBlock: day => edit(draft => withBlock(draft, day)),
@@ -1382,13 +1418,31 @@ export class LawnMowerCard extends LitElement {
       setTime: (day, index, end, value) => edit(draft => withBlockTime(draft, day, index, end, value)),
       openHelper: automation.scheduleEntity
         ? () => { this._scheduleDialog = undefined; this._showMoreInfo(automation.scheduleEntity); } : undefined,
+      setOptions,
       save: async () => {
-        const state = this._scheduleDialog;
-        if (!state?.draft || scheduleProblems(state.draft).length) return;
+        let state = this._scheduleDialog;
+        if (!state || (state.draft && scheduleProblems(state.draft).length)) return;
         this._scheduleDialog = { ...state, status: "saving" };
         try {
-          await this.hass.callWS(scheduleUpdateMessage(state.draft));
-          this._scheduleDialog = { status: "ready", draft: state.draft, original: state.draft };
+          if (state.draft && state.original && !sameSchedule(state.draft, state.original)) {
+            await this.hass.callWS(scheduleUpdateMessage(state.draft));
+            state = { ...state, original: state.draft };
+          }
+          const api = this._flowApi();
+          if (api && state.options && !sameSections(state.options, state.optionsOriginal)) {
+            const current = mowingAutomationStatus(this.hass.states, this._config!.entity);
+            const saved = await saveAutomationSteps(
+              api, automation.entryId, state.options, current?.enabled ?? automation.enabled,
+            );
+            state = saved.ok
+              ? { ...state, optionsOriginal: state.options, optionsMessage: this._t("automation.savedReloading") }
+              : {
+                ...state,
+                options: state.options.map(section => section.stepId === saved.stepId
+                  ? { ...section, errors: saved.errors } : section),
+              };
+          }
+          this._scheduleDialog = { ...state, status: "ready", error: undefined };
         } catch (error) {
           this._scheduleDialog = {
             ...state, status: "error", error: error instanceof Error ? error.message : String(error),
