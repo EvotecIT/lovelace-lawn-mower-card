@@ -111,8 +111,8 @@ import {
   type ScheduleControl,
 } from "./schedule-controls";
 import { renderSchedulePanel } from "./schedule-panel";
-import { mowingAutomationStatus } from "./mowing-automation";
-import { renderMowingAutomation } from "./mowing-automation-panel";
+import { mowingAutomationStatus, type MowingAutomationStatus } from "./mowing-automation";
+import { renderMowingAutomation, type MowingAutomationControls } from "./mowing-automation-panel";
 import { recentMowerConditions } from "./recent-conditions";
 import { renderRecentConditions } from "./recent-conditions-panel";
 import {
@@ -1291,7 +1291,7 @@ export class LawnMowerCard extends LitElement {
         if (current?.canToggle && current.enableEntity && current.enableEntity === automation.enableEntity) {
           await this._toggleSwitch(current.enableEntity, current.enabled);
         }
-      }, this._t) : nothing}
+      }, this._t, this._automationControls(automation)) : nothing}
       ${customFirst ? inlineContent : nothing}
       ${schedules.length ? renderSchedulePanel(
         schedules.map(control => ({ ...control, available: control.available && !Boolean(this._mutationInFlight) })),
@@ -1300,6 +1300,20 @@ export class LawnMowerCard extends LitElement {
       ${customFirst ? nothing : inlineContent}
       ${this._renderDeviceSettingsControls(groups.settings)}
       ${this._renderPreferenceControls(groups.preferences)}`;
+  }
+
+  /** The integration advertises its own settings entities; render them with the usual controls. */
+  private _automationControls(automation: MowingAutomationStatus): MowingAutomationControls {
+    const ids = [
+      automation.targetEntity,
+      ...(automation.rotation ? [automation.restDaysEntity, automation.maxAreaEntity] : []),
+    ].filter((id): id is string => Boolean(id && this.hass.states[id]));
+    const schedule = automation.scheduleEntity;
+    return {
+      settings: ids.map(id => this._renderEntityControl(id)),
+      openSchedule: schedule ? () => this._showMoreInfo(schedule) : undefined,
+      locale: this._locale,
+    };
   }
 
   private _renderEntityControl(entityId: string) {
