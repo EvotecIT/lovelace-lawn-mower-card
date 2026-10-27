@@ -95,8 +95,6 @@ export const deviceSettingsPanelStyles = css`
     color: var(--mower-muted);
     font-size: 0.78rem;
     font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
   }
 
   .device-settings-group-heading ha-icon {

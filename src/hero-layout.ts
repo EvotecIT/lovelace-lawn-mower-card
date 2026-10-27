@@ -1,3 +1,4 @@
+import type { CommandPlan } from "./command-plan";
 import type { DisplayTile, DisplayAction, HeroSection } from "./card-customization";
 import type { CardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
@@ -39,6 +40,7 @@ export type HeroLayoutModel = {
   progress?: string;
   progressLabel?: string;
   coverage?: string;
+  nextRun?: string;
   coverageLabel?: string;
   area?: MowingAreaProgress;
   mowingMapPath?: string;
@@ -98,6 +100,7 @@ export type HeroLayoutModel = {
   canPause: boolean;
   canDock: boolean;
   canCancelTask: boolean;
+  commands: CommandPlan;
   dockActionLabel: string;
   maintenancePointAvailable?: boolean;
   actionFeedback?: {
@@ -117,13 +120,13 @@ export type HeroLayoutModel = {
   onMoreInfo(): void;
 };
 
-function renderMetric(icon: string, label: string, value?: string): TemplateResult {
+function renderMetric(icon: string, label: string, value: string): TemplateResult {
   return html`
     <div class="hero-metric">
       <ha-icon .icon=${icon}></ha-icon>
       <span class="hero-metric-copy">
         <span class="hero-metric-label">${label}</span>
-        <strong>${value || "—"}</strong>
+        <strong>${value}</strong>
       </span>
     </div>
   `;
@@ -180,6 +183,14 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
     },
     { view: "photos", label: model.t("hero.photos"), icon: "mdi:image-multiple-outline" },
   ];
+  // Stats without a value are left out; an idle mower shows its next run in place of mission progress.
+  const metrics = [
+    model.battery ? renderMetric("mdi:battery-high", model.t("hero.battery"), model.battery) : undefined,
+    model.nextRun
+      ? renderMetric("mdi:calendar-clock", model.t("hero.nextRun"), model.nextRun)
+      : model.progress ? renderMetric("mdi:progress-clock", model.progressLabel || model.t("hero.mission"), model.progress) : undefined,
+    model.coverage ? renderMetric("mdi:grass", model.coverageLabel || model.t("hero.coverage"), model.coverage) : undefined,
+  ].filter((metric): metric is TemplateResult => Boolean(metric));
   // With an interactive map the mission sits inside the fixed-height stage, so
   // Overview and Map keep the same card height.
   const missionInStage = !model.dashboard && model.activeView === "map" && Boolean(model.mowingMapPath);
@@ -206,22 +217,8 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             </div>
           </div>` : nothing}
 
-          ${overview
-            ? html`
-                <div class="hero-metrics">
-                  ${renderMetric("mdi:battery-high", model.t("hero.battery"), model.battery)}
-                  ${renderMetric(
-                    "mdi:progress-clock",
-                    model.progressLabel || model.t("hero.mission"),
-                    model.progress,
-                  )}
-                  ${renderMetric(
-                    "mdi:grass",
-                    model.coverageLabel || model.t("hero.coverage"),
-                    model.coverage,
-                  )}
-                </div>
-              `
+          ${overview && metrics.length
+            ? html`<div class="hero-metrics" style=${`--hero-metric-count:${metrics.length}`}>${metrics}</div>`
             : nothing}
           ${missionInStage ? renderMowingMission(model) : nothing}
         </section>

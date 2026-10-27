@@ -241,6 +241,7 @@ export const cs = {
   "hero.gardenMower": "Zahradní sekačka",
   "hero.battery": "Baterie",
   "hero.mission": "Mise",
+  "hero.nextRun": "Další sečení",
   "hero.coverage": "Pokrytí",
   "hero.overview": "Přehled",
   "hero.map": "Mapa",

@@ -1,3 +1,4 @@
+import { withoutDevicePrefix } from "./display-names.ts";
 import { entityIndex } from "./entity-index.ts";
 
 export type ScheduleEntity = {
@@ -41,7 +42,7 @@ export function discoverScheduleControls(
       const switchObjectId = entityId.split(".", 2)[1] || "";
       return matchingMowerObjectId(switchObjectId, mowerObjectIds) === objectId;
     })
-    .map(([entityId, entity]) => scheduleControl(entityId, entity))
+    .map(([entityId, entity]) => scheduleControl(entityId, entity, states[mowerEntityId]?.attributes?.friendly_name))
     .sort((left, right) => {
       const mapOrder = (left.mapLabel || "").localeCompare(right.mapLabel || "");
       return mapOrder || left.label.localeCompare(right.label);
@@ -61,12 +62,16 @@ export function matchingMowerObjectId(
 function scheduleControl(
   entityId: string,
   entity: ScheduleEntity,
+  mowerName: unknown,
 ): ScheduleControl {
   const attributes = entity.attributes || {};
   const state = entity.state.trim().toLowerCase();
   return {
     entityId,
-    label: text(attributes.name) || text(attributes.friendly_name) || fallbackLabel(entityId),
+    label: withoutDevicePrefix(
+      text(attributes.name) || text(attributes.friendly_name) || fallbackLabel(entityId),
+      [text(mowerName)],
+    ),
     mapLabel: text(attributes.map_label),
     enabled: state === "on",
     available: !["unavailable", "unknown", ""].includes(state),

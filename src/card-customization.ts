@@ -43,7 +43,7 @@ export function tileColumns(value: unknown): number | undefined {
 }
 
 export type DisplayTile = { label: string; value: string; icon?: string; unavailable?: boolean };
-export type DisplayAction = { label: string; icon?: string; disabled: boolean; expanded?: boolean; handler: () => Promise<void> | void };
+export type DisplayAction = { label: string; icon?: string; disabled: boolean; expanded?: boolean; primary?: boolean; handler: () => Promise<void> | void };
 
 /** Keep all configured chips, deduplicate repeated text, and retain the legacy automatic cap. */
 export function summaryItems(configured: DisplayTile[], automatic: DisplayTile[], mode: ContentMode, limitAutomatic = false): DisplayTile[] {

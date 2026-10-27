@@ -302,10 +302,8 @@ export const heroLayoutStyles = css`
 
   .hero-eyebrow {
     color: rgba(232, 240, 228, 0.72);
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 650;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
   }
 
   .hero-title-block h2 {
@@ -354,7 +352,7 @@ export const heroLayoutStyles = css`
     z-index: 2;
     inset: auto 18px 18px;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--hero-metric-count, 3), minmax(0, 1fr));
     gap: 10px;
   }
 
@@ -384,9 +382,7 @@ export const heroLayoutStyles = css`
 
   .hero-metric-label {
     color: rgba(232, 240, 228, 0.66);
-    font-size: 0.68rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: 0.75rem;
   }
 
   .hero-metric strong {
@@ -504,6 +500,17 @@ export const heroLayoutStyles = css`
     border-radius: var(--mower-radius-inner);
     font-size: 0.72rem;
     background: var(--mower-fill);
+  }
+
+  .hero-action.primary:not(:disabled) {
+    color: var(--mower-text);
+    border-color: color-mix(in srgb, var(--mower-accent) 55%, transparent);
+    background: color-mix(in srgb, var(--mower-accent) 22%, transparent);
+    font-weight: 600;
+  }
+
+  .hero-action.primary:not(:disabled) ha-icon {
+    color: var(--mower-accent);
   }
 
   .hero-action:hover,

@@ -223,6 +223,7 @@ export const es = {
   "hero.gardenMower": "Cortacésped de jardín",
   "hero.battery": "Batería",
   "hero.mission": "Misión",
+  "hero.nextRun": "Próxima siega",
   "hero.coverage": "Superficie cortada",
   "hero.overview": "Resumen",
   "hero.map": "Mapa",
