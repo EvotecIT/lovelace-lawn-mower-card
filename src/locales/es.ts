@@ -274,6 +274,7 @@ export const es = {
   "alerts.item.robot": "Mantenimiento del robot",
   "alerts.item.edge_trimmer": "Recortabordes",
   "alerts.show": "Mostrar avisos",
+  "editor.layoutTile": "Mosaico",
   "action.details": "Detalles del cortacésped",
   "settings.charging": "Carga",
   "settings.rainProtection": "Protección contra la lluvia",

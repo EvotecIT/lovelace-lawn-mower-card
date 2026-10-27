@@ -203,6 +203,25 @@ tiles:
 - `wide`: puts the map on the left and actions/stats on the right when space allows
 - `hero`: image-led overview with live battery, mission, and coverage values;
   Overview, Map, 3D, and Camera views; and a compact primary action rail
+- `tile`: one row like Home Assistant's tile card: the mower's state, progress
+  and battery (or the next run, or the reason it isn't mowing) and one button
+  to pause or start; tap the tile for the mower's details
+
+### Sizes in a Sections dashboard
+
+The card tells a Sections view its default size, and you can resize it there:
+
+| Layout | Default | Smallest width |
+|---|---|---|
+| `tile` | half a section, one row | half a section |
+| `compact` | full width, height follows content | half a section |
+| `default`, `wide`, `hero` | full width, height follows content | three quarters of a section |
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.my_mower
+layout: tile
+```
 
 The older `wide` preset uses a browser-width breakpoint. Use `hero`, `default`,
 or `compact` in narrow columns on a wide desktop dashboard until its

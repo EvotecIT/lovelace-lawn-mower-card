@@ -257,7 +257,7 @@ export class LawnMowerCardEditor extends LitElement {
     `;
   }
 
-  private _layoutField(value: "default" | "compact" | "wide" | "hero") {
+  private _layoutField(value: "default" | "compact" | "wide" | "hero" | "tile") {
     return html`
       <label>
         <span>${this._t("editor.layout")}</span>
@@ -266,6 +266,7 @@ export class LawnMowerCardEditor extends LitElement {
           <option value="compact">${this._t("editor.layoutCompact")}</option>
           <option value="wide">${this._t("editor.layoutWide")}</option>
           <option value="hero">${this._t("editor.layoutHero")}</option>
+          <option value="tile">${this._t("editor.layoutTile")}</option>
         </select>
         <span class="hint">${this._t("editor.layoutHint")}</span>
       </label>
@@ -706,7 +707,7 @@ export class LawnMowerCardEditor extends LitElement {
     const target = event.currentTarget as HTMLSelectElement;
     const next: LawnMowerCardConfig = {
       ...(this._config || getStubConfig()),
-      layout: target.value as "default" | "compact" | "wide" | "hero",
+      layout: target.value as "default" | "compact" | "wide" | "hero" | "tile",
     };
 
     if (!next.entity) {
