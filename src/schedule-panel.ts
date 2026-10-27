@@ -8,11 +8,11 @@ export const schedulePanelStyles = css`
     display: grid;
     gap: 10px;
     padding: 14px;
-    border: 1px solid var(--divider-color);
-    border-radius: 14px;
+    border: 1px solid var(--mower-border);
+    border-radius: var(--mower-radius-inner);
     background:
-      linear-gradient(145deg, color-mix(in srgb, var(--primary-color) 9%, transparent), transparent 52%),
-      color-mix(in srgb, var(--card-background-color) 97%, var(--primary-color) 3%);
+      linear-gradient(145deg, color-mix(in srgb, var(--mower-accent) 9%, transparent), transparent 52%),
+      var(--mower-fill);
   }
 
   .schedule-heading {
@@ -30,7 +30,7 @@ export const schedulePanelStyles = css`
   }
 
   .schedule-count {
-    color: var(--secondary-text-color);
+    color: var(--mower-muted);
     font-size: 0.78rem;
     font-weight: 500;
   }
@@ -46,9 +46,9 @@ export const schedulePanelStyles = css`
     align-items: center;
     gap: 12px;
     padding: 11px 12px;
-    border: 1px solid color-mix(in srgb, var(--divider-color) 80%, transparent);
-    border-radius: 11px;
-    background: color-mix(in srgb, var(--card-background-color) 95%, white 5%);
+    border: 1px solid color-mix(in srgb, var(--mower-border) 80%, transparent);
+    border-radius: var(--mower-radius-control);
+    background: var(--mower-fill);
   }
 
   .schedule-name {
@@ -61,7 +61,7 @@ export const schedulePanelStyles = css`
 
   .schedule-detail {
     margin-top: 3px;
-    color: var(--secondary-text-color);
+    color: var(--mower-muted);
     font-size: 0.76rem;
     line-height: 1.35;
   }
@@ -73,7 +73,7 @@ export const schedulePanelStyles = css`
     border: 0;
     border-radius: 999px;
     padding: 0;
-    background: color-mix(in srgb, var(--disabled-text-color) 55%, transparent);
+    background: color-mix(in srgb, var(--mower-text) 28%, transparent);
     cursor: pointer;
     transition: background 160ms ease;
   }
@@ -86,13 +86,13 @@ export const schedulePanelStyles = css`
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: white;
-    box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+    background: var(--mower-switch-thumb, #fff);
+    box-shadow: 0 2px 6px color-mix(in srgb, black 25%, transparent);
     transition: transform 160ms ease;
   }
 
   .schedule-toggle[aria-checked="true"] {
-    background: var(--primary-color);
+    background: var(--mower-switch-on);
   }
 
   .schedule-toggle[aria-checked="true"]::after {

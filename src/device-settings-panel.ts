@@ -21,10 +21,10 @@ const groupPresentation: Record<
 
 export const deviceSettingsPanelStyles = css`
   .device-settings-panel {
-    border: 1px solid color-mix(in srgb, var(--primary-color) 28%, var(--divider-color));
-    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--mower-accent) 28%, var(--mower-border));
+    border-radius: var(--mower-radius-inner);
     overflow: hidden;
-    background: color-mix(in srgb, var(--card-background-color) 96%, var(--primary-color) 4%);
+    background: var(--mower-fill);
   }
 
   .device-settings-panel summary {
@@ -34,7 +34,7 @@ export const deviceSettingsPanelStyles = css`
     gap: 12px;
     padding: 13px 14px;
     cursor: pointer;
-    color: var(--primary-text-color);
+    color: var(--mower-text);
     font-weight: 700;
     list-style: none;
   }
@@ -45,7 +45,7 @@ export const deviceSettingsPanelStyles = css`
 
   .device-settings-panel summary::after {
     content: "›";
-    color: var(--primary-color);
+    color: var(--mower-accent);
     font-size: 1.35rem;
     line-height: 1;
     transform: rotate(90deg);
@@ -69,7 +69,7 @@ export const deviceSettingsPanelStyles = css`
   }
 
   .device-settings-summary small {
-    color: var(--secondary-text-color);
+    color: var(--mower-muted);
     font-weight: 500;
     overflow-wrap: anywhere;
   }
@@ -92,7 +92,7 @@ export const deviceSettingsPanelStyles = css`
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    color: var(--secondary-text-color);
+    color: var(--mower-muted);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -101,7 +101,7 @@ export const deviceSettingsPanelStyles = css`
 
   .device-settings-group-heading ha-icon {
     --mdc-icon-size: 17px;
-    color: var(--primary-color);
+    color: var(--mower-accent);
   }
 
   .device-settings-controls {
@@ -112,11 +112,11 @@ export const deviceSettingsPanelStyles = css`
   .selector-card input[type="time"] {
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid var(--divider-color);
-    border-radius: 8px;
+    border: 1px solid var(--mower-border);
+    border-radius: var(--mower-radius-control);
     padding: 10px 12px;
-    background: var(--card-background-color);
-    color: var(--primary-text-color);
+    background: var(--mower-field);
+    color: var(--mower-text);
     color-scheme: light dark;
     font: inherit;
   }

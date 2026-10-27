@@ -726,6 +726,10 @@
     </div>
 
     <script type="module">
+      import { applyTheme, heroTheme, mountThemePicker } from "/demo/theme-matrix.mjs";
+      applyTheme();
+      mountThemePicker(document.querySelector(".toolbar"));
+
       class DemoHaIcon extends HTMLElement {
         connectedCallback() {
           const icon = this.getAttribute("icon") || "";
@@ -1451,6 +1455,7 @@
         show_default_actions: true,
         show_helper_actions: true,
         show_advanced_details: false,
+        ...(heroTheme ? { hero_theme: heroTheme } : {}),
       };
 
       function applyConfig(overrides = {}) {
