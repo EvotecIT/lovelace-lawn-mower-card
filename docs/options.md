@@ -99,6 +99,7 @@
 - `control_entities`: optional list of `select`, `number`, `switch`, or `time`
   entities rendered as inline mower controls
 - `controls_mode`: optional `auto`, `append`, `custom`, or `hidden`; omit to keep existing discovery behavior
+- `controls_layout`: optional `sheet` (default) or `inline`; `sheet` moves schedules, selectors, Device settings and Mowing preferences into a settings sheet opened from one row on the card, and `inline` keeps them on the card. The multi-select zone picker always stays on the card
 - `zone_picker_columns`: optional `auto` (default), `1`, or `2`; controls the columns in the full-width multi-select zone picker, in every layout
 - `summary_mode`: optional `auto`, `append`, `custom`, or `hidden`; omit to keep the existing layout default
 - `summary_entities`: optional list of entity IDs or objects using the same fields as `tiles`, rendered as summary chips in every layout

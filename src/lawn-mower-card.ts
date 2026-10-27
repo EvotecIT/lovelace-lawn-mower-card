@@ -115,6 +115,7 @@ import {
 } from "./schedule-controls";
 import { renderSchedulePanel } from "./schedule-panel";
 import { mowingAutomationStatus, type MowingAutomationStatus } from "./mowing-automation";
+import { controlsLayout, renderSettingsEntry, renderSettingsSheet, settingsSummary } from "./settings-sheet";
 import {
   renderMowingAutomation, renderMowingAutomationDialog,
   type MowingAutomationControls, type ScheduleDialogState,
@@ -292,6 +293,8 @@ export class LawnMowerCard extends LitElement {
     savedMessage: () => this._t("automation.savedReloading"),
     openHelper: entityId => this._showMoreInfo(entityId),
   });
+  @state() private _settingsOpen = false;
+  private _settingsTrigger?: HTMLElement;
   @state() private _patrolMenu?: { kind: DreamePatrolKind; keys: ZoneSelectionKeys };
   @state() private _areaMenuContext?: AreaStartContext;
   private _customActionTrigger?: HTMLElement;
@@ -487,8 +490,14 @@ export class LawnMowerCard extends LitElement {
 
   protected updated(): void {
     const scheduleDialog = this.renderRoot?.querySelector<HTMLDialogElement>("dialog.mowing-automation-dialog");
-    if (scheduleDialog && !scheduleDialog.open) {
-      try { scheduleDialog.showModal(); } catch { scheduleDialog.setAttribute("open", ""); }
+    // The sheet opens first so the automation dialog, opened from inside it, stacks on top.
+    for (const dialog of [
+      this.renderRoot?.querySelector<HTMLDialogElement>("dialog.settings-sheet"),
+      scheduleDialog,
+    ]) {
+      if (dialog && !dialog.open) {
+        try { dialog.showModal(); } catch { dialog.setAttribute("open", ""); }
+      }
     }
     if (this._pendingCustomAction && !conditionMatches(this._pendingCustomAction.visibility, this.hass.states)) this._closeCustomConfirmation();
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
@@ -553,6 +562,8 @@ export class LawnMowerCard extends LitElement {
       this._config.show_point_cloud ?? Boolean(pointCloudPath);
     const statTiles = this._buildTiles();
     const actionGroups = this._buildActionGroups(mower);
+    // With the sheet, the controls are one settings row and read best after the actions.
+    const settingsSheet = controlsLayout(this._config.controls_layout) === "sheet";
     const headerSummary = this._buildHeaderSummary();
     const scheduleControls = this._config.controls_mode === "hidden" || this._config.controls_mode === "custom" ? [] : discoverScheduleControls(
       this.hass.states,
@@ -692,7 +703,7 @@ export class LawnMowerCard extends LitElement {
               ? this._renderRuntimeSessionPanel(runtimeSession)
               : nothing}
 
-            ${this._renderControlContent(controlEntities, scheduleControls)}
+            ${settingsSheet ? nothing : this._renderControlContent(controlEntities, scheduleControls)}
 
             ${actionGroups.length
               ? html`
@@ -720,6 +731,7 @@ export class LawnMowerCard extends LitElement {
                 `
               : nothing}
 
+            ${settingsSheet ? this._renderControlContent(controlEntities, scheduleControls) : nothing}
             ${this._renderActionConfirmation()}
             ${visibleActionFeedback
               ? html`
@@ -897,6 +909,7 @@ export class LawnMowerCard extends LitElement {
         ? cameraImageUrl(cameraEntity.entity_id, cameraEntity)
         : undefined,
       controls,
+      settingsSheet: controlsLayout(this._config.controls_layout) === "sheet",
       recentConditions: this._renderRecentConditions(),
       customSectionOrder: this._config.hero_sections !== undefined,
       summary: this._buildHeaderSummary(),
@@ -1319,11 +1332,64 @@ export class LawnMowerCard extends LitElement {
       this._config!,
       this.hass.entities,
     );
-    const inline = groups.inline.map(id => this._renderEntityControl(id));
-    const inlineContent = inline.length ? hero ? inline : html`<div class="selectors">${inline}</div>` : nothing;
+    const sheet = controlsLayout(this._config!.controls_layout) === "sheet";
+    // The zone picker chooses what Start mows, so it stays on the card; the sheet holds the settings.
+    const zonePicker = (id: string) =>
+      this._zoneStartContext()?.entityId === id && this._zoneChoices(id).length >= 2;
+    const onCard = sheet ? groups.inline.filter(zonePicker) : [];
+    const inSheet = sheet ? groups.inline.filter(id => !zonePicker(id)) : groups.inline;
+    const inline = inSheet.map(id => this._renderEntityControl(id));
+    const inlineContent = inline.length ? hero || sheet ? inline : html`<div class="selectors">${inline}</div>` : nothing;
     const customFirst = this._config!.controls_mode === "append";
     const automation = ["hidden", "custom"].includes(this._config!.controls_mode || "auto") ? undefined
       : mowingAutomationStatus(this.hass.states, this._config!.entity);
+    const content = this._renderSettingsContent(groups, schedules, automation, inlineContent, customFirst);
+    if (!sheet) return content;
+    const picker = onCard.map(id => this._renderEntityControl(id));
+    const pickerContent = picker.length && !hero ? html`<div class="selectors">${picker}</div>` : picker;
+    if (!inSheet.length && !schedules.length && !automation && !groups.settings.length && !groups.preferences.length) {
+      return html`${pickerContent}`;
+    }
+    const summary = settingsSummary([
+      schedules.length ? this._t("schedule.count", { count: schedules.length }) : undefined,
+      ...inSheet.filter(id => id.startsWith("select.") || id.startsWith("input_select."))
+        .map(id => this.hass.states[id])
+        .filter(entity => entity && !["unavailable", "unknown"].includes(entity.state))
+        .map(entity => this._friendlyState(entity!)),
+    ]);
+    return html`
+      ${pickerContent}
+      ${renderSettingsEntry({
+        title: this._t("settings.sheetTitle"),
+        summary,
+        open: this._settingsOpen,
+        onOpen: event => {
+          this._settingsTrigger = event.currentTarget as HTMLElement;
+          this._settingsOpen = true;
+        },
+      })}
+      ${this._settingsOpen ? renderSettingsSheet({
+        title: this._t("settings.sheetTitle"),
+        closeLabel: this._t("common.close"),
+        body: content,
+        onClose: () => this._closeSettings(),
+      }) : nothing}`;
+  }
+
+  private _closeSettings(): void {
+    this._settingsOpen = false;
+    const trigger = this._settingsTrigger;
+    this._settingsTrigger = undefined;
+    void this._restoreActionFocus(trigger);
+  }
+
+  private _renderSettingsContent(
+    groups: ReturnType<typeof controlGroups>,
+    schedules: ScheduleControl[],
+    automation: MowingAutomationStatus | undefined,
+    inlineContent: unknown,
+    customFirst: boolean,
+  ) {
     return html`
       ${automation ? renderMowingAutomation(automation, Boolean(this._mutationInFlight), async () => {
         const current = mowingAutomationStatus(this.hass.states, this._config!.entity);

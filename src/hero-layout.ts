@@ -74,6 +74,8 @@ export type HeroLayoutModel = {
   cameraBlockReason?: string;
   cameraPreviewUrl?: string;
   controls?: TemplateResult;
+  /** Controls are one settings row, which reads best after the actions. */
+  settingsSheet?: boolean;
   recentConditions?: TemplateResult | typeof nothing;
   customSectionOrder?: boolean;
   summary: DisplayTile[];
@@ -194,6 +196,10 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   // With an interactive map the mission sits inside the fixed-height stage, so
   // Overview and Map keep the same card height.
   const missionInStage = !model.dashboard && model.activeView === "map" && Boolean(model.mowingMapPath);
+  const showControls = !model.customSectionOrder && Boolean(model.controls);
+  const controlsAfterActions = showControls && model.settingsSheet && !model.dashboard;
+  const controlsBeforeActions = showControls && !controlsAfterActions;
+  const selectors = html`<div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>`;
   return html`
     <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.dashboard && !hasAside ? " dashboard-no-aside" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
       <div class="hero-shell">
@@ -245,9 +251,10 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
           : nothing}
 
 
-        ${!model.customSectionOrder && model.controls ? html`<div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>` : nothing}
+        ${controlsBeforeActions ? selectors : nothing}
         ${!model.dashboard ? renderHeroActionFeedback(model) : nothing}
         ${!model.dashboard ? renderHeroActions(model) : nothing}
+        ${controlsAfterActions ? selectors : nothing}
         ${model.recentConditions || nothing}
         ${model.sections.some(section => section === "tiles" ? model.tiles.length : section === "actions" ? model.customActions.length : section === "controls" ? model.customSectionOrder && model.controls : model.details)
           ? html`<div class="hero-customization">${model.sections.map(section => {

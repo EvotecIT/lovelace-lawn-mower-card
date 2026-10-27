@@ -5,7 +5,7 @@ export const dashboardStyles = css`
   ha-card.hero-card.dashboard-card { display:block; container-type:inline-size; }
   /* The original navy Dashboard look is a token palette plus a few gradients. */
   ha-card.hero-card.dashboard-card:not(.theme-auto) {
-    --mower-surface:#0d2533; --mower-field:#0d2533; --mower-text:#edf8ff; --mower-muted:#a1bece;
+    --mower-surface:#0d2533; --mower-dialog:#0d2533; --mower-field:#0d2533; --mower-text:#edf8ff; --mower-muted:#a1bece;
     --mower-border:#244c60; --mower-accent:var(--mower-custom-accent,#69e59c); --mower-route:#69d4f4;
     --mower-map-ground:#0d2928; --mower-map-toolbar:#102c3a; --mower-map-trail-opacity:1;
     --mower-canvas:#081c2a; --mower-chrome:#0b2230; --mower-panel:#0d2533; --mower-raised:#102c3a;

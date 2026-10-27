@@ -26,7 +26,7 @@ export const mowingAutomationStyles = css`
   .mowing-automation-links { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
   .mowing-automation-dialog { box-sizing: border-box; width: min(560px, 100vw); max-height: 100dvh; margin: auto; padding: 16px;
     border: 1px solid var(--mower-border); border-radius: 16px; color: var(--mower-text);
-    background: var(--card-background-color, var(--ha-card-background, #fff)); overflow: auto; }
+    background: var(--mower-dialog); overflow: auto; }
   .mowing-automation-dialog[open] { display: flex; flex-direction: column; gap: 8px; max-height: min(680px, 100dvh); overflow: hidden; }
   .dialog-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 2px; }
   .mowing-automation-dialog[open] > :not(.dialog-body) { flex: none; }
