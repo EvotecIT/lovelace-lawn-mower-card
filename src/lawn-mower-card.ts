@@ -3,6 +3,7 @@ import { actionRowCapacity } from "./hero-actions";
 import { renderMediaSwitch, resolveStandardMedia, standardMediaViews, type StandardMediaView } from "./media-switch";
 import { cardGridOptions, renderTile, tileSecondary, type GridOptions } from "./tile-layout";
 import { maintenanceParts, renderMaintenancePanel, type MaintenancePartKey } from "./maintenance";
+import { ForecastSubscription, renderWeekPlan, weekPlan, type DayForecast } from "./week-plan";
 import { withoutDevicePrefix } from "./display-names";
 import { commandPlan, type CommandPlan } from "./command-plan";
 import { cardAppearance } from "./card-appearance";
@@ -334,6 +335,8 @@ export class LawnMowerCard extends LitElement {
   private _actionFeedbackTimer?: number;
   @state() private _heroMoreOpen = false;
   @state() private _maintenanceConfirm?: { mower: string; key: MaintenancePartKey; resetId: string };
+  @state() private _forecast?: Map<string, DayForecast>;
+  private _forecastSubscription = new ForecastSubscription(days => { this._forecast = days; });
   @state() private _actionRowCapacity?: number;
   private _widthObserver?: ResizeObserver;
   private _nextRunTimer?: number;
@@ -444,6 +447,7 @@ export class LawnMowerCard extends LitElement {
 
   public disconnectedCallback(): void {
     this._widthObserver?.disconnect();
+    this._forecastSubscription.close();
     this._automationDialog.close();
     this._patrolMenu = undefined;
     this._pendingCustomAction = undefined;
@@ -500,6 +504,7 @@ export class LawnMowerCard extends LitElement {
   protected willUpdate(): void {
     this._automationDialog.reconcile();
     if (this._maintenanceConfirm && !this._maintenanceConfirmCurrent()) this._maintenanceConfirm = undefined;
+    if (this.isConnected) this._forecastSubscription.update(this.hass?.connection, this._config?.weather_entity);
     if (this._patrolMenu && !this._patrolMenuCurrent(this._patrolMenu)) this._patrolMenu = undefined;
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
     if (this._areaMenuContext && (!mower || !this._areaMenuShown(mower))) {
@@ -1005,6 +1010,9 @@ export class LawnMowerCard extends LitElement {
       patrolActions: (this._config.show_default_actions ?? true)
         ? this._patrolActions(mower) : [],
       onMoreInfo: () => this._showMoreInfo(),
+      onNextRun: scheduleControls.some(control => control.enabled) && controlsLayout(this._config.controls_layout) === "sheet"
+        && !["hidden", "custom"].includes(this._config.controls_mode || "auto")
+        ? () => this._openWeekPlan() : undefined,
       moreMenuOpen: this._heroMoreOpen,
       actionRowCapacity: this._actionRowCapacity,
       onMoreMenu: (open, restoreFocus) => this._setHeroMoreMenu(open, restoreFocus),
@@ -1555,11 +1563,32 @@ export class LawnMowerCard extends LitElement {
       ${schedules.length ? renderSchedulePanel(
         schedules.map(control => ({ ...control, available: control.available && !Boolean(this._mutationInFlight) })),
         (entityId, enabled) => this._toggleSwitch(entityId, enabled), this._t,
+        this._renderWeekPlan(schedules, automation),
       ) : nothing}
       ${customFirst ? nothing : inlineContent}
       ${this._renderDeviceSettingsControls(groups.settings)}
       ${this._renderPreferenceControls(groups.preferences)}
       ${this._renderMaintenance()}`;
+  }
+
+  private _renderWeekPlan(schedules: ScheduleControl[], automation?: MowingAutomationStatus) {
+    const now = new Date();
+    return renderWeekPlan(weekPlan(schedules, now, {
+      // The automation only starts runs while it is on.
+      automationStart: automation?.enabled ? automation.plan?.nextStart : undefined,
+      automationLabel: automation?.scheduleName,
+      forecast: this._forecast,
+    }), this._t, this._locale, now, clockOptions(this.hass.locale?.time_format));
+  }
+
+  /** The Hero's Next run opens the week plan in the settings sheet. */
+  private _openWeekPlan(): void {
+    if (controlsLayout(this._config?.controls_layout) === "sheet" && !this._settingsOpen) {
+      this._settingsTrigger = this.shadowRoot?.activeElement as HTMLElement | undefined;
+      this._settingsOpen = true;
+    }
+    void this.updateComplete.then(() =>
+      this.shadowRoot?.querySelector("#week-plan")?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
 
   private _maintenanceParts() {

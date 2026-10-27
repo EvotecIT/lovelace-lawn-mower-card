@@ -109,6 +109,8 @@ export function renderSchedulePanel(
   controls: ScheduleControl[],
   onToggle: (entityId: string, enabled: boolean) => void | Promise<void>,
   t: Translator,
+  /** What the plans add up to over the next days, shown above the plans. */
+  overview?: unknown,
 ): TemplateResult {
   const showMapLabels = new Set(
     controls.map((control) => control.mapLabel).filter(Boolean),
@@ -119,6 +121,7 @@ export function renderSchedulePanel(
         <span><ha-icon icon="mdi:calendar-clock"></ha-icon> ${t("schedule.title")}</span>
         <span class="schedule-count">${t("schedule.count", { count: controls.length })}</span>
       </div>
+      ${overview ?? ""}
       <div class="schedule-list">
         ${controls.map((control) => {
           const timing = [

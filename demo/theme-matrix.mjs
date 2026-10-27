@@ -191,6 +191,11 @@ window.addEventListener("load", async () => {
     await new Promise(resolve => setTimeout(resolve, 300));
     card.shadowRoot?.querySelector("#maintenance-panel")?.scrollIntoView({ block: "end" });
   }
+  // ?open=week opens the week plan from the Hero's Next run.
+  if (params.get("open") === "week") {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    card.shadowRoot?.querySelector(".hero-metric.next-run")?.click();
+  }
   // ?open=more opens the Hero's More menu.
   if (params.get("open") === "more") {
     await new Promise(resolve => setTimeout(resolve, 300));

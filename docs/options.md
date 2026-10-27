@@ -76,6 +76,9 @@
   otherwise the card looks for one companion on the same mower device
 - `show_recent_conditions`: optional boolean, defaults to `true`; history appears
   only when the selected sensor has usable fault or warning entries
+- `weather_entity`: optional weather entity with a daily forecast; the week plan
+  marks planned runs that rain will likely skip, see
+  [Week plan](configuration.md#week-plan)
 - `show_alerts`: optional boolean, defaults to `true`; shows errors, rain delay,
   due maintenance and the mowing automation's hold reason in one strip, see
   [Alerts](configuration.md#alerts-why-it-isnt-mowing)
