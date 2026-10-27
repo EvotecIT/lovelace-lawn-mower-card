@@ -106,11 +106,15 @@ const frameStyles = `
   }
   .panel { border-color: transparent !important; padding-inline: 0 !important; }
   .app-shell header { background: var(--card-background-color) !important; }
-  .app-shell :where(.segment, .segment button, .toggle-button, select, nav a, .rail-note, .tips) {
+  .app-shell :where(.segment, .segment button, .toggle-button, select, .nav-item.active, .sidebar-note, .status-pill) {
     background: var(--card-background-color) !important; color: var(--primary-text-color) !important;
     border-color: var(--divider-color) !important;
   }
-  .app-shell .segment button.active { background: var(--primary-color) !important; color: #fff !important; }
+  /* A tint keeps the theme's text colour readable on any accent, light or dark. */
+  .app-shell :where(.segment button.active, .toggle-button.active) {
+    background: color-mix(in srgb, var(--primary-color) 18%, var(--card-background-color)) !important;
+    border-color: var(--primary-color) !important;
+  }
   .app-shell :where(h1, h2, h3, p, span, strong, div, label, small) { color: inherit; }
   .app-shell { color: var(--primary-text-color); }
 `;

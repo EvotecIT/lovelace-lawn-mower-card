@@ -9,6 +9,8 @@ const media = /hero-(stage|map|camera|scrim|heading|title-block|eyebrow|subtitle
 const literal = /#[\da-f]{3,8}\b|rgba?\(/i;
 // The card's own surface (appearance presets) may use the theme's card background and shadow.
 const outerCard = (selector: string) => selector.split(",").every(part => /^ha-card(\.[\w-]+)*$/.test(part.trim()));
+// A literal used only as a var() fallback still follows the theme when the variable is set.
+const fixedColour = (body: string) => literal.test(body.replace(/var\(\s*--[\w-]+\s*,\s*(#[\da-f]{3,8}|rgba?\([^)]*\))\s*\)/gi, "var()"));
 
 /** Splits flat CSS into [selector, body] pairs; nested @container blocks still match per rule. */
 function rules(css: string) {
@@ -24,12 +26,17 @@ const themed = [
 test("theme-following rules use tokens instead of fixed colours", () => {
   for (const file of themed) {
     for (const [selector, body] of rules(source(file))) {
-      // A literal used only as a var() fallback still follows the theme when it is set.
-      if (!literal.test(body.replace(/,\s*(#[\da-f]{3,8}|rgba?\([^)]*\))\s*\)/gi, ")"))) continue;
+      if (!fixedColour(body)) continue;
       const palette = selector.includes(":not(.theme-auto)");
       assert.ok(palette || outerCard(selector) || media.test(selector), `${file}: "${selector}" sets a fixed colour outside a palette or media rule`);
     }
   }
+});
+
+test("only var() fallbacks are exempt from the fixed-colour check", () => {
+  assert.equal(fixedColour("color: var(--primary-text-color, #212121);"), false);
+  assert.equal(fixedColour("background: linear-gradient(90deg, transparent, #f00);"), true);
+  assert.equal(fixedColour("box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);"), true);
 });
 
 test("inner surfaces never repaint the opaque card background", () => {
