@@ -145,6 +145,21 @@ export const settingsSheetStyles = css`
     background: var(--mower-fill-strong);
   }
 
+  .settings-sheet-feedback {
+    flex: none;
+    margin: 12px 20px 0;
+    padding: 10px 12px;
+    border-radius: var(--mower-radius-control);
+    color: var(--mower-text);
+    background: var(--mower-fill-strong);
+    overflow-wrap: anywhere;
+  }
+
+  .settings-sheet-feedback.error {
+    color: var(--mower-error);
+    background: color-mix(in srgb, var(--mower-error) 12%, transparent);
+  }
+
   .settings-sheet-body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -204,6 +219,8 @@ export type SettingsSheetModel = {
   title: string;
   closeLabel: string;
   body: TemplateResult;
+  /** Results of controls used in the sheet; the modal makes the card's own feedback unreachable. */
+  feedback?: { message: string; error: boolean };
   onClose(): void;
 };
 
@@ -222,6 +239,8 @@ export function renderSettingsSheet(model: SettingsSheetModel): TemplateResult {
           ${icon(closePath)}
         </button>
       </div>
+      ${model.feedback ? html`<p class=${`settings-sheet-feedback${model.feedback.error ? " error" : ""}`}
+        role=${model.feedback.error ? "alert" : "status"} aria-live=${model.feedback.error ? "assertive" : "polite"}>${model.feedback.message}</p>` : nothing}
       <div class="settings-sheet-body">${model.body}</div>
     </dialog>
   `;

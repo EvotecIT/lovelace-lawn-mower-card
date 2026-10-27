@@ -1372,6 +1372,7 @@ export class LawnMowerCard extends LitElement {
         title: this._t("settings.sheetTitle"),
         closeLabel: this._t("common.close"),
         body: content,
+        feedback: this._actionFeedback,
         onClose: () => this._closeSettings(),
       }) : nothing}`;
   }
