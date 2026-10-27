@@ -179,6 +179,11 @@ window.addEventListener("load", async () => {
     await new Promise(resolve => setTimeout(resolve, 300));
     card.shadowRoot?.querySelector(".settings-entry")?.click();
   }
+  // ?open=3d switches the standard layouts' media area to 3D.
+  if (params.get("open") === "3d") {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    card.shadowRoot?.querySelector("#media-tab-point-cloud")?.click();
+  }
   // ?open=more opens the Hero's More menu.
   if (params.get("open") === "more") {
     await new Promise(resolve => setTimeout(resolve, 300));
