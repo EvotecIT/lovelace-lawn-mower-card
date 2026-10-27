@@ -39,8 +39,8 @@ from mowing. It reads what the integration already reports on the same device:
 
 Errors come first. While the mower is docked, paused or idle, the first line
 that stops a run is labelled **Why it isn't mowing**. Tap a line to open the
-entity it comes from. The strip is hidden when nothing is reported, and a rain
-delay no longer appears as a separate summary chip. Set `show_alerts: false`, or
+entity it comes from. The strip is hidden when nothing is reported, and errors
+and rain delays no longer appear as separate summary chips. Set `show_alerts: false`, or
 turn off **Show alerts** in the editor, to hide it.
 
 ## Recent conditions

@@ -1259,7 +1259,8 @@ export class LawnMowerCard extends LitElement {
     const error =
       this._stringAttribute(mower, "error_display") ||
       this._stringAttribute(mower, "error_text");
-    if (error && !["none", "no error"].includes(error.toLowerCase())) {
+    // With the alert strip on, the error is explained there instead.
+    if (error && this._config.show_alerts === false && !["none", "no error"].includes(error.toLowerCase())) {
       automaticSummary.push(`${this._t("common.error")} ${error}`);
     }
 

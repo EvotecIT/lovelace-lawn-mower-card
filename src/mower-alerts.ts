@@ -16,7 +16,7 @@ export type MowerAlert = {
   entityId?: string;
 };
 
-const EMPTY = new Set(["", "none", "unknown", "unavailable", "ok", "no_error", "null"]);
+const EMPTY = new Set(["", "none", "unknown", "unavailable", "ok", "no_error", "no error", "null"]);
 const MAINTENANCE_ITEMS = new Set(["blade", "brush", "robot", "edge_trimmer"]);
 const RANK: Record<MowerAlertSeverity, number> = { error: 0, warning: 1, info: 2 };
 
@@ -64,12 +64,15 @@ export function mowerAlerts(
   const alerts: MowerAlert[] = [];
 
   const errorSensor = companion("sensor", "error");
-  const errorText = present(errorSensor?.state) ? errorSensor!.state
-    : present(mower.attributes.error_display) ? mower.attributes.error_display as string : undefined;
+  const sensorError = present(errorSensor?.state) ? errorSensor!.state : undefined;
+  const mowerError = [mower.attributes.error_display, mower.attributes.error_text].find(present);
+  const errorText = sensorError ?? mowerError;
   if (errorText || mower.state === "error") {
     alerts.push({
       key: "error", severity: "error", icon: "mdi:alert-circle-outline",
-      title: t("alerts.error"), detail: errorText, entityId: errorText && errorSensor ? errorSensor.entity_id : mower.entity_id,
+      title: t("alerts.error"), detail: errorText,
+      // Open whichever entity supplied the text the strip shows.
+      entityId: sensorError ? errorSensor!.entity_id : mower.entity_id,
     });
   }
 

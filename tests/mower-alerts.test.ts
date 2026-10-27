@@ -71,6 +71,18 @@ test("errors come first and carry the integration's text", () => {
   assert.equal(result[0].entityId, "sensor.garden_error");
 });
 
+test("\"No error\" is a healthy mower, not an alert", () => {
+  assert.deepEqual(alerts("docked", entity("sensor.garden_error", "No error")), []);
+  assert.deepEqual(alerts("docked", { ...entity(config.entity, "docked"), attributes: { error_display: "No error" } }), []);
+});
+
+test("mower error attributes are used when the sensor reports none, and the mower opens", () => {
+  const [error] = alerts("docked", entity("sensor.garden_error", "none"),
+    { ...entity(config.entity, "docked"), attributes: { error_text: "Blade motor overload" } });
+  assert.equal(error.detail, "Blade motor overload");
+  assert.equal(error.entityId, config.entity);
+});
+
 test("an error state without error text still asks for attention", () => {
   const [error] = alerts("error");
   assert.equal(error.title, "Mower needs attention");
