@@ -47,24 +47,24 @@ export function renderCustomActions(
 
 export const customizationStyles = css`
   .custom-summary { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; min-width:0; }
-  .custom-chip { box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:18px; background:var(--mower-surface,var(--secondary-background-color)); font-size:12px; min-width:0; max-width:100%; color:var(--mower-muted,var(--secondary-text-color)); overflow-wrap:anywhere; }
-  .custom-chip strong { color:var(--mower-text,var(--primary-text-color)); font-weight:600; }
+  .custom-chip { box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--mower-border); border-radius:18px; background:var(--mower-fill); font-size:12px; min-width:0; max-width:100%; color:var(--mower-muted); overflow-wrap:anywhere; }
+  .custom-chip strong { color:var(--mower-text); font-weight:600; }
   .custom-chip ha-icon { --mdc-icon-size:16px; flex:none; }
   .custom-tiles { --custom-tile-gap:10px; display:grid; grid-template-columns:repeat(var(--custom-columns,auto-fit),minmax(min(140px,100%),1fr)); gap:var(--custom-tile-gap); min-width:0; }
   .custom-tiles.fixed-columns { grid-template-columns:repeat(var(--custom-columns),minmax(0,1fr)); }
-  .custom-tile { box-sizing:border-box; display:flex; flex-direction:column; align-items:center; text-align:center; padding:12px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:12px; background:var(--mower-surface,var(--secondary-background-color)); min-width:0; overflow-wrap:anywhere; }
-  .custom-tile-label { display:flex; align-items:center; justify-content:center; gap:7px; color:var(--mower-muted,var(--secondary-text-color)); font-size:12px; margin-bottom:8px; }
-  .custom-tile-label ha-icon { --mdc-icon-size:19px; flex:none; color:var(--mower-accent,var(--primary-color)); }
-  .custom-tile strong { font-size:20px; color:var(--mower-text,var(--primary-text-color)); }
+  .custom-tile { box-sizing:border-box; display:flex; flex-direction:column; align-items:center; text-align:center; padding:12px; border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-fill); min-width:0; overflow-wrap:anywhere; }
+  .custom-tile-label { display:flex; align-items:center; justify-content:center; gap:7px; color:var(--mower-muted); font-size:12px; margin-bottom:8px; }
+  .custom-tile-label ha-icon { --mdc-icon-size:19px; flex:none; color:var(--mower-accent); }
+  .custom-tile strong { font-size:20px; color:var(--mower-text); }
   .custom-tile.unavailable strong { font-size:14px; }
-  .custom-section-title { font-size:12px; font-weight:600; color:var(--mower-muted,var(--secondary-text-color)); margin-bottom:9px; }
+  .custom-section-title { font-size:12px; font-weight:600; color:var(--mower-muted); margin-bottom:9px; }
   .custom-action-section .custom-section-title { text-align:center; }
   .custom-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
-  .custom-actions button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; max-width:100%; min-width:0; padding:10px 14px; border:1px solid var(--mower-border,var(--divider-color)); border-radius:10px; background:var(--mower-surface,var(--secondary-background-color)); color:var(--mower-text,var(--primary-text-color)); font:inherit; font-size:13px; cursor:pointer; overflow-wrap:anywhere; }
-  .custom-actions button ha-icon { --mdc-icon-size:20px; flex:none; color:var(--mower-accent,var(--primary-color)); }
+  .custom-actions button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; max-width:100%; min-width:0; padding:10px 14px; border:1px solid var(--mower-border); border-radius:var(--mower-radius-control); background:var(--mower-fill); color:var(--mower-text); font:inherit; font-size:13px; cursor:pointer; overflow-wrap:anywhere; }
+  .custom-actions button ha-icon { --mdc-icon-size:20px; flex:none; color:var(--mower-accent); }
   .custom-actions button:disabled { opacity:.45; cursor:default; }
-  .custom-actions button:focus-visible { outline:2px solid var(--mower-accent,var(--primary-color)); outline-offset:2px; }
-  .custom-actions button:hover:not(:disabled) { border-color:var(--mower-accent,var(--primary-color)); }
+  .custom-actions button:focus-visible { outline:2px solid var(--mower-accent); outline-offset:2px; }
+  .custom-actions button:hover:not(:disabled) { border-color:var(--mower-accent); }
   .hero-customization { display:grid; gap:16px; min-width:0; padding:0 14px 14px; }
   .hero-summary { padding:12px 14px; min-width:0; }
   .dashboard-header-block { grid-column:1/-1; grid-row:1; min-width:0; }

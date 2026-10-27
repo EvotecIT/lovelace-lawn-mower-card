@@ -20,25 +20,50 @@ export const heroLayoutStyles = css`
   .view-map.interactive-map .hero-mowing-map { position:relative; order:2;
     height:auto; flex:1 1 auto; min-height:0; }
   ha-card.hero-card {
-    --mower-surface:#111a15;
+    --mower-chrome:transparent;
+    --mower-shell-glow:transparent;
+    overflow: hidden;
+    border-radius:var(--mower-radius);
+  }
+
+  /* The original Hero look is a token palette. HA variables are remapped too, so
+     nested panels that read them follow the same palette. */
+  ha-card.hero-card:not(.theme-auto) {
     --mower-text:#eef3ed;
     --mower-muted:#a4b3a8;
     --mower-border:#2b3b30;
-    --mower-accent:#aed098;
+    --mower-accent:var(--mower-custom-accent,#aed098);
     --mower-route:#71b9cf;
     --mower-map-ground:#18291e;
-    overflow: hidden;
-    border-radius:var(--ha-card-border-radius,18px);
-    border: 1px solid color-mix(in srgb, var(--divider-color) 80%, #7ea36e 20%);
-    background: #0a0d0b;
+    --mower-canvas:#0a0d0b;
+    --mower-chrome:#0d120e;
+    --mower-field:#111a15;
+    --mower-shell-glow:rgba(122, 164, 97, 0.18);
+    --mower-success:#8bc978;
+    --mower-error:#ef8178;
+    --mower-state-mowing:#93c47d;
+    --mower-state-returning:#f0c764;
+    --mower-state-paused:#b4a0e5;
+    --mower-state-docked:#78aee8;
+    --mower-state-error:#ef7f75;
+    --mower-switch-on:var(--mower-accent);
+    --card-background-color:var(--mower-field);
+    --primary-text-color:var(--mower-text);
+    --secondary-text-color:var(--mower-muted);
+    --divider-color:var(--mower-border);
+    --primary-color:var(--mower-accent);
+    color-scheme:dark;
+    color:var(--mower-text);
+    border:1px solid color-mix(in srgb, var(--mower-border) 70%, #7ea36e 30%);
+    background:var(--mower-canvas);
   }
 
   .hero-shell {
     display: grid;
-    color: #f7faf7;
+    color: var(--mower-text);
     background:
-      radial-gradient(circle at 50% -20%, rgba(122, 164, 97, 0.18), transparent 42%),
-      #0a0d0b;
+      radial-gradient(circle at 50% -20%, var(--mower-shell-glow), transparent 42%),
+      var(--mower-canvas);
   }
 
   .hero-action-feedback {
@@ -46,18 +71,17 @@ export const heroLayoutStyles = css`
     align-items: center;
     gap: 8px;
     margin: 0 14px 10px;
-    border: 1px solid color-mix(in srgb, #8bc978 42%, transparent);
-    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--mower-success) 42%, transparent);
+    border-radius: var(--mower-radius-control);
     padding: 9px 11px;
-    background: color-mix(in srgb, #17391c 88%, transparent);
-    color: #eaf8e7;
+    background: color-mix(in srgb, var(--mower-success) 16%, transparent);
+    color: var(--mower-text);
     font-size: 0.8rem;
   }
 
   .hero-action-feedback.error {
-    border-color: color-mix(in srgb, #ef8178 48%, transparent);
-    background: color-mix(in srgb, #4a1816 88%, transparent);
-    color: #ffe8e5;
+    border-color: color-mix(in srgb, var(--mower-error) 48%, transparent);
+    background: color-mix(in srgb, var(--mower-error) 16%, transparent);
   }
 
   .hero-action-feedback ha-icon {
@@ -73,6 +97,7 @@ export const heroLayoutStyles = css`
     aspect-ratio: 16 / 9.5;
     overflow: hidden;
     isolation: isolate;
+    color: #f7faf7;
     background: #080b09;
   }
 
@@ -320,29 +345,8 @@ export const heroLayoutStyles = css`
     height: 8px;
     flex: 0 0 auto;
     border-radius: 50%;
-    background: #93c47d;
-    box-shadow: 0 0 0 4px rgba(147, 196, 125, 0.14);
-  }
-
-  .hero-state.state-returning .hero-state-dot {
-    background: #f0c764;
-    box-shadow: 0 0 0 4px rgba(240, 199, 100, 0.14);
-  }
-
-  .hero-state.state-paused .hero-state-dot {
-    background: #b4a0e5;
-    box-shadow: 0 0 0 4px rgba(180, 160, 229, 0.14);
-  }
-
-  .hero-state.state-docked .hero-state-dot {
-    background: #78aee8;
-    box-shadow: 0 0 0 4px rgba(120, 174, 232, 0.14);
-  }
-
-  .hero-state.state-error .hero-state-dot,
-  .hero-state.state-unavailable .hero-state-dot {
-    background: #ef7f75;
-    box-shadow: 0 0 0 4px rgba(239, 127, 117, 0.14);
+    background: var(--mower-state, var(--mower-state-mowing));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--mower-state, var(--mower-state-mowing)) 14%, transparent);
   }
 
   .hero-metrics {
@@ -398,49 +402,43 @@ export const heroLayoutStyles = css`
     grid-auto-columns:minmax(0, 1fr);
     gap: 6px;
     padding: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: #0d120e;
+    border-top: 1px solid var(--mower-hairline);
+    border-bottom: 1px solid var(--mower-hairline);
+    background: var(--mower-chrome);
   }
 
   .hero-selectors {
-    --card-background-color: var(--mower-surface);
-    --primary-text-color: var(--mower-text);
-    --secondary-text-color: var(--mower-muted);
-    --divider-color: var(--mower-border);
-    --primary-color: var(--mower-accent);
-    color-scheme: dark;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 8px;
     padding: 10px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: #0d120e;
+    border-bottom: 1px solid var(--mower-hairline);
+    background: var(--mower-chrome);
   }
 
   .hero-selectors .selector-card {
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #f7faf7;
-    background: rgba(255, 255, 255, 0.04);
+    border-color: color-mix(in srgb, var(--mower-text) 12%, transparent);
+    color: var(--mower-text);
+    background: var(--mower-fill);
   }
 
   .hero-selectors .selector-label {
-    color: rgba(232, 240, 228, 0.68);
+    color: var(--mower-muted);
   }
 
   .hero-selectors .selector-card select {
     border-color: var(--mower-border);
     color: var(--mower-text);
-    background-color: var(--mower-surface);
+    background-color: var(--mower-field);
   }
 
   .hero-selectors .schedule-panel {
     grid-column: 1 / -1;
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #f7faf7;
+    border-color: color-mix(in srgb, var(--mower-text) 12%, transparent);
+    color: var(--mower-text);
     background:
-      linear-gradient(145deg, rgba(92, 190, 122, 0.12), transparent 55%),
-      rgba(255, 255, 255, 0.04);
+      linear-gradient(145deg, color-mix(in srgb, var(--mower-accent) 12%, transparent), transparent 55%),
+      var(--mower-fill);
   }
 
   .hero-selectors .schedule-list {
@@ -457,8 +455,8 @@ export const heroLayoutStyles = css`
   }
 
   .hero-selectors .schedule-row {
-    border-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.045);
+    border-color: var(--mower-hairline);
+    background: var(--mower-fill);
   }
 
   .hero-tab,
@@ -469,24 +467,24 @@ export const heroLayoutStyles = css`
     gap: 8px;
     margin: 0;
     border: 1px solid transparent;
-    color: rgba(247, 250, 247, 0.72);
+    color: color-mix(in srgb, var(--mower-text) 72%, transparent);
     background: transparent;
   }
 
   .hero-tab {
     padding: 9px 12px;
-    border-radius: 10px;
+    border-radius: var(--mower-radius-control);
   }
 
   .hero-tab:hover,
   .hero-tab.selected {
-    color: #f7faf7;
-    border-color: rgba(146, 190, 124, 0.24);
-    background: rgba(119, 159, 99, 0.16);
+    color: var(--mower-text);
+    border-color: color-mix(in srgb, var(--mower-accent) 24%, transparent);
+    background: color-mix(in srgb, var(--mower-accent) 16%, transparent);
   }
 
   .hero-tab.selected {
-    box-shadow: inset 0 -2px 0 #91bd7b;
+    box-shadow: inset 0 -2px 0 var(--mower-accent);
   }
 
   .hero-actions {
@@ -494,7 +492,7 @@ export const heroLayoutStyles = css`
     grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: 8px;
     padding: 12px;
-    background: #0a0d0b;
+    background: var(--mower-canvas);
   }
 
   .hero-action {
@@ -502,19 +500,18 @@ export const heroLayoutStyles = css`
     min-height: 54px;
     flex-direction: column;
     padding: 8px 6px;
-    border-color: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    border-color: var(--mower-hairline);
+    border-radius: var(--mower-radius-inner);
     font-size: 0.72rem;
-    background: rgba(255, 255, 255, 0.035);
+    background: var(--mower-fill);
   }
 
   .hero-action:hover,
   .hero-action.active {
-    color: #f7faf7;
-    border-color: rgba(146, 190, 124, 0.32);
-    background: rgba(119, 159, 99, 0.16);
+    color: var(--mower-text);
+    border-color: color-mix(in srgb, var(--mower-accent) 32%, transparent);
+    background: color-mix(in srgb, var(--mower-accent) 16%, transparent);
   }
-
   .hero-action:disabled,
   .hero-tab:disabled {
     opacity: 0.34;

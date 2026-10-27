@@ -1,4 +1,5 @@
 import { heroThemeStyles } from "./hero-theme";
+import { themeTokenStyles } from "./theme-tokens";
 import { cardAppearanceStyles } from "./card-appearance-styles";
 import { customizationStyles } from "./customization-view";
 import { css } from "lit";
@@ -9,7 +10,7 @@ import { schedulePanelStyles } from "./schedule-panel";
 import { mowingAutomationStyles } from "./mowing-automation-panel";
 import { recentConditionsStyles } from "./recent-conditions-panel";
 
-export const lawnMowerCardStyles = [css`
+export const lawnMowerCardStyles = [themeTokenStyles, css`
     :host {
       container-type: inline-size;
       display: block;
@@ -17,6 +18,7 @@ export const lawnMowerCardStyles = [css`
 
     ha-card {
       overflow: hidden;
+      color: var(--mower-text);
     }
 
     .wrap {
@@ -65,7 +67,7 @@ export const lawnMowerCardStyles = [css`
     }
 
     .subtitle {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       margin-top: 4px;
       word-break: break-word;
     }
@@ -78,66 +80,35 @@ export const lawnMowerCardStyles = [css`
     }
 
     .summary-chip {
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-control);
       padding: 6px 10px;
       font-size: 0.82rem;
-      background: color-mix(in srgb, var(--card-background-color) 94%, var(--primary-color) 6%);
+      background: var(--mower-fill);
       white-space: nowrap;
     }
 
     .state-pill {
       align-self: center;
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-control);
       padding: 6px 10px;
       font-size: 0.85rem;
       white-space: nowrap;
-      background: color-mix(in srgb, var(--card-background-color) 92%, var(--primary-color) 8%);
+      background: color-mix(in srgb, var(--mower-state, var(--mower-accent)) 14%, transparent);
+      border-color: color-mix(in srgb, var(--mower-state, var(--mower-accent)) 45%, transparent);
     }
-
-    .state-pill.state-mowing {
-      background: color-mix(in srgb, #173122 80%, var(--card-background-color) 20%);
-      border-color: color-mix(in srgb, #4ade80 45%, var(--divider-color) 55%);
-      color: #d8fbe6;
-    }
-
-    .state-pill.state-returning {
-      background: color-mix(in srgb, #2d2a15 82%, var(--card-background-color) 18%);
-      border-color: color-mix(in srgb, #facc15 45%, var(--divider-color) 55%);
-      color: #fff2bf;
-    }
-
-    .state-pill.state-paused {
-      background: color-mix(in srgb, #2a2235 82%, var(--card-background-color) 18%);
-      border-color: color-mix(in srgb, #c084fc 45%, var(--divider-color) 55%);
-      color: #f0ddff;
-    }
-
-    .state-pill.state-docked {
-      background: color-mix(in srgb, #182431 82%, var(--card-background-color) 18%);
-      border-color: color-mix(in srgb, #60a5fa 45%, var(--divider-color) 55%);
-      color: #d8ecff;
-    }
-
-    .state-pill.state-error {
-      background: color-mix(in srgb, #351b1b 82%, var(--card-background-color) 18%);
-      border-color: color-mix(in srgb, #f87171 45%, var(--divider-color) 55%);
-      color: #ffd9d9;
-    }
-
     .map {
       position: relative;
-      border: 1px solid var(--divider-color);
-      border-radius: 14px;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-inner);
       overflow: hidden;
       background:
-        radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--primary-color) 18%, transparent), transparent 45%),
-        color-mix(in srgb, var(--card-background-color) 84%, black 16%);
+        radial-gradient(circle at 20% 10%, var(--mower-fill-accent), transparent 45%),
+        var(--mower-fill-strong);
       min-height: 180px;
       display: grid;
       place-items: center;
-      box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
     }
 
     .map img {
@@ -197,7 +168,7 @@ export const lawnMowerCardStyles = [css`
       min-height: 180px;
       display: grid;
       place-items: center;
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       padding: 16px;
       text-align: center;
     }
@@ -205,9 +176,9 @@ export const lawnMowerCardStyles = [css`
     .point-cloud-panel {
       min-height: 320px;
       overflow: hidden;
-      border: 1px solid var(--divider-color);
-      border-radius: 12px;
-      background: #080b09;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-inner);
+      background: var(--mower-fill-strong);
     }
 
     .layout-compact .point-cloud-panel {
@@ -221,13 +192,13 @@ export const lawnMowerCardStyles = [css`
       justify-items: center;
       gap: 12px;
       padding: 24px;
-      color: rgba(247, 250, 247, 0.76);
+      color: var(--mower-muted);
       text-align: center;
     }
 
     .point-cloud-placeholder ha-icon {
       --mdc-icon-size: 36px;
-      color: #9fca8b;
+      color: var(--mower-accent);
     }
 
     .point-cloud-placeholder p {
@@ -240,10 +211,10 @@ export const lawnMowerCardStyles = [css`
     }
 
     .preference-panel {
-      border: 1px solid color-mix(in srgb, var(--primary-color) 28%, var(--divider-color));
-      border-radius: 12px;
+      border: 1px solid color-mix(in srgb, var(--mower-accent) 28%, var(--mower-border));
+      border-radius: var(--mower-radius-inner);
       overflow: hidden;
-      background: color-mix(in srgb, var(--card-background-color) 96%, var(--primary-color) 4%);
+      background: var(--mower-fill);
     }
 
     .preference-panel summary {
@@ -253,7 +224,7 @@ export const lawnMowerCardStyles = [css`
       gap: 12px;
       padding: 13px 14px;
       cursor: pointer;
-      color: var(--primary-text-color);
+      color: var(--mower-text);
       font-weight: 700;
       list-style: none;
     }
@@ -264,7 +235,7 @@ export const lawnMowerCardStyles = [css`
 
     .preference-panel summary::after {
       content: "›";
-      color: var(--primary-color);
+      color: var(--mower-accent);
       font-size: 1.35rem;
       line-height: 1;
       transform: rotate(90deg);
@@ -281,7 +252,7 @@ export const lawnMowerCardStyles = [css`
     }
 
     .preference-summary small {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-weight: 500;
     }
 
@@ -293,27 +264,27 @@ export const lawnMowerCardStyles = [css`
       display: grid;
       gap: 6px;
       padding: 12px;
-      border: 1px solid var(--divider-color);
-      border-radius: 10px;
-      background: color-mix(in srgb, var(--card-background-color) 94%, var(--primary-color) 6%);
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-inner);
+      background: var(--mower-fill);
     }
 
     .selector-label {
       font-size: 0.8rem;
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       text-transform: uppercase;
       letter-spacing: 0.02em;
     }
 
     .selector-hint {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-size: 0.78rem;
       line-height: 1.35;
     }
 
     .selector-hint.warning {
-      color: var(--primary-text-color);
-      border-inline-start: 3px solid var(--warning-color, #9a6700);
+      color: var(--mower-text);
+      border-inline-start: 3px solid var(--mower-warning);
       padding-inline-start: 8px;
     }
 
@@ -321,16 +292,16 @@ export const lawnMowerCardStyles = [css`
       color-scheme:inherit;
       width: 100%;
       box-sizing: border-box;
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-control);
       padding: 10px 12px;
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
+      background: var(--mower-field);
+      color: var(--mower-text);
       font: inherit;
     }
 
     .selector-card select:focus-visible {
-      outline:2px solid var(--primary-color);
+      outline:2px solid var(--mower-accent);
       outline-offset:2px;
     }
 
@@ -343,7 +314,7 @@ export const lawnMowerCardStyles = [css`
 
     .selector-number-value {
       font-weight: 700;
-      color: var(--primary-text-color);
+      color: var(--mower-text);
       white-space: nowrap;
     }
 
@@ -352,14 +323,14 @@ export const lawnMowerCardStyles = [css`
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      color: var(--primary-text-color);
+      color: var(--mower-text);
       font-weight: 600;
     }
 
     .selector-card input[type="range"] {
       width: 100%;
       margin: 4px 0 0;
-      accent-color: var(--primary-color);
+      accent-color: var(--mower-accent);
     }
 
     .selector-card input.number-box {
@@ -368,11 +339,11 @@ export const lawnMowerCardStyles = [css`
       min-height: 40px;
       margin: 4px 0 0;
       padding: 6px 10px;
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-control);
       font: inherit;
-      color: var(--primary-text-color);
-      background: var(--card-background-color);
+      color: var(--mower-text);
+      background: var(--mower-field);
     }
 
     .zone-selector-card {
@@ -409,26 +380,26 @@ export const lawnMowerCardStyles = [css`
       min-height: 44px;
       box-sizing: border-box;
       padding: 9px 10px;
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-control);
+      background: var(--mower-field);
+      color: var(--mower-text);
       cursor: pointer;
     }
 
     .zone-option.selected {
-      border-color: color-mix(in srgb, var(--primary-color) 62%, var(--divider-color));
-      background: color-mix(in srgb, var(--card-background-color) 88%, var(--primary-color) 12%);
+      border-color: color-mix(in srgb, var(--mower-accent) 62%, var(--mower-border));
+      background: var(--mower-fill-accent);
     }
 
     .zone-option input {
       flex: 0 0 auto;
       margin: 0;
-      accent-color: var(--primary-color);
+      accent-color: var(--mower-accent);
     }
 
     .zone-option:focus-within {
-      outline: 2px solid var(--primary-color);
+      outline: 2px solid var(--mower-accent);
       outline-offset: 2px;
     }
 
@@ -444,7 +415,7 @@ export const lawnMowerCardStyles = [css`
     }
 
     .zone-selection-note {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-size: 0.78rem;
       line-height: 1.35;
     }
@@ -453,14 +424,9 @@ export const lawnMowerCardStyles = [css`
       display: grid;
       gap: 12px;
       padding: 14px;
-      border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--divider-color) 78%);
-      border-radius: 12px;
-      background:
-        linear-gradient(
-          180deg,
-          color-mix(in srgb, var(--card-background-color) 93%, var(--primary-color) 7%),
-          color-mix(in srgb, var(--card-background-color) 98%, var(--primary-color) 2%)
-        );
+      border: 1px solid color-mix(in srgb, var(--mower-accent) 22%, var(--mower-border));
+      border-radius: var(--mower-radius-inner);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--mower-accent) 7%, transparent), color-mix(in srgb, var(--mower-accent) 2%, transparent));
     }
 
     .target-header {
@@ -478,12 +444,12 @@ export const lawnMowerCardStyles = [css`
     }
 
     .target-badge {
-      border: 1px solid color-mix(in srgb, var(--primary-color) 28%, var(--divider-color) 72%);
+      border: 1px solid color-mix(in srgb, var(--mower-accent) 28%, var(--mower-border));
       border-radius: 999px;
       padding: 4px 8px;
       font-size: 0.76rem;
-      color: var(--secondary-text-color);
-      background: color-mix(in srgb, var(--card-background-color) 92%, var(--primary-color) 8%);
+      color: var(--mower-muted);
+      background: var(--mower-fill-accent);
       white-space: nowrap;
     }
 
@@ -494,15 +460,15 @@ export const lawnMowerCardStyles = [css`
     }
 
     .target-metric {
-      border: 1px solid var(--divider-color);
-      border-radius: 10px;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-control);
       padding: 10px;
-      background: color-mix(in srgb, var(--card-background-color) 96%, var(--primary-color) 4%);
+      background: var(--mower-fill);
       min-width: 0;
     }
 
     .target-metric-label {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-size: 0.76rem;
       margin-bottom: 6px;
       text-transform: uppercase;
@@ -517,7 +483,7 @@ export const lawnMowerCardStyles = [css`
     }
 
     .target-note {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-size: 0.84rem;
       line-height: 1.4;
     }
@@ -526,14 +492,9 @@ export const lawnMowerCardStyles = [css`
       display: grid;
       gap: 12px;
       padding: 14px;
-      border: 1px solid color-mix(in srgb, #4ade80 32%, var(--divider-color) 68%);
-      border-radius: 12px;
-      background:
-        linear-gradient(
-          180deg,
-          color-mix(in srgb, #153527 18%, var(--card-background-color) 82%),
-          color-mix(in srgb, var(--card-background-color) 95%, #153527 5%)
-        );
+      border: 1px solid color-mix(in srgb, var(--mower-state-mowing) 32%, var(--mower-border));
+      border-radius: var(--mower-radius-inner);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--mower-state-mowing) 10%, transparent), color-mix(in srgb, var(--mower-state-mowing) 2%, transparent));
     }
 
     .session-header {
@@ -548,21 +509,21 @@ export const lawnMowerCardStyles = [css`
       font-weight: 700;
       letter-spacing: 0.02em;
       text-transform: uppercase;
-      color: color-mix(in srgb, var(--primary-text-color) 86%, #4ade80 14%);
+      color: color-mix(in srgb, var(--mower-text) 86%, var(--mower-state-mowing));
     }
 
     .session-badge {
-      border: 1px solid color-mix(in srgb, #4ade80 34%, var(--divider-color) 66%);
+      border: 1px solid color-mix(in srgb, var(--mower-state-mowing) 34%, var(--mower-border));
       border-radius: 999px;
       padding: 4px 8px;
       font-size: 0.76rem;
-      color: color-mix(in srgb, var(--primary-text-color) 78%, #4ade80 22%);
-      background: color-mix(in srgb, #153527 24%, var(--card-background-color) 76%);
+      color: color-mix(in srgb, var(--mower-text) 78%, var(--mower-state-mowing));
+      background: color-mix(in srgb, var(--mower-state-mowing) 14%, transparent);
       white-space: nowrap;
     }
 
     .session-subtitle {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-size: 0.85rem;
       line-height: 1.4;
     }
@@ -574,15 +535,15 @@ export const lawnMowerCardStyles = [css`
     }
 
     .session-metric {
-      border: 1px solid color-mix(in srgb, #4ade80 16%, var(--divider-color) 84%);
-      border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--mower-state-mowing) 16%, var(--mower-border));
+      border-radius: var(--mower-radius-control);
       padding: 10px;
-      background: color-mix(in srgb, var(--card-background-color) 95%, #4ade80 5%);
+      background: color-mix(in srgb, var(--mower-state-mowing) 5%, transparent);
       min-width: 0;
     }
 
     .session-metric-label {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-size: 0.76rem;
       margin-bottom: 6px;
       text-transform: uppercase;
@@ -606,17 +567,17 @@ export const lawnMowerCardStyles = [css`
       display: flex;
       align-items: center;
       gap: 8px;
-      border: 1px solid color-mix(in srgb, var(--success-color, #67b55b) 42%, transparent);
-      border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--mower-success) 42%, transparent);
+      border-radius: var(--mower-radius-control);
       padding: 9px 11px;
-      background: color-mix(in srgb, var(--success-color, #67b55b) 13%, transparent);
-      color: var(--primary-text-color);
+      background: color-mix(in srgb, var(--mower-success) 13%, transparent);
+      color: var(--mower-text);
       font-size: 0.8rem;
     }
 
     .action-feedback.error {
-      border-color: color-mix(in srgb, var(--error-color, #db4437) 48%, transparent);
-      background: color-mix(in srgb, var(--error-color, #db4437) 13%, transparent);
+      border-color: color-mix(in srgb, var(--mower-error) 48%, transparent);
+      background: color-mix(in srgb, var(--mower-error) 13%, transparent);
     }
 
     .action-feedback ha-icon {
@@ -630,7 +591,7 @@ export const lawnMowerCardStyles = [css`
     }
 
     .action-group-title {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-size: 0.8rem;
       letter-spacing: 0;
       text-transform: uppercase;
@@ -639,15 +600,15 @@ export const lawnMowerCardStyles = [css`
     button {
       font: inherit;
       padding: 12px;
-      border-radius: 8px;
-      border: 1px solid var(--divider-color);
-      color: var(--primary-text-color);
-      background: color-mix(in srgb, var(--card-background-color) 92%, var(--primary-color) 8%);
+      border-radius: var(--mower-radius-control);
+      border: 1px solid var(--mower-border);
+      color: var(--mower-text);
+      background: var(--mower-fill-accent);
       cursor: pointer;
     }
 
     button:hover {
-      background: color-mix(in srgb, var(--card-background-color) 82%, var(--primary-color) 18%);
+      background: var(--mower-fill-accent-strong);
     }
 
     button:disabled {
@@ -680,14 +641,14 @@ export const lawnMowerCardStyles = [css`
     }
 
     .tile {
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-control);
       padding: 12px;
       min-width: 0;
     }
 
     .tile-label {
-      color: var(--secondary-text-color);
+      color: var(--mower-muted);
       font-size: 0.8rem;
       margin-bottom: 6px;
     }

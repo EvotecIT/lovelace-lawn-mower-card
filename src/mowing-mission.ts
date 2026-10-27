@@ -30,12 +30,12 @@ export function renderMowingMission(model: {
 
 export const mowingMissionStyles = css`
   .mowing-mission { padding:14px 18px 16px; color:var(--mower-text);
-    background:var(--mower-surface); border-top:1px solid var(--mower-border); }
+    background:var(--mower-chrome,transparent); border-top:1px solid var(--mower-border); }
   .mowing-metrics { display:grid; grid-template-columns:.75fr 1fr 1fr; gap:16px; }
   .mowing-stat { display:grid; gap:5px; min-width:0; padding-left:12px;
     border-left:2px solid var(--mower-border); }
   .mowing-stat.completed { border-color:var(--mower-accent); }
-  .mowing-stat.remaining { border-color:#819b8d; }
+  .mowing-stat.remaining { border-color:var(--mower-muted); }
   .mowing-stat > span { color:var(--mower-muted); font-size:11px; line-height:1.3; }
   .mowing-stat strong { font-size:clamp(14px,2.4vw,20px); line-height:1.2;
     font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }

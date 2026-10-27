@@ -10,73 +10,73 @@ import {
 } from "./schedule-editor";
 
 export const mowingAutomationStyles = css`
-  .mowing-automation { grid-column: 1 / -1; display: grid; gap: 10px; padding: 12px; border: 1px solid var(--divider-color, #ddd); border-radius: 12px; min-width: 0; color: var(--primary-text-color); background: var(--card-background-color); }
+  .mowing-automation { grid-column: 1 / -1; display: grid; gap: 10px; padding: 12px; border: 1px solid var(--mower-border); border-radius: var(--mower-radius-inner); min-width: 0; color: var(--mower-text); background: var(--mower-fill); }
   .mowing-automation-header { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
   .mowing-automation-title { font-weight: 600; }
-  .mowing-automation-detail { color: var(--secondary-text-color); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
-  .mowing-automation a { color: var(--primary-color); text-decoration: underline; justify-self: start; padding-block: 4px; }
-  .mowing-automation a:focus-visible, .mowing-automation button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
-  .mowing-automation button { border: 1px solid var(--divider-color); color: var(--primary-text-color); background: var(--card-background-color); border-radius: 8px; min-height: 40px; padding: 8px 12px; font: inherit; cursor: pointer; }
+  .mowing-automation-detail { color: var(--mower-muted); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+  .mowing-automation a { color: var(--mower-accent); text-decoration: underline; justify-self: start; padding-block: 4px; }
+  .mowing-automation a:focus-visible, .mowing-automation button:focus-visible { outline: 2px solid var(--mower-accent); outline-offset: 3px; }
+  .mowing-automation button { border: 1px solid var(--mower-border); color: var(--mower-text); background: var(--mower-field); border-radius: var(--mower-radius-control); min-height: 40px; padding: 8px 12px; font: inherit; cursor: pointer; }
   .mowing-automation button:disabled { opacity: .5; cursor: default; }
-  .mowing-automation button.on { border-color: var(--primary-color); color: var(--primary-color); font-weight: 600; }
-  .mowing-automation button.link { border: none; background: none; min-height: 0; padding: 4px 0; color: var(--primary-color); text-decoration: underline; }
+  .mowing-automation button.on { border-color: var(--mower-accent); color: var(--mower-accent); font-weight: 600; }
+  .mowing-automation button.link { border: none; background: none; min-height: 0; padding: 4px 0; color: var(--mower-accent); text-decoration: underline; }
   .mowing-automation-plan { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
   .mowing-automation-settings { display: flex; flex-wrap: wrap; gap: 8px; }
   .mowing-automation-settings > * { flex: 1 1 160px; min-width: 0; }
   .mowing-automation-links { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
   .mowing-automation-dialog { box-sizing: border-box; width: min(560px, 100vw); max-height: 100dvh; margin: auto; padding: 16px;
-    border: 1px solid var(--divider-color, #ddd); border-radius: 16px; color: var(--primary-text-color);
+    border: 1px solid var(--mower-border); border-radius: 16px; color: var(--mower-text);
     background: var(--card-background-color, var(--ha-card-background, #fff)); overflow: auto; }
   .mowing-automation-dialog[open] { display: flex; flex-direction: column; gap: 8px; max-height: min(680px, 100dvh); overflow: hidden; }
   .dialog-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 2px; }
   .mowing-automation-dialog[open] > :not(.dialog-body) { flex: none; }
-  .dialog-tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--divider-color, #ddd); scrollbar-width: thin; }
+  .dialog-tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--mower-border); scrollbar-width: thin; }
   .mowing-automation-dialog .dialog-tabs button.tab { flex: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
-    background: none; min-height: 40px; padding: 8px 10px; color: var(--secondary-text-color); white-space: nowrap; }
-  .mowing-automation-dialog .dialog-tabs button.tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
-  .dialog-tabs .dot { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--primary-color); vertical-align: middle; }
-  .dialog-tabs .dot.error { background: var(--error-color, #db4437); }
+    background: none; min-height: 40px; padding: 8px 10px; color: var(--mower-muted); white-space: nowrap; }
+  .mowing-automation-dialog .dialog-tabs button.tab.active { color: var(--mower-accent); border-bottom-color: var(--mower-accent); font-weight: 600; }
+  .dialog-tabs .dot { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--mower-accent); vertical-align: middle; }
+  .dialog-tabs .dot.error { background: var(--mower-error); }
   .mowing-automation-dialog::backdrop { background: rgba(0,0,0,.6); }
   .mowing-automation-dialog h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 600; }
-  .mowing-automation-dialog button { border: 1px solid var(--divider-color); color: var(--primary-text-color); background: var(--card-background-color);
+  .mowing-automation-dialog button { border: 1px solid var(--mower-border); color: var(--mower-text); background: var(--card-background-color);
     border-radius: 8px; min-height: 40px; padding: 8px 12px; font: inherit; cursor: pointer; }
   .mowing-automation-dialog button:disabled { opacity: .5; cursor: default; }
-  .mowing-automation-dialog button.on { border-color: var(--primary-color); color: var(--primary-color); font-weight: 600; }
-  .mowing-automation-dialog button.primary { border-color: var(--primary-color); background: var(--primary-color); color: var(--text-primary-color, #fff); }
+  .mowing-automation-dialog button.on { border-color: var(--mower-accent); color: var(--mower-accent); font-weight: 600; }
+  .mowing-automation-dialog button.primary { border-color: var(--mower-accent); background: var(--mower-accent); color: var(--text-primary-color, #fff); }
   .mowing-automation-dialog button.icon { min-width: 40px; padding: 4px 8px; }
-  .mowing-automation-dialog button.link { border: none; background: none; min-height: 0; padding: 4px 0; color: var(--primary-color); text-decoration: underline; }
+  .mowing-automation-dialog button.link { border: none; background: none; min-height: 0; padding: 4px 0; color: var(--mower-accent); text-decoration: underline; }
   .dialog-header { display: flex; gap: 8px; align-items: center; }
   .dialog-header .mowing-automation-title { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 18px; }
   .schedule-days { display: grid; gap: 6px; }
   .schedule-day { display: grid; grid-template-columns: 96px 1fr auto; gap: 8px; align-items: center; min-height: 44px;
-    border-bottom: 1px solid var(--divider-color, #ddd); padding-bottom: 6px; }
+    border-bottom: 1px solid var(--mower-border); padding-bottom: 6px; }
   .schedule-day-name { text-transform: capitalize; font-weight: 500; }
   .schedule-blocks { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
-  .schedule-block { display: inline-flex; gap: 4px; align-items: center; padding: 2px 4px; border: 1px solid var(--divider-color, #ddd); border-radius: 8px; }
-  .schedule-block.invalid { border-color: var(--error-color, #db4437); }
+  .schedule-block { display: inline-flex; gap: 4px; align-items: center; padding: 2px 4px; border: 1px solid var(--mower-border); border-radius: 8px; }
+  .schedule-block.invalid { border-color: var(--mower-error); }
   .schedule-block input { font: inherit; color: inherit; background: transparent; border: none; min-height: 36px; }
-  .schedule-none { color: var(--secondary-text-color); }
-  .schedule-problem { color: var(--error-color, #db4437); overflow-wrap: anywhere; }
+  .schedule-none { color: var(--mower-muted); }
+  .schedule-problem { color: var(--mower-error); overflow-wrap: anywhere; }
   .setup-step h3 { text-transform: none; }
   .mowing-automation-dialog ha-form { display: block; }
   .mowing-automation-dialog .dialog-body { min-height: 120px; }
   .rotation-zones { width: 100%; border-collapse: collapse; margin-top: 4px; }
-  .rotation-zones th, .rotation-zones td { padding: 6px 4px; text-align: left; border-bottom: 1px solid var(--divider-color, #ddd); }
-  .rotation-zones thead th { font-size: 12px; color: var(--secondary-text-color); font-weight: 500; }
+  .rotation-zones th, .rotation-zones td { padding: 6px 4px; text-align: left; border-bottom: 1px solid var(--mower-border); }
+  .rotation-zones thead th { font-size: 12px; color: var(--mower-muted); font-weight: 500; }
   .rotation-zones tbody th { font-weight: 500; }
   .rotation-target { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 12px; }
   .rotation-target button { flex: 1 1 140px; }
   .rotation-fields { display: grid; gap: 10px; margin-bottom: 12px; }
-  .rotation-fields > label { display: grid; gap: 4px; font-size: 13px; color: var(--secondary-text-color); }
+  .rotation-fields > label { display: grid; gap: 4px; font-size: 13px; color: var(--mower-muted); }
   .rotation-fields select, .rotation-zones select, .rotation-area input[type="number"] { box-sizing: border-box; min-height: 40px;
-    padding: 6px 8px; border: 1px solid var(--divider-color); border-radius: 8px; font: inherit;
-    color: var(--primary-text-color); background: var(--card-background-color); }
-  .rotation-area { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--primary-text-color); }
+    padding: 6px 8px; border: 1px solid var(--mower-border); border-radius: 8px; font: inherit;
+    color: var(--mower-text); background: var(--card-background-color); }
+  .rotation-area { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--mower-text); }
   .rotation-area input[type="number"] { width: 96px; }
   .rotation-area .inline { display: inline-flex; gap: 6px; align-items: center; }
   .rotation-zones select { width: 100%; min-width: 120px; }
   .rotation-mobile-label { display: none; }
-  .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--divider-color, #ddd); }
+  .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--mower-border); }
   @media (max-width: 480px) { .schedule-day { grid-template-columns: 1fr auto; } .schedule-blocks { grid-column: 1 / -1; grid-row: 2; } }
   @media (max-width: 480px) {
     .schedule-block { display: grid; grid-template-columns: minmax(0, 1fr) auto; max-width: 100%; box-sizing: border-box; }
@@ -90,11 +90,11 @@ export const mowingAutomationStyles = css`
     .rotation-zones, .rotation-zones tbody { display: block; }
     .rotation-zones thead { display: none; }
     .rotation-zones tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-      gap: 4px 8px; padding: 8px 0; border-bottom: 1px solid var(--divider-color, #ddd); }
+      gap: 4px 8px; padding: 8px 0; border-bottom: 1px solid var(--mower-border); }
     .rotation-zones th, .rotation-zones td { border: 0; padding: 2px 0; min-width: 0; }
     .rotation-zones tbody th { grid-column: 1 / -1; overflow-wrap: anywhere; }
     .rotation-zones td:nth-child(2) { align-self: center; }
-    .rotation-zones td:last-child { grid-column: 1 / -1; font-size: 12px; color: var(--secondary-text-color); }
+    .rotation-zones td:last-child { grid-column: 1 / -1; font-size: 12px; color: var(--mower-muted); }
     .rotation-zones select { min-width: 0; }
     .rotation-mobile-label { display: inline; }
   }
