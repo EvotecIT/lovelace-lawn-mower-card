@@ -123,6 +123,7 @@ import {
 import { AutomationDialogController } from "./automation-dialog-controller";
 import { recentMowerConditions } from "./recent-conditions";
 import { renderRecentConditions } from "./recent-conditions-panel";
+import { mowerAlerts, renderMowerAlerts } from "./mower-alerts";
 import {
   normalizedZoneSelection,
   reconciledZoneSelectionKeys,
@@ -604,6 +605,7 @@ export class LawnMowerCard extends LitElement {
               </div>
               <div class=${`state-pill state-${mower.state}`}>${this._friendlyMowerState(mower.state)}</div>
             </div>
+            ${this._renderAlerts(mower)}
 
             ${renderSummary(headerSummary)}
             ${showMap
@@ -910,6 +912,7 @@ export class LawnMowerCard extends LitElement {
         : undefined,
       controls,
       settingsSheet: controlsLayout(this._config.controls_layout) === "sheet",
+      alerts: this._renderAlerts(mower),
       recentConditions: this._renderRecentConditions(),
       customSectionOrder: this._config.hero_sections !== undefined,
       summary: this._buildHeaderSummary(),
@@ -1103,6 +1106,16 @@ export class LawnMowerCard extends LitElement {
         this._heroViewSlot,
       ),
     );
+  }
+
+  private _renderAlerts(mower: HassEntity) {
+    if (!this.hass || !this._config) return nothing;
+    return renderMowerAlerts({
+      alerts: mowerAlerts(this.hass, this._config, this._t, this._locale),
+      idle: !["mowing", "returning"].includes(mower.state),
+      t: this._t,
+      onSelect: entityId => this._showMoreInfo(entityId),
+    });
   }
 
   private _renderRecentConditions() {
@@ -1299,7 +1312,9 @@ export class LawnMowerCard extends LitElement {
       }
     }
 
-    const rainDelay = this._companionSummaryFromBinary("rain_delay_active", this._t("settings.rainDelayLabel"));
+    // The alert strip already explains a rain delay, with its end time.
+    const rainDelay = this._config.show_alerts === false
+      ? this._companionSummaryFromBinary("rain_delay_active", this._t("settings.rainDelayLabel")) : undefined;
     if (rainDelay) {
       automaticSummary.push(rainDelay);
     }

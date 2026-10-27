@@ -76,6 +76,8 @@ export type HeroLayoutModel = {
   controls?: TemplateResult;
   /** Controls are one settings row, which reads best after the actions. */
   settingsSheet?: boolean;
+  /** Errors and what keeps the mower from mowing; empty when nothing needs attention. */
+  alerts?: TemplateResult | typeof nothing;
   recentConditions?: TemplateResult | typeof nothing;
   customSectionOrder?: boolean;
   summary: DisplayTile[];
@@ -204,7 +206,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
     <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.dashboard && !hasAside ? " dashboard-no-aside" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
       <div class="hero-shell">
         ${model.dashboard ? html`${renderDashboardHeader(model)}
-          <div class="dashboard-command-panel">${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>` : nothing}
+          <div class="dashboard-command-panel">${model.alerts || nothing}${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>` : nothing}
         <section class=${`hero-stage view-${mainView}${model.mowingMapPath ? " interactive-map" : ""}`}>
           ${renderHeroMedia(mainModel, model.dashboard && cameraAside ? ["overview", "map", "point-cloud", "photos"] : undefined)}
           ${mainView === "map" && !model.mowingMapPath ? model.mapStatus : nothing}
@@ -250,7 +252,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             `
           : nothing}
 
-
+        ${!model.dashboard ? model.alerts || nothing : nothing}
         ${controlsBeforeActions ? selectors : nothing}
         ${!model.dashboard ? renderHeroActionFeedback(model) : nothing}
         ${!model.dashboard ? renderHeroActions(model) : nothing}

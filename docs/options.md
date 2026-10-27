@@ -76,6 +76,9 @@
   otherwise the card looks for one companion on the same mower device
 - `show_recent_conditions`: optional boolean, defaults to `true`; history appears
   only when the selected sensor has usable fault or warning entries
+- `show_alerts`: optional boolean, defaults to `true`; shows errors, rain delay,
+  due maintenance and the mowing automation's hold reason in one strip, see
+  [Alerts](configuration.md#alerts-why-it-isnt-mowing)
 - `show_map`: optional boolean override for the map section
 - `show_point_cloud`: optional boolean override for the 3D point-cloud viewer;
   defaults to visible when `map_entity` advertises a supported local endpoint

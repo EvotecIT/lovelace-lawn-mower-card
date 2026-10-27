@@ -110,6 +110,8 @@ export type LawnMowerCardConfig = {
   schedule_calendar_entity?: string;
   notification_entity?: string;
   show_recent_conditions?: boolean;
+  /** The strip with errors and what keeps the mower from mowing; shown by default. */
+  show_alerts?: boolean;
   show_map?: boolean;
   show_point_cloud?: boolean;
   status_entity?: string;

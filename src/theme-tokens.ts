@@ -33,6 +33,7 @@ export const themeTokenStyles = css`
     --mower-success:var(--success-color,#43a047);
     --mower-warning:var(--warning-color,#ffa600);
     --mower-error:var(--error-color,#db4437);
+    --mower-info:var(--info-color,#039be5);
     --mower-state-mowing:var(--state-lawn_mower-mowing-color,var(--state-lawn_mower-active-color,var(--mower-success)));
     --mower-state-returning:var(--state-lawn_mower-returning-color,var(--info-color,#039be5));
     --mower-state-paused:var(--state-lawn_mower-paused-color,var(--mower-warning));
