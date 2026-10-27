@@ -1,6 +1,6 @@
 import { html, nothing, type TemplateResult } from "lit";
 import type { HeroLayoutModel } from "./hero-layout";
-import { isHeroViewAvailable } from "./hero-views";
+import { isHeroViewAvailable, showHeroViewTabs } from "./hero-views";
 
 /** The command result follows its controls in each composition. */
 export function renderHeroActionFeedback(model: HeroLayoutModel) {
@@ -47,27 +47,30 @@ function renderAction(
 
 /** Shared action handlers, availability and feedback remain owned by the card. */
 export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
+  const { visible, primary } = model.commands;
+  // The tab bar already switches views; the action row only repeats them when there are no tabs.
+  const viewButtons = !showHeroViewTabs(model.availableViews);
   return html`
         <div class="hero-actions" aria-label=${model.t("hero.controlsLabel")}>
           ${model.showDefaultActions
             ? html`
-                ${model.supportsStart
+                ${model.supportsStart && (visible.has("start") || model.startMenuOpen)
                   ? renderAction(
                       model.startMenuOpen ? model.t("custom.cancel") : model.t("action.start"),
                       model.startMenuOpen ? "mdi:chevron-down" : "mdi:play",
                       model.onStart,
                       {
-                        disabled: !model.canStart, primary: true,
+                        disabled: !model.canStart, primary: primary === "start",
                         expanded: model.startMenuOpen,
                       },
                     )
                   : nothing}
-                ${model.supportsPause
+                ${model.supportsPause && visible.has("pause")
                   ? renderAction(model.t("action.pause"), "mdi:pause", model.onPause, {
-                      disabled: !model.canPause,
+                      disabled: !model.canPause, primary: primary === "pause",
                     })
                   : nothing}
-                ${model.supportsCancelTask
+                ${model.supportsCancelTask && visible.has("cancel")
                   ? renderAction(
                       model.t("action.cancelTask"),
                       "mdi:stop-circle-outline",
@@ -75,7 +78,7 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                       { disabled: !model.canCancelTask },
                     )
                   : nothing}
-                ${model.supportsDock
+                ${model.supportsDock && visible.has("dock")
                   ? renderAction(
                       model.dockActionLabel,
                       "mdi:home-import-outline",
@@ -95,7 +98,7 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                   action.label, action.icon || "mdi:information-outline", action.handler,
                   { disabled: action.disabled },
                 ))}
-                ${isHeroViewAvailable("camera", model.availableViews)
+                ${viewButtons && isHeroViewAvailable("camera", model.availableViews)
                   ? renderAction(
                       model.t("action.camera"),
                       "mdi:video-wireless-outline",
@@ -103,7 +106,7 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                       { active: model.activeView === "camera" },
                     )
                   : nothing}
-                ${isHeroViewAvailable("map", model.availableViews)
+                ${viewButtons && isHeroViewAvailable("map", model.availableViews)
                   ? renderAction(
                       model.t("action.map"),
                       "mdi:map-outline",
@@ -111,7 +114,7 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                       { active: model.activeView === "map" },
                     )
                   : nothing}
-                ${isHeroViewAvailable("photos", model.availableViews)
+                ${viewButtons && isHeroViewAvailable("photos", model.availableViews)
                   ? renderAction(
                       model.t("hero.photos"),
                       "mdi:image-multiple-outline",
@@ -119,7 +122,7 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
                       { active: model.activeView === "photos" },
                     )
                   : nothing}
-                ${isHeroViewAvailable("point-cloud", model.availableViews)
+                ${viewButtons && isHeroViewAvailable("point-cloud", model.availableViews)
                   ? renderAction(
                       model.t("action.pointCloud"),
                       "mdi:rotate-3d-variant",

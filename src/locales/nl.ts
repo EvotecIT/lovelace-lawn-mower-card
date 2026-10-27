@@ -234,6 +234,7 @@ export const nl = {
   "hero.gardenMower": "Tuinmaaier",
   "hero.battery": "Batterij",
   "hero.mission": "Missie",
+  "hero.nextRun": "Volgende maaibeurt",
   "hero.coverage": "Gemaaid",
   "hero.overview": "Overzicht",
   "hero.map": "Kaart",

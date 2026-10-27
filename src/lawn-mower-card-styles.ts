@@ -272,8 +272,6 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
     .selector-label {
       font-size: 0.8rem;
       color: var(--mower-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
     }
 
     .selector-hint {
@@ -439,8 +437,6 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
     .target-title {
       font-size: 0.86rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
     }
 
     .target-badge {
@@ -471,8 +467,6 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
       color: var(--mower-muted);
       font-size: 0.76rem;
       margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
     }
 
     .target-metric-value {
@@ -507,8 +501,6 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
     .session-title {
       font-size: 0.86rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
       color: color-mix(in srgb, var(--mower-text) 86%, var(--mower-state-mowing));
     }
 
@@ -546,8 +538,6 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
       color: var(--mower-muted);
       font-size: 0.76rem;
       margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
     }
 
     .session-metric-value {
@@ -593,8 +583,6 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
     .action-group-title {
       color: var(--mower-muted);
       font-size: 0.8rem;
-      letter-spacing: 0;
-      text-transform: uppercase;
     }
 
     button {
@@ -609,6 +597,12 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
 
     button:hover {
       background: var(--mower-fill-accent-strong);
+    }
+
+    button.primary:not(:disabled) {
+      border-color: var(--mower-accent);
+      background: var(--mower-fill-accent-strong);
+      font-weight: 600;
     }
 
     button:disabled {

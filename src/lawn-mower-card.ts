@@ -1,3 +1,6 @@
+import { formatNextRun, nextScheduledRun } from "./next-run";
+import { withoutDevicePrefix } from "./display-names";
+import { commandPlan, type CommandPlan } from "./command-plan";
 import { cardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
 import "./action-confirmation";
@@ -320,6 +323,8 @@ export class LawnMowerCard extends LitElement {
   private _heroViewRoute?: string;
   private _heroViewSlot?: string;
   private _actionFeedbackTimer?: number;
+  private _nextRunTimer?: number;
+  private _nextRunAt?: number;
   private _actionGeneration = 0;
   private _heroPointCloudGeneration = 0;
   private _mutationSubscription?: () => void;
@@ -356,6 +361,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   public setConfig(config: LawnMowerCardConfig): void {
+    this._clearNextRunTimer();
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
@@ -460,6 +466,7 @@ export class LawnMowerCard extends LitElement {
     this._actionGeneration += 1;
     this._actionFeedback = undefined;
     this._clearActionFeedbackTimer();
+    this._clearNextRunTimer();
     this._clearCameraUnmountTimer();
     this._resetCameraRecovery();
     this._cameraMounted = false;
@@ -698,7 +705,7 @@ export class LawnMowerCard extends LitElement {
                         <div class="actions">
                           ${group.actions.map(
                             (action) => html`
-                              <button @click=${action.handler} ?disabled=${action.disabled} aria-expanded=${action.expanded === undefined ? nothing : String(action.expanded)}>
+                              <button class=${action.primary ? "primary" : nothing} @click=${action.handler} ?disabled=${action.disabled} aria-expanded=${action.expanded === undefined ? nothing : String(action.expanded)}>
                                 <span class="button-content">
                                   ${action.icon ? html`<ha-icon .icon=${action.icon}></ha-icon>` : nothing}
                                   <span>${action.label}</span>
@@ -807,6 +814,7 @@ export class LawnMowerCard extends LitElement {
       this._stringAttribute(mower, "battery_level", "%");
     const progress = this._heroMissionMetric();
     const coverage = this._heroCoverageMetric();
+    const nextRun = this._nextRunLabel(mower, helperEntities);
     const controls = controlEntities.length || scheduleControls.length || (
       !["hidden", "custom"].includes(this._config.controls_mode || "auto") && mowingAutomationStatus(this.hass.states, this._config.entity)
     )
@@ -853,6 +861,7 @@ export class LawnMowerCard extends LitElement {
       progressLabel: progress.label,
       coverage: coverage.value,
       coverageLabel: coverage.label,
+      nextRun,
       area: coverage.area,
       mowingMapPath: scenePath,
       mapBackground: this._config.map_background,
@@ -925,6 +934,7 @@ export class LawnMowerCard extends LitElement {
       canDock: !this._mutationInFlight && this._canDock(mower),
       canCancelTask:
         !this._mutationInFlight && mowerCanCancelTask(mower),
+      commands: this._commandPlan(mower),
       dockActionLabel: this._dockActionLabel(mower),
       maintenancePointAvailable:
         !this._mutationInFlight &&
@@ -1387,7 +1397,7 @@ export class LawnMowerCard extends LitElement {
       String(entity.state).trim().toLowerCase(),
     );
     const label =
-      this._friendlyName(entity) ||
+      this._controlLabel(entity) ||
       this._preferredEntityLabel(entityId) ||
       this._entityName(entityId);
     const labelId = `zone-selector-${entityId.replace(/[^a-z0-9_-]+/gi, "-")}`;
@@ -1428,7 +1438,7 @@ export class LawnMowerCard extends LitElement {
       return nothing;
     }
     const label =
-      this._friendlyName(entity) ||
+      this._controlLabel(entity) ||
       this._preferredEntityLabel(entityId) ||
       this._entityName(entityId);
     const enabled = entity.state === "on";
@@ -1496,7 +1506,7 @@ export class LawnMowerCard extends LitElement {
     }
 
     const label =
-      this._friendlyName(entity) ||
+      this._controlLabel(entity) ||
       this._preferredEntityLabel(entityId) ||
       this._entityName(entityId);
     const unavailable = ["unavailable", "unknown"].includes(String(entity.state));
@@ -1556,7 +1566,7 @@ export class LawnMowerCard extends LitElement {
     }
     const settings = numberControlSettings(entity);
     const label =
-      this._friendlyName(entity) ||
+      this._controlLabel(entity) ||
       this._preferredEntityLabel(entityId) ||
       this._entityName(entityId);
     const unavailable = ["unavailable", "unknown"].includes(
@@ -1596,7 +1606,7 @@ export class LawnMowerCard extends LitElement {
     const value = timeInputValue(entity.state);
     const available = !this._isUnavailableEntity(entity);
     const label =
-      this._friendlyName(entity) ||
+      this._controlLabel(entity) ||
       this._preferredEntityLabel(entityId) ||
       this._entityName(entityId);
     if (!available || !value) {
@@ -1682,10 +1692,11 @@ export class LawnMowerCard extends LitElement {
     }
 
     const defaultActions: DisplayAction[] = [];
+    const { visible, primary } = this._commandPlan(mower);
 
     if (this._config.show_default_actions ?? true) {
-      if (mowerSupportsFeature(mower, LawnMowerFeature.START_MOWING)) {
-        const menuOpen = this._areaMenuShown(mower);
+      const menuOpen = this._areaMenuShown(mower);
+      if (mowerSupportsFeature(mower, LawnMowerFeature.START_MOWING) && (visible.has("start") || menuOpen)) {
         defaultActions.push({
           label: menuOpen ? this._t("custom.cancel") : this._t("action.start"),
           icon: menuOpen ? "mdi:chevron-down" : "mdi:play",
@@ -1694,19 +1705,21 @@ export class LawnMowerCard extends LitElement {
             Boolean(this._mutationInFlight) ||
             !this._canStart(mower.state) ||
             !this._canStartSelectedTarget(),
+          primary: primary === "start",
           handler: () => this._requestStart(),
         });
       }
-      if (mowerSupportsFeature(mower, LawnMowerFeature.PAUSE)) {
+      if (mowerSupportsFeature(mower, LawnMowerFeature.PAUSE) && visible.has("pause")) {
         defaultActions.push({
           label: this._t("action.pause"),
           icon: "mdi:pause",
           disabled:
             Boolean(this._mutationInFlight) || !this._canPause(mower.state),
+          primary: primary === "pause",
           handler: () => this._pauseMowing(),
         });
       }
-      if (this._supportsCancelCurrentTask()) {
+      if (this._supportsCancelCurrentTask() && visible.has("cancel")) {
         defaultActions.push({
           label: this._t("action.cancelTask"),
           icon: "mdi:stop-circle-outline",
@@ -1715,7 +1728,7 @@ export class LawnMowerCard extends LitElement {
           handler: () => this._requestCancelCurrentTask(),
         });
       }
-      if (mowerSupportsFeature(mower, LawnMowerFeature.DOCK)) {
+      if (mowerSupportsFeature(mower, LawnMowerFeature.DOCK) && visible.has("dock")) {
         defaultActions.push({
           label: this._dockActionLabel(mower),
           icon: "mdi:home-import-outline",
@@ -2261,6 +2274,13 @@ export class LawnMowerCard extends LitElement {
       return this._t("common.error");
     }
     return fallback || this._entityName(entityId);
+  }
+
+  /** Related entities read without the mower's own name in front of them. */
+  private _controlLabel(entity: HassEntity): string | undefined {
+    const name = this._friendlyName(entity);
+    const mower = this._config ? this.hass.states[this._config.entity] : undefined;
+    return name && withoutDevicePrefix(name, [mower && this._friendlyName(mower), this._config?.name]);
   }
 
   private _friendlyName(entity: HassEntity): string | undefined {
@@ -3443,6 +3463,52 @@ export class LawnMowerCard extends LitElement {
       return offLabel;
     }
     return this._friendlyState(entity);
+  }
+
+  /** While the mower is idle, the next scheduled start is more useful than the last mission's progress. */
+  private _nextRunLabel(mower: HassEntity, helpers: ReturnType<typeof defaultHelperEntities>): string | undefined {
+    if (["mowing", "returning", "paused"].includes(mower.state) || !this._config) {
+      this._clearNextRunTimer();
+      return undefined;
+    }
+    const calendar = helpers.find((helper) => helper.entityId.startsWith("calendar."));
+    const run = nextScheduledRun(
+      discoverScheduleControls(this.hass.states, this._config.entity),
+      new Date(),
+      calendar ? this.hass.states[calendar.entityId]?.attributes.start_time : undefined,
+    );
+    this._refreshAt(run);
+    return run ? formatNextRun(run, this._locale, new Date()) : undefined;
+  }
+
+  /** A schedule that passes without starting the mower changes no entity, so re-render at its time. */
+  private _refreshAt(run: Date | undefined): void {
+    const at = run?.getTime();
+    if (at === this._nextRunAt) return;
+    this._clearNextRunTimer();
+    this._nextRunAt = at;
+    if (at === undefined) return;
+    this._nextRunTimer = window.setTimeout(() => {
+      this._nextRunTimer = undefined;
+      this._nextRunAt = undefined;
+      this.requestUpdate();
+    }, Math.min(Math.max(at - Date.now() + 1000, 1000), 2_147_000_000));
+  }
+
+  private _clearNextRunTimer(): void {
+    if (this._nextRunTimer !== undefined) window.clearTimeout(this._nextRunTimer);
+    this._nextRunTimer = undefined;
+    this._nextRunAt = undefined;
+  }
+
+  /** Visibility follows the mower state; in-flight commands only disable buttons. */
+  private _commandPlan(mower: HassEntity): CommandPlan {
+    return commandPlan({
+      start: this._canStart(mower.state),
+      pause: this._canPause(mower.state),
+      cancel: mowerCanCancelTask(mower),
+      dock: this._canDock(mower),
+    });
   }
 
   private _canStart(state: string): boolean {

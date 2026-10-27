@@ -227,6 +227,7 @@ export const pl = {
   "hero.gardenMower": "Kosiarka ogrodowa",
   "hero.battery": "Akumulator",
   "hero.mission": "Zadanie",
+  "hero.nextRun": "Następne koszenie",
   "hero.coverage": "Skoszony obszar",
   "hero.overview": "Podsumowanie",
   "hero.map": "Mapa",

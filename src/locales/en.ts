@@ -250,6 +250,7 @@ export const en = {
   "hero.gardenMower": "Garden mower",
   "hero.battery": "Battery",
   "hero.mission": "Mission",
+  "hero.nextRun": "Next run",
   "hero.coverage": "Coverage",
   "hero.overview": "Overview",
   "hero.map": "Map",
