@@ -60,6 +60,13 @@ test("an available mower can still be offline or cut off from the cloud", () => 
   assert.equal(cloud.title, "Can't reach the Dreame cloud");
 });
 
+test("an unavailable Device Connected sensor doesn't hide an Online sensor that is off", () => {
+  const alert = availabilityAlert(hass(entity(config.entity, "docked"),
+    entity("binary_sensor.dreame_a2_bodzio_device_connected", "unavailable"),
+    entity("binary_sensor.dreame_a2_bodzio_online", "off")), config, t, "en", now);
+  assert.equal(alert?.title, "Mower is offline");
+});
+
 test("an unreachable mower shows only its availability line", () => {
   const alerts = mowerAlerts(hass(
     entity(config.entity, "unavailable", { attributes: { restored: true } }),

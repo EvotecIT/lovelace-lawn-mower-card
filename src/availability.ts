@@ -3,7 +3,7 @@ import { resolvedMowerCompanionEntity } from "./card-logic.ts";
 import type { TranslationKey, Translator } from "./localization";
 import type { MowerAlert } from "./mower-alerts.ts";
 
-/** The mower's config entry as HA's config_entries/get reports it (admins only). */
+/** The mower's config entry as HA's config_entries/get reports it. */
 export type IntegrationStatus = {
   entryId: string;
   domain: string;
@@ -50,7 +50,7 @@ export function lastSeen(value: unknown, locale: string, now: Date): string | un
 
 /**
  * Why the card has nothing to show when the mower is unreachable: the integration
- * isn't running (with HA's own reason when the user may read it), or it runs but the
+ * isn't running (with HA's own reason when the entry could be read), or it runs but the
  * mower or the cloud is offline. Returns the one line that explains it, or nothing.
  */
 export function availabilityAlert(
@@ -99,7 +99,9 @@ export function availabilityAlert(
       detail: t("alerts.cloudOfflineDetail"), entityId: cloud.entity_id,
     };
   }
-  const online = companion("device_connected") ?? companion("online");
+  // The first connection sensor with a usable state; an unavailable one says nothing.
+  const online = [companion("device_connected"), companion("online")]
+    .find(sensor => sensor && !GONE.has(sensor.state));
   if (online?.state === "off") {
     const seen = lastSeen(online.last_changed ?? online.last_updated, locale, now);
     return {

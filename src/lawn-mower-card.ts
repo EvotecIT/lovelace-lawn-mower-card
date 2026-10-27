@@ -336,6 +336,9 @@ export class LawnMowerCard extends LitElement {
   @state() private _heroMoreOpen = false;
   @state() private _integration?: IntegrationStatus;
   private _integrationCheckedAt?: number;
+  /** The mower the cached status and its throttle belong to. */
+  private _integrationFor?: string;
+  private _integrationRequest = 0;
   @state() private _maintenanceConfirm?: { mower: string; key: MaintenancePartKey; resetId: string };
   @state() private _actionRowCapacity?: number;
   private _widthObserver?: ResizeObserver;
@@ -379,6 +382,7 @@ export class LawnMowerCard extends LitElement {
   public setConfig(config: LawnMowerCardConfig): void {
     this._clearNextRunTimer();
     this._maintenanceConfirm = undefined;
+    if (config.entity !== this._config?.entity) this._resetIntegrationStatus();
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
@@ -544,24 +548,45 @@ export class LawnMowerCard extends LitElement {
   }
 
   /**
-   * While the mower is unreachable, ask HA why: the config entry's state and reason,
-   * which only admins may read. At most once a minute, and dropped once it's back.
+   * The interactive map's path, unless its camera is unavailable; a saved preview the
+   * integration keeps across a restart still shows.
+   */
+  private _mapPath(mapEntity?: HassEntity): string | undefined {
+    if (mapEntity && ["unavailable", "unknown"].includes(mapEntity.state) && mapEntity.attributes.restart_preview !== true) return undefined;
+    return mowingMapPath(mapEntity?.attributes.mowing_map_api_path);
+  }
+
+  /** Forgets the cached entry status and invalidates any request still in flight. */
+  private _resetIntegrationStatus(): void {
+    this._integration = undefined;
+    this._integrationCheckedAt = undefined;
+    this._integrationFor = undefined;
+    this._integrationRequest += 1;
+  }
+
+  /**
+   * While the mower is unreachable, ask HA why: the config entry's state and reason.
+   * At most once a minute per mower, and dropped once it's back or the card changes mower.
    */
   private _syncIntegrationStatus(): void {
-    const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
-    if (!mower || !["unavailable", "unknown"].includes(mower.state)) {
-      this._integration = undefined;
-      this._integrationCheckedAt = undefined;
-      return;
+    const mowerId = this._config?.entity;
+    const mower = mowerId ? this.hass?.states[mowerId] : undefined;
+    if (!mower || !["unavailable", "unknown"].includes(mower.state) || this._integrationFor !== mowerId) {
+      if (this._integrationFor !== undefined || this._integration) this._resetIntegrationStatus();
+      if (!mower || !["unavailable", "unknown"].includes(mower.state)) return;
     }
-    const domain = this.hass.entities?.[this._config!.entity]?.platform;
-    if (!domain || this.hass.user?.is_admin !== true) return;
+    const domain = this.hass.entities?.[mowerId!]?.platform;
+    if (!domain) return;
     if (this._integrationCheckedAt !== undefined && Date.now() - this._integrationCheckedAt < 60000) return;
     this._integrationCheckedAt = Date.now();
-    const mowerId = this._config!.entity;
+    this._integrationFor = mowerId;
+    // Only the latest request for this mower and this unavailable spell may answer.
+    const request = ++this._integrationRequest;
     this.hass.callWS<unknown>({ type: "config_entries/get", domain })
       .then(entries => {
-        if (this._config?.entity === mowerId) this._integration = integrationStatus(entries, this.hass, mowerId);
+        if (request === this._integrationRequest && this._config?.entity === mowerId) {
+          this._integration = integrationStatus(entries, this.hass, mowerId!);
+        }
       })
       .catch(() => undefined);
   }
@@ -667,7 +692,7 @@ export class LawnMowerCard extends LitElement {
               ? html`
                   <div class="map" id="media-panel-map" role=${mediaViews.length > 1 ? "tabpanel" : nothing}
                     aria-labelledby=${mediaViews.length > 1 ? "media-tab-map" : nothing}>
-                    ${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)
+                    ${this._mapPath(mapEntity)
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
                           .appearanceContext=${this._config}
@@ -676,7 +701,7 @@ export class LawnMowerCard extends LitElement {
                           .entityId=${this._config.entity} .tiles=${worldTileConfig(this._config)}
                           .mowerSize=${mowerMarkerSize(this._config)}
                           .worldDim=${this._config.world_background_dim}
-                          .path=${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)}
+                          .path=${this._mapPath(mapEntity)}
                           .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
                           .active=${this._mediaVisible}></lawn-mower-mowing-map>`
                       : mapUrl
@@ -897,7 +922,7 @@ export class LawnMowerCard extends LitElement {
     )
       ? this._renderControlContent(controlEntities, scheduleControls, true) : undefined;
     const scenePath = this._config.show_map === false ? undefined
-      : mowingMapPath(configuredMapEntity?.attributes.mowing_map_api_path);
+      : this._mapPath(configuredMapEntity);
     const availableViews = availableHeroViews({
       map: Boolean(mapUrl || scenePath),
       pointCloud: Boolean(pointCloudPath),

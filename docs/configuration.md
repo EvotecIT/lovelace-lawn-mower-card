@@ -30,7 +30,7 @@ from mowing. It reads what the integration already reports on the same device:
 
 | Line | Comes from |
 |---|---|
-| **The mower's integration isn't running**, with Home Assistant's reason (for example "Setup failed, retrying · Initial device properties are unavailable") and a tap to open the integration's page | the integration's config entry, which only administrators may read; others see the line without the reason |
+| **The mower's integration isn't running**, with Home Assistant's reason (for example "Setup failed, retrying · Initial device properties are unavailable") and a tap to open the integration's page | the integration's config entry; if it can't be read, the line still shows without the reason |
 | **Mower is offline**, with when it was last seen | the mower unavailable while its integration runs, or its **Device Connected** / **Online** sensor off |
 | **Can't reach the Dreame cloud** | the **Cloud Connected** sensor off |
 | **Mower needs attention**, with the error text | the **Error** sensor, or the mower in the `error` state |
