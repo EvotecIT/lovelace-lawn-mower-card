@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { forecastByDay, planStarts, rainLikely, weekPlan, ForecastSubscription } from "../src/week-plan.ts";
 import type { ScheduleControl } from "../src/schedule-controls.ts";
+import { nextScheduledRun } from "../src/next-run.ts";
 
 // Tuesday 27 October 2026, 09:00 local time.
 const now = new Date(2026, 9, 27, 9, 0);
@@ -31,6 +32,14 @@ test("start times are placed only where the integration's flattened lists allow 
   assert.deepEqual(starts(["tue"], ["08:00", "17:30"]), { tue: ["08:00", "17:30"] });
   // Two days, three different times: the days are known, the times are not.
   assert.deepEqual(starts(["mon", "wed"], ["08:00", "12:00", "17:00"]), { mon: [undefined], wed: [undefined] });
+});
+
+test("Next run uses the same placement, so it never invents a start", () => {
+  // Tuesday 17:00 and Wednesday 10:00, flattened by the integration; it is Tuesday 09:00.
+  const next = nextScheduledRun([plan({ weekdays: ["tue", "wed"], startTimes: ["17:00", "10:00"] })], now);
+  assert.deepEqual(next, new Date(2026, 9, 27, 17, 0));
+  // Ambiguous times give no next run rather than a made-up one.
+  assert.equal(nextScheduledRun([plan({ weekdays: ["mon", "wed"], startTimes: ["08:00", "12:00", "17:00"] })], now), undefined);
 });
 
 test("a day whose time can't be placed still shows the plan, after timed runs", () => {

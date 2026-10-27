@@ -1,4 +1,5 @@
 import type { ScheduleControl } from "./schedule-controls.ts";
+import { planStarts } from "./week-plan.ts";
 
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -14,14 +15,13 @@ export function nextScheduledRun(
   const candidates: Date[] = [];
   for (const control of controls) {
     if (!control.enabled || !control.available) continue;
-    for (const weekday of control.weekdays) {
-      const day = WEEKDAYS.indexOf(weekday.trim().slice(0, 3).toLowerCase());
-      if (day < 0) continue;
-      for (const time of control.startTimes) {
-        const match = /^(\d{1,2}):(\d{2})/.exec(time.trim());
-        if (!match) continue;
+    // Only times that can be placed on a day; the integration flattens days and times.
+    for (const [weekday, times] of planStarts(control)) {
+      const day = WEEKDAYS.indexOf(weekday);
+      for (const time of times) {
+        if (day < 0 || !time) continue;
         const run = new Date(now);
-        run.setHours(Number(match[1]), Number(match[2]), 0, 0);
+        run.setHours(Number(time.slice(0, 2)), Number(time.slice(3)), 0, 0);
         run.setDate(run.getDate() + ((day - run.getDay() + 7) % 7));
         if (run <= now) run.setDate(run.getDate() + 7);
         candidates.push(run);
