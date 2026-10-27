@@ -17,6 +17,7 @@ export const themeTokenStyles = css`
     --mower-accent:var(--mower-custom-accent,var(--primary-color,#03a9f4));
     --mower-canvas:transparent;
     --mower-surface:var(--card-background-color,#fff);
+    --mower-dialog:var(--ha-dialog-surface-background,var(--mower-surface));
     --mower-fill:color-mix(in srgb,var(--mower-text) 4%,transparent);
     --mower-fill-strong:color-mix(in srgb,var(--mower-text) 8%,transparent);
     --mower-panel:var(--mower-fill);

@@ -134,6 +134,15 @@ export class CustomizationEditor extends LitElement {
       ], value => { const next = { ...this.config }; if (value === "legacy") delete next[modeKey]; else next[modeKey] = value as LawnMowerCardConfig[typeof modeKey]; this.change(next); }) : nothing}
       ${modeKey ? html`<span class="hint">${this.t("custom.modeHint")}</span>` : nothing}
       ${key === "control_entities" ? html`
+        ${this.select(this.t("custom.controlsLayout"), this.config.controls_layout || "sheet", [
+          ["sheet", this.t("custom.controlsSheet")], ["inline", this.t("custom.controlsInline")],
+        ], value => {
+          const next = { ...this.config };
+          if (value === "sheet") delete next.controls_layout;
+          else next.controls_layout = "inline";
+          this.change(next);
+        })}
+        <span class="hint">${this.t("custom.controlsLayoutHint")}</span>
         ${this.select(this.t("custom.zonePickerColumns"), String(this.config.zone_picker_columns ?? "auto"), [
           ["auto", this.t("common.automatic")], ["1", "1"], ["2", "2"],
         ], value => {

@@ -127,6 +127,8 @@ export type LawnMowerCardConfig = {
   controls_mode?: ContentMode;
   /** Multi-select zone columns; automatic follows the available card width. */
   zone_picker_columns?: "auto" | 1 | 2;
+  /** Where schedules, selects and device settings live; the zone picker always stays on the card. */
+  controls_layout?: "sheet" | "inline";
   summary_mode?: ContentMode;
   summary_entities?: Array<string | LawnMowerTileConfig>;
   hero_sections?: Array<"tiles" | "actions" | "controls" | "details">;

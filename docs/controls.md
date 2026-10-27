@@ -71,6 +71,14 @@ standard Start, Pause, and Dock controls unchanged.
 
 ## Control Selectors
 
+The card keeps these in a **Mower settings** sheet. One row on the card shows the current choices, such as `2 plans · Map 1 · Zone mowing`, and opens the sheet. The sheet holds the schedules, the HA mowing automation, the selectors, Device settings and Mowing preferences. On a phone it rises from the bottom of the screen. The multi-select zone picker stays on the card because it chooses what Start mows.
+
+To keep every control on the card as in earlier versions, set:
+
+```yaml
+controls_layout: inline
+```
+
 When compatible `select`, `number`, `switch`, or `time` entities exist, every
 layout, including Hero, can render them as direct inline controls. This is
 especially useful for Dreame and MOVA mower setups that expose entities such as:

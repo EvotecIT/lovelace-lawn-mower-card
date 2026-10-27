@@ -168,4 +168,11 @@ window.addEventListener("load", async () => {
   frame.style.cssText = `width:${Number(params.get("width")) || 420}px;padding:16px`;
   frame.append(card);
   document.body.replaceChildren(frame);
+  // A solid page colour lets the capture script trim the empty space below the card.
+  document.body.style.backgroundImage = "none";
+  // ?open=settings shows the settings sheet as well, for before/after captures.
+  if (params.get("open") === "settings") {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    card.shadowRoot?.querySelector(".settings-entry")?.click();
+  }
 });

@@ -38,6 +38,7 @@ export const heroLayoutStyles = css`
     --mower-canvas:#0a0d0b;
     --mower-chrome:#0d120e;
     --mower-field:#111a15;
+    --mower-dialog:#111a15;
     --mower-shell-glow:rgba(122, 164, 97, 0.18);
     --mower-success:#8bc978;
     --mower-error:#ef8178;
