@@ -572,6 +572,11 @@ export const heroLayoutStyles = css`
       display: none;
     }
 
+    /* A bare time doesn't say what it is; the next run keeps its label. */
+    .hero-metric.next-run .hero-metric-label {
+      display: block;
+    }
+
     .hero-tabs {
       gap: 2px;
       padding: 6px;

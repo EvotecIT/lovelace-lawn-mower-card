@@ -323,6 +323,8 @@ export class LawnMowerCard extends LitElement {
   private _heroViewRoute?: string;
   private _heroViewSlot?: string;
   private _actionFeedbackTimer?: number;
+  private _nextRunTimer?: number;
+  private _nextRunAt?: number;
   private _actionGeneration = 0;
   private _heroPointCloudGeneration = 0;
   private _mutationSubscription?: () => void;
@@ -359,6 +361,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   public setConfig(config: LawnMowerCardConfig): void {
+    this._clearNextRunTimer();
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
@@ -463,6 +466,7 @@ export class LawnMowerCard extends LitElement {
     this._actionGeneration += 1;
     this._actionFeedback = undefined;
     this._clearActionFeedbackTimer();
+    this._clearNextRunTimer();
     this._clearCameraUnmountTimer();
     this._resetCameraRecovery();
     this._cameraMounted = false;
@@ -3463,14 +3467,38 @@ export class LawnMowerCard extends LitElement {
 
   /** While the mower is idle, the next scheduled start is more useful than the last mission's progress. */
   private _nextRunLabel(mower: HassEntity, helpers: ReturnType<typeof defaultHelperEntities>): string | undefined {
-    if (["mowing", "returning", "paused"].includes(mower.state) || !this._config) return undefined;
+    if (["mowing", "returning", "paused"].includes(mower.state) || !this._config) {
+      this._clearNextRunTimer();
+      return undefined;
+    }
     const calendar = helpers.find((helper) => helper.entityId.startsWith("calendar."));
     const run = nextScheduledRun(
       discoverScheduleControls(this.hass.states, this._config.entity),
       new Date(),
       calendar ? this.hass.states[calendar.entityId]?.attributes.start_time : undefined,
     );
-    return run ? formatNextRun(run, this._locale) : undefined;
+    this._refreshAt(run);
+    return run ? formatNextRun(run, this._locale, new Date()) : undefined;
+  }
+
+  /** A schedule that passes without starting the mower changes no entity, so re-render at its time. */
+  private _refreshAt(run: Date | undefined): void {
+    const at = run?.getTime();
+    if (at === this._nextRunAt) return;
+    this._clearNextRunTimer();
+    this._nextRunAt = at;
+    if (at === undefined) return;
+    this._nextRunTimer = window.setTimeout(() => {
+      this._nextRunTimer = undefined;
+      this._nextRunAt = undefined;
+      this.requestUpdate();
+    }, Math.min(Math.max(at - Date.now() + 1000, 1000), 2_147_000_000));
+  }
+
+  private _clearNextRunTimer(): void {
+    if (this._nextRunTimer !== undefined) window.clearTimeout(this._nextRunTimer);
+    this._nextRunTimer = undefined;
+    this._nextRunAt = undefined;
   }
 
   /** Visibility follows the mower state; in-flight commands only disable buttons. */

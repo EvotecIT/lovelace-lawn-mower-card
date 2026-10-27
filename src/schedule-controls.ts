@@ -68,10 +68,9 @@ function scheduleControl(
   const state = entity.state.trim().toLowerCase();
   return {
     entityId,
-    label: withoutDevicePrefix(
-      text(attributes.name) || text(attributes.friendly_name) || fallbackLabel(entityId),
-      [text(mowerName)],
-    ),
+    // A plan name is the user's own; only the entity name carries the device prefix.
+    label: text(attributes.name) ||
+      withoutDevicePrefix(text(attributes.friendly_name) || fallbackLabel(entityId), [text(mowerName)]),
     mapLabel: text(attributes.map_label),
     enabled: state === "on",
     available: !["unavailable", "unknown", ""].includes(state),

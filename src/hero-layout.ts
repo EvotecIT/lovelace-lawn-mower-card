@@ -120,9 +120,9 @@ export type HeroLayoutModel = {
   onMoreInfo(): void;
 };
 
-function renderMetric(icon: string, label: string, value: string): TemplateResult {
+function renderMetric(icon: string, label: string, value: string, variant?: string): TemplateResult {
   return html`
-    <div class="hero-metric">
+    <div class=${`hero-metric${variant ? ` ${variant}` : ""}`}>
       <ha-icon .icon=${icon}></ha-icon>
       <span class="hero-metric-copy">
         <span class="hero-metric-label">${label}</span>
@@ -187,7 +187,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   const metrics = [
     model.battery ? renderMetric("mdi:battery-high", model.t("hero.battery"), model.battery) : undefined,
     model.nextRun
-      ? renderMetric("mdi:calendar-clock", model.t("hero.nextRun"), model.nextRun)
+      ? renderMetric("mdi:calendar-clock", model.t("hero.nextRun"), model.nextRun, "next-run")
       : model.progress ? renderMetric("mdi:progress-clock", model.progressLabel || model.t("hero.mission"), model.progress) : undefined,
     model.coverage ? renderMetric("mdi:grass", model.coverageLabel || model.t("hero.coverage"), model.coverage) : undefined,
   ].filter((metric): metric is TemplateResult => Boolean(metric));

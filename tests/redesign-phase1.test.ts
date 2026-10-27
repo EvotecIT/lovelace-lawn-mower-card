@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { commandPlan } from "../src/command-plan.ts";
 import { withoutDevicePrefix } from "../src/display-names.ts";
-import { nextScheduledRun } from "../src/next-run.ts";
-import type { ScheduleControl } from "../src/schedule-controls.ts";
+import { formatNextRun, nextScheduledRun } from "../src/next-run.ts";
+import { discoverScheduleControls, type ScheduleControl } from "../src/schedule-controls.ts";
 
 test("a mowing mower offers Pause first and hides Start", () => {
   const plan = commandPlan({ start: false, pause: true, cancel: true, dock: true });
@@ -55,4 +55,19 @@ test("disabled schedules are ignored and a calendar event can be sooner", () => 
   const tuesday = new Date(2026, 9, 27, 12, 0);
   assert.equal(nextScheduledRun([control({ enabled: false })], tuesday), undefined);
   assert.deepEqual(nextScheduledRun([control({})], tuesday, "2026-10-27 18:00:00"), new Date(2026, 9, 27, 18, 0));
+});
+
+test("a run within the week shows weekday and time; a later one also shows its date", () => {
+  const now = new Date(2026, 9, 27, 12, 0);
+  assert.equal(formatNextRun(new Date(2026, 9, 28, 8, 15), "en-GB", now), "Wed 08:15");
+  assert.match(formatNextRun(new Date(2026, 10, 18, 8, 15), "en-GB", now), /18 Nov/);
+});
+
+test("a schedule's own plan name is kept; only the entity name loses the mower prefix", () => {
+  const states = {
+    "lawn_mower.mower": { state: "docked", attributes: { friendly_name: "Mower" } },
+    "switch.mower_plan_1": { state: "on", attributes: { schedule_control: true, name: "Mower Morning" } },
+    "switch.mower_plan_2": { state: "on", attributes: { schedule_control: true, friendly_name: "Mower Weekend" } },
+  };
+  assert.deepEqual(discoverScheduleControls(states, "lawn_mower.mower").map(control => control.label), ["Mower Morning", "Weekend"]);
 });
