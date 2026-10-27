@@ -1276,6 +1276,24 @@
           attributes: { friendly_name: "Maintenance warning", warning: true, warning_items: ["robot", "blade"] },
         };
       }
+      // Maintenance counters as the integration reports them; ?resets=0 leaves its reset
+      // buttons disabled, as they are by default.
+      const maintenanceDue = alertScenario === "maintenance";
+      for (const [name, percent, hours, status] of [
+        ["blade", 78, 46.8, "normal"], ["cleaning_brush", 64, 320, "normal"],
+        ["robot_maintenance", maintenanceDue ? 0 : 12, maintenanceDue ? 0 : 7.2, maintenanceDue ? "due" : "replace_soon"],
+      ]) {
+        stateStore[`sensor.backyard_mower_${name}_remaining`] = {
+          entity_id: `sensor.backyard_mower_${name}_remaining`, state: String(percent),
+          attributes: { unit_of_measurement: "%", remaining_hours: hours, status, due: status === "due", warning: status !== "normal" },
+        };
+        if (previewParameters.get("resets") !== "0") {
+          stateStore[`button.backyard_mower_reset_${name}_maintenance`] = {
+            entity_id: `button.backyard_mower_reset_${name}_maintenance`, state: "unknown",
+            attributes: { friendly_name: `Reset ${name.replaceAll("_", " ")} maintenance` },
+          };
+        }
+      }
       const pointCloudCapability = previewParameters.get("point-cloud-capability");
       if (["supported", "unknown", "unsupported"].includes(pointCloudCapability)) {
         stateStore["camera.backyard_mower_map"].attributes.feature_capabilities = {

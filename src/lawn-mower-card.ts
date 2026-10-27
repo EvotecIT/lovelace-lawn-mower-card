@@ -2,6 +2,7 @@ import { clockOptions, formatNextRun, nextScheduledRun } from "./next-run";
 import { actionRowCapacity } from "./hero-actions";
 import { renderMediaSwitch, resolveStandardMedia, standardMediaViews, type StandardMediaView } from "./media-switch";
 import { cardGridOptions, renderTile, tileSecondary, type GridOptions } from "./tile-layout";
+import { maintenanceParts, renderMaintenancePanel, type MaintenancePartKey } from "./maintenance";
 import { withoutDevicePrefix } from "./display-names";
 import { commandPlan, type CommandPlan } from "./command-plan";
 import { cardAppearance } from "./card-appearance";
@@ -126,7 +127,7 @@ import {
 import { AutomationDialogController } from "./automation-dialog-controller";
 import { recentMowerConditions } from "./recent-conditions";
 import { renderRecentConditions } from "./recent-conditions-panel";
-import { mowerAlerts, renderMowerAlerts } from "./mower-alerts";
+import { mowerAlerts, renderMowerAlerts, type MowerAlert } from "./mower-alerts";
 import {
   normalizedZoneSelection,
   reconciledZoneSelectionKeys,
@@ -332,6 +333,7 @@ export class LawnMowerCard extends LitElement {
   private _heroViewSlot?: string;
   private _actionFeedbackTimer?: number;
   @state() private _heroMoreOpen = false;
+  @state() private _maintenanceConfirm?: { mower: string; key: MaintenancePartKey; resetId: string };
   @state() private _actionRowCapacity?: number;
   private _widthObserver?: ResizeObserver;
   private _nextRunTimer?: number;
@@ -373,6 +375,7 @@ export class LawnMowerCard extends LitElement {
 
   public setConfig(config: LawnMowerCardConfig): void {
     this._clearNextRunTimer();
+    this._maintenanceConfirm = undefined;
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
@@ -496,6 +499,7 @@ export class LawnMowerCard extends LitElement {
 
   protected willUpdate(): void {
     this._automationDialog.reconcile();
+    if (this._maintenanceConfirm && !this._maintenanceConfirmCurrent()) this._maintenanceConfirm = undefined;
     if (this._patrolMenu && !this._patrolMenuCurrent(this._patrolMenu)) this._patrolMenu = undefined;
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
     if (this._areaMenuContext && (!mower || !this._areaMenuShown(mower))) {
@@ -860,7 +864,7 @@ export class LawnMowerCard extends LitElement {
     const progress = this._heroMissionMetric();
     const coverage = this._heroCoverageMetric();
     const nextRun = this._nextRunLabel(mower, helperEntities);
-    const controls = controlEntities.length || scheduleControls.length || (
+    const controls = controlEntities.length || scheduleControls.length || this._maintenanceParts().length || (
       !["hidden", "custom"].includes(this._config.controls_mode || "auto") && mowingAutomationStatus(this.hass.states, this._config.entity)
     )
       ? this._renderControlContent(controlEntities, scheduleControls, true) : undefined;
@@ -1206,7 +1210,33 @@ export class LawnMowerCard extends LitElement {
       alerts: mowerAlerts(this.hass, this._config, this._t, this._locale),
       idle: !["mowing", "returning"].includes(mower.state),
       t: this._t,
-      onSelect: entityId => this._showMoreInfo(entityId),
+      onSelect: alert => this._selectAlert(alert),
+    });
+  }
+
+  /** Due maintenance opens the card's own Maintenance section; other alerts open their entity. */
+  private _selectAlert(alert: MowerAlert): void {
+    if (alert.key !== "maintenance" || !this._maintenanceParts().length) {
+      this._showMoreInfo(alert.entityId);
+      return;
+    }
+    const opened = controlsLayout(this._config?.controls_layout) === "sheet" && !this._settingsOpen;
+    if (opened) {
+      this._settingsTrigger = this.shadowRoot?.activeElement as HTMLElement | undefined;
+      this._settingsOpen = true;
+    }
+    void this.updateComplete.then(() => {
+      const panel = this.shadowRoot?.querySelector("#maintenance-panel");
+      if (panel) {
+        panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        return;
+      }
+      // The layout hides the section (hero_sections without controls): fall back to details.
+      if (opened) {
+        this._settingsOpen = false;
+        this._settingsTrigger = undefined;
+      }
+      this._showMoreInfo(alert.entityId);
     });
   }
 
@@ -1455,10 +1485,15 @@ export class LawnMowerCard extends LitElement {
     if (!sheet) return content;
     const picker = onCard.map(id => this._renderEntityControl(id));
     const pickerContent = picker.length && !hero ? html`<div class="selectors">${picker}</div>` : picker;
-    if (!inSheet.length && !schedules.length && !automation && !groups.settings.length && !groups.preferences.length) {
+    const maintenance = this._maintenanceParts();
+    if (!inSheet.length && !schedules.length && !automation && !groups.settings.length && !groups.preferences.length && !maintenance.length) {
       return html`${pickerContent}`;
     }
+    // Parts that need attention come first in the summary, so the row shows it unopened.
+    const attention = maintenance.filter(part => part.status !== "normal").map(part =>
+      `${this._t(`alerts.item.${part.key}` as TranslationKey)} ${this._t(part.status === "due" ? "maintenance.due" : "maintenance.soon").toLowerCase()}`);
     const summary = settingsSummary([
+      ...attention,
       schedules.length ? this._t("schedule.count", { count: schedules.length }) : undefined,
       ...inSheet.filter(id => id.startsWith("select.") || id.startsWith("input_select."))
         .map(id => this.hass.states[id])
@@ -1487,6 +1522,8 @@ export class LawnMowerCard extends LitElement {
 
   private _closeSettings(): void {
     this._settingsOpen = false;
+    // Closing the sheet abandons a pending reset; reopening starts from Reset again.
+    this._maintenanceConfirm = undefined;
     const trigger = this._settingsTrigger;
     this._settingsTrigger = undefined;
     void this._restoreActionFocus(trigger);
@@ -1521,7 +1558,62 @@ export class LawnMowerCard extends LitElement {
       ) : nothing}
       ${customFirst ? nothing : inlineContent}
       ${this._renderDeviceSettingsControls(groups.settings)}
-      ${this._renderPreferenceControls(groups.preferences)}`;
+      ${this._renderPreferenceControls(groups.preferences)}
+      ${this._renderMaintenance()}`;
+  }
+
+  private _maintenanceParts() {
+    // Like the other automatic controls, Hidden and Custom leave maintenance out.
+    if (!this._config || ["hidden", "custom"].includes(this._config.controls_mode || "auto")) return [];
+    return maintenanceParts(this.hass, this._config.entity);
+  }
+
+  /**
+   * A pending reset confirmation is valid only for the mower and button it was asked
+   * for, while that button is still offered; anything else drops it.
+   */
+  private _maintenanceConfirmCurrent(): boolean {
+    const pending = this._maintenanceConfirm;
+    return Boolean(pending && this._config?.entity === pending.mower &&
+      this._maintenanceParts().some(part => part.key === pending.key && part.resetId === pending.resetId));
+  }
+
+  private _focusMaintenance(selector: string): void {
+    void this.updateComplete.then(() => this.shadowRoot?.querySelector<HTMLElement>(selector)?.focus());
+  }
+
+  private _renderMaintenance() {
+    const pending = this._maintenanceConfirmCurrent() ? this._maintenanceConfirm : undefined;
+    return renderMaintenancePanel({
+      parts: this._maintenanceParts(),
+      t: this._t,
+      locale: this._locale,
+      busy: Boolean(this._mutationInFlight),
+      confirming: pending?.key,
+      onAsk: part => {
+        if (!part.resetId || !this._config) return;
+        this._maintenanceConfirm = { mower: this._config.entity, key: part.key, resetId: part.resetId };
+        // Focus the safe choice, so a keyboard user lands on Cancel, not on the reset.
+        this._focusMaintenance(`[data-maintenance-cancel="${part.key}"]`);
+      },
+      onCancel: key => {
+        this._maintenanceConfirm = undefined;
+        this._focusMaintenance(`[data-maintenance-reset="${key}"]`);
+      },
+      onReset: async part => {
+        const confirmed = this._maintenanceConfirmCurrent() ? this._maintenanceConfirm : undefined;
+        this._maintenanceConfirm = undefined;
+        // Press exactly the button that was confirmed, and only while it is still offered.
+        if (!confirmed || confirmed.key !== part.key) return;
+        const resetId = confirmed.resetId;
+        // Name the result after the part, not the button's long entity name.
+        const label = this._t("maintenance.resetPart", { part: this._t(`alerts.item.${part.key}` as TranslationKey) });
+        await this._runMowerAction(`button:${resetId}`, label, () =>
+          this.hass.callService("button", "press", { entity_id: resetId }));
+        // The row's Reset is disabled while the press runs, so focus returns to it afterwards.
+        this._focusMaintenance(`[data-maintenance-reset="${part.key}"]`);
+      },
+    });
   }
 
   /** The integration advertises its own settings entities; render them with the usual controls. */

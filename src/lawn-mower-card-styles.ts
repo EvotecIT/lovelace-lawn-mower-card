@@ -13,6 +13,7 @@ import { recentConditionsStyles } from "./recent-conditions-panel";
 import { mowerAlertStyles } from "./mower-alerts";
 import { mediaSwitchStyles } from "./media-switch";
 import { tileLayoutStyles } from "./tile-layout";
+import { maintenanceStyles } from "./maintenance";
 
 export const lawnMowerCardStyles = [themeTokenStyles, css`
     :host {
@@ -681,4 +682,4 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
         grid-template-columns: 1fr;
       }
     }
-  `, schedulePanelStyles, mowingAutomationStyles, settingsSheetStyles, mowerAlertStyles, mediaSwitchStyles, tileLayoutStyles, recentConditionsStyles, deviceSettingsPanelStyles, heroLayoutStyles, customizationStyles, heroThemeStyles, cardAppearanceStyles];
+  `, schedulePanelStyles, mowingAutomationStyles, settingsSheetStyles, mowerAlertStyles, mediaSwitchStyles, tileLayoutStyles, maintenanceStyles, recentConditionsStyles, deviceSettingsPanelStyles, heroLayoutStyles, customizationStyles, heroThemeStyles, cardAppearanceStyles];

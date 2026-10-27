@@ -4,6 +4,7 @@ import { resolvedMowerCompanionEntity } from "./card-logic.ts";
 import type { TranslationKey, Translator } from "./localization";
 import { mowingAutomationStatus } from "./mowing-automation.ts";
 import { clockOptions } from "./next-run.ts";
+import { maintenanceParts } from "./maintenance.ts";
 
 export type MowerAlertSeverity = "error" | "warning" | "info";
 
@@ -93,7 +94,10 @@ export function mowerAlerts(
     const items = itemNames(due.attributes.due_items, t);
     alerts.push({
       key: "maintenance", severity: "warning", icon: "mdi:wrench-clock", title: t("alerts.maintenance"),
-      detail: [items, t("alerts.maintenanceDetail")].filter(Boolean).join(" · "), entityId: due.entity_id,
+      // When the card can reset a due part itself, say so instead of pointing elsewhere.
+      detail: [items, t(!["hidden", "custom"].includes(config.controls_mode || "auto") &&
+        maintenanceParts(hass, config.entity).some(part => part.status === "due" && part.resetId)
+        ? "alerts.maintenanceResetHere" : "alerts.maintenanceDetail")].filter(Boolean).join(" · "), entityId: due.entity_id,
     });
   }
 
@@ -202,7 +206,7 @@ export type MowerAlertsModel = {
   /** Mowing has stopped, so the first reason that stops a run is the answer to "why not". */
   idle: boolean;
   t: Translator;
-  onSelect(entityId?: string): void;
+  onSelect(alert: MowerAlert): void;
 };
 
 export function renderMowerAlerts(model: MowerAlertsModel): TemplateResult | typeof nothing {
@@ -213,7 +217,7 @@ export function renderMowerAlerts(model: MowerAlertsModel): TemplateResult | typ
       ${model.alerts.map(alert => html`
         <li>
           <button type="button" class=${`mower-alert ${alert.severity}`}
-            @click=${() => model.onSelect(alert.entityId)}>
+            @click=${() => model.onSelect(alert)}>
             <ha-icon icon=${alert.icon} aria-hidden="true"></ha-icon>
             <span class="mower-alert-copy">
               ${alert === why ? html`<span class="mower-alert-why">${model.t("alerts.whyNot")}</span>` : nothing}

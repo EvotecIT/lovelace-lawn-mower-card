@@ -43,6 +43,20 @@ entity it comes from. The strip is hidden when nothing is reported, and errors
 and rain delays no longer appear as separate summary chips. Set `show_alerts: false`, or
 turn off **Show alerts** in the editor, to hide it.
 
+## Maintenance
+
+With the Dreame integration, **Mower settings** has a **Maintenance** section
+listing each counter the mower reports (blade, cleaning brush, robot maintenance
+and edge trimmer) with its remaining life, hours left, and whether it is due or
+needs replacing soon. Parts that need attention also show on the settings row.
+
+**Reset** appears next to a part when the integration's matching **Reset …
+Maintenance** button is enabled. These buttons are disabled by default; enable
+them on the mower's device page in Home Assistant. Reset asks for confirmation
+first, because it can't be undone. The **Maintenance due** alert opens this
+section. Like the other automatic controls, it is left out when
+`controls_mode` is `hidden` or `custom`.
+
 ## Recent conditions
 
 When a same-device **Last Mower Notification** sensor exposes a `recent` history,

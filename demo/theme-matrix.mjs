@@ -184,6 +184,13 @@ window.addEventListener("load", async () => {
     await new Promise(resolve => setTimeout(resolve, 300));
     card.shadowRoot?.querySelector("#media-tab-point-cloud")?.click();
   }
+  // ?open=maintenance opens the settings sheet at its Maintenance section.
+  if (params.get("open") === "maintenance") {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    card.shadowRoot?.querySelector(".settings-entry")?.click();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    card.shadowRoot?.querySelector("#maintenance-panel")?.scrollIntoView({ block: "end" });
+  }
   // ?open=more opens the Hero's More menu.
   if (params.get("open") === "more") {
     await new Promise(resolve => setTimeout(resolve, 300));
