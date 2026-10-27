@@ -23,6 +23,26 @@ The editor also supports explicit companion entities, control selectors,
 summary chips, extra tiles, custom actions, and advanced planning and telemetry
 without requiring raw configuration changes.
 
+## Alerts: why it isn't mowing
+
+The card shows a short strip when something needs attention or keeps the mower
+from mowing. It reads what the integration already reports on the same device:
+
+| Line | Comes from |
+|---|---|
+| **Mower needs attention**, with the error text | the **Error** sensor, or the mower in the `error` state |
+| **Rain delay**, with the time mowing resumes | the **Rain Delay Active** binary sensor and its end time |
+| **Maintenance due**, with the parts | the **Maintenance Due** binary sensor |
+| **Mowing on hold**, with the garden reason | the mowing automation's permission sensor, when the automation is on |
+| The integration's status notice, such as frost protection | the **Status Notice** sensor |
+| **Maintenance soon** | the **Maintenance Warning** binary sensor |
+
+Errors come first. While the mower is docked, paused or idle, the first line
+that stops a run is labelled **Why it isn't mowing**. Tap a line to open the
+entity it comes from. The strip is hidden when nothing is reported, and errors
+and rain delays no longer appear as separate summary chips. Set `show_alerts: false`, or
+turn off **Show alerts** in the editor, to hide it.
+
 ## Recent conditions
 
 When a same-device **Last Mower Notification** sensor exposes a `recent` history,

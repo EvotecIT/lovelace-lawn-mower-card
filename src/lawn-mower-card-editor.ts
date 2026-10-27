@@ -110,6 +110,11 @@ export class LawnMowerCardEditor extends LitElement {
           ["sensor"],
         )}
         ${this._toggle(
+          this._t("alerts.show"),
+          config.show_alerts ?? true,
+          "show_alerts",
+        )}
+        ${this._toggle(
           this._t("conditions.show"),
           config.show_recent_conditions ?? true,
           "show_recent_conditions",
@@ -465,7 +470,8 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_patrol_actions"
       | "show_photos"
       | "show_advanced_details"
-      | "show_recent_conditions",
+      | "show_recent_conditions"
+      | "show_alerts",
   ) {
     return html`
       <label class="toggle">
@@ -668,6 +674,7 @@ export class LawnMowerCardEditor extends LitElement {
       | "show_photos"
       | "show_advanced_details"
       | "show_recent_conditions"
+      | "show_alerts"
       | undefined;
     if (!key) {
       return;

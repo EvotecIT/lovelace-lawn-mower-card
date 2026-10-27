@@ -164,6 +164,10 @@ window.addEventListener("load", async () => {
   }
   const card = params.get("capture") && document.getElementById(`preview-card-${params.get("capture")}`);
   if (!card) return;
+  // Without a state click, wait for the preview to hand the card its data before moving it.
+  for (let attempt = 0; !card.hass && attempt < 50; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
   const frame = document.createElement("div");
   frame.style.cssText = `width:${Number(params.get("width")) || 420}px;padding:16px`;
   frame.append(card);

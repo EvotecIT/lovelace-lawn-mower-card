@@ -738,7 +738,21 @@
             "mdi:refresh": "↻",
             "mdi:download": "↓",
           };
+          // Alert strip glyphs, drawn so the preview shows what HA's icons convey.
+          const shapes = {
+            "mdi:alert-circle-outline": '<circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4v.1"/>',
+            "mdi:weather-pouring": '<path d="M6 13a5 5 0 1 1 2-10 6 6 0 0 1 11 3 4 4 0 0 1 0 7M8 15l-2 6m6-6-2 6m6-6-2 6"/>',
+            "mdi:wrench-clock": '<path d="M14 3a5 5 0 0 0-5 6L3 15l3 3 6-6a5 5 0 0 0 6-5l-3 1-2-2Z"/>',
+            "mdi:wrench-outline": '<path d="M15 3a6 6 0 0 0-6 7l-6 7 4 4 7-6a6 6 0 0 0 7-6l-4 2-3-3Z"/>',
+            "mdi:pause-octagon-outline": '<path d="M8 2h8l6 6v8l-6 6H8l-6-6V8Z"/><path d="M10 8v8m4-8v8"/>',
+            "mdi:information-outline": '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/>',
+          };
           this.setAttribute("aria-hidden", "true");
+          if (shapes[icon]) {
+            this.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${shapes[icon]}</svg>`;
+            this.style.cssText = "display:inline-flex;width:24px;height:24px;flex:none";
+            return;
+          }
           this.textContent = glyphs[icon] || "";
           this.style.cssText =
             glyphs[icon]
@@ -1221,6 +1235,35 @@
             phase: automationScenario, permission_entity: permissionId,
           };
         }
+      }
+      // ?alert=rain|error|maintenance sets what the integration reports when mowing stops.
+      const alertScenario = previewParameters.get("alert");
+      if (alertScenario === "rain") {
+        const until = new Date(Date.now() + 3 * 3600_000);
+        until.setMinutes(20, 0, 0);
+        stateStore["binary_sensor.backyard_mower_rain_delay_active"].state = "on";
+        Object.assign(stateStore["binary_sensor.backyard_mower_rain_delay_active"].attributes, {
+          rain_protection_active: true, rain_protect_end_time_iso: until.toISOString(),
+        });
+        stateStore["sensor.backyard_mower_weather_protection_status"].state = "rain_delay_active";
+      }
+      if (alertScenario === "error") {
+        const mower = stateStore["lawn_mower.backyard_mower"];
+        mower.state = "error";
+        mower.attributes.activity = "error";
+        stateStore["sensor.backyard_mower_state_name"].state = "Error";
+        stateStore["sensor.backyard_mower_error"] = { entity_id: "sensor.backyard_mower_error",
+          state: "Wheel blocked. Check the mower and the grass around it.", attributes: { friendly_name: "Error" } };
+      }
+      if (alertScenario === "maintenance") {
+        stateStore["binary_sensor.backyard_mower_maintenance_due"] = {
+          entity_id: "binary_sensor.backyard_mower_maintenance_due", state: "on",
+          attributes: { friendly_name: "Maintenance due", due: true, due_items: ["robot"], warning_items: ["robot", "blade"] },
+        };
+        stateStore["binary_sensor.backyard_mower_maintenance_warning"] = {
+          entity_id: "binary_sensor.backyard_mower_maintenance_warning", state: "on",
+          attributes: { friendly_name: "Maintenance warning", warning: true, warning_items: ["robot", "blade"] },
+        };
       }
       const pointCloudCapability = previewParameters.get("point-cloud-capability");
       if (["supported", "unknown", "unsupported"].includes(pointCloudCapability)) {
