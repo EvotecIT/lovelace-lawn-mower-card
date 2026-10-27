@@ -124,7 +124,9 @@ export type HeroLayoutModel = {
   onMoreInfo(): void;
   /** The More menu holds helpers that don't fit on the action row. */
   moreMenuOpen?: boolean;
-  onMoreMenu?(open: boolean): void;
+  /** Buttons that fit on the action row at the card's width; unknown keeps the default. */
+  actionRowCapacity?: number;
+  onMoreMenu?(open: boolean, restoreFocus?: boolean): void;
 };
 
 function renderMetric(icon: string, label: string, value: string, variant?: string): TemplateResult {

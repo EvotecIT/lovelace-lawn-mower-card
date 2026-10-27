@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { helpersInMenu } from "../src/hero-actions.ts";
+import { actionRowCapacity, helpersInMenu } from "../src/hero-actions.ts";
 import { clockOptions, formatNextRun } from "../src/next-run.ts";
 
 test("helpers stay on the action row while everything fits in five buttons", () => {
@@ -8,6 +8,17 @@ test("helpers stay on the action row while everything fits in five buttons", () 
   assert.equal(helpersInMenu(1, 3), false);
   assert.equal(helpersInMenu(2, 3), true);
   assert.equal(helpersInMenu(5, 0), false);
+});
+
+test("the row holds as many readable buttons as the card's width allows", () => {
+  assert.equal(actionRowCapacity(296), 3);
+  assert.equal(actionRowCapacity(388), 4);
+  assert.equal(actionRowCapacity(456), 5);
+  assert.equal(actionRowCapacity(560), 6);
+  assert.equal(actionRowCapacity(200), 3);
+  // A docked mower with three helpers keeps them on a wide card and moves them on a narrow one.
+  assert.equal(helpersInMenu(1, 3, actionRowCapacity(456)), false);
+  assert.equal(helpersInMenu(1, 3, actionRowCapacity(388)), true);
 });
 
 test("times follow the Home Assistant time format", () => {

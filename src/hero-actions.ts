@@ -53,12 +53,20 @@ type ActionEntry = {
   options?: { disabled?: boolean; active?: boolean; primary?: boolean; expanded?: boolean };
 };
 
-/** The row holds this many buttons, More included, before helpers move into the More menu. */
+/** The row holds this many buttons, More included, until the card's width is known. */
 export const HERO_ACTION_ROW = 5;
 
+/**
+ * Readable buttons that fit in a card this wide: 80px buttons (room for "Maintenance"
+ * on one line), 8px gaps and 12px side gutters.
+ */
+export function actionRowCapacity(cardWidth: number): number {
+  return Math.max(3, Math.floor((cardWidth - 2 * 12 + 8) / (80 + 8)));
+}
+
 /** One row: when commands, helpers and More don't fit, the helpers move into the More menu. */
-export function helpersInMenu(commands: number, helpers: number): boolean {
-  return helpers > 0 && commands + helpers + 1 > HERO_ACTION_ROW;
+export function helpersInMenu(commands: number, helpers: number, capacity = HERO_ACTION_ROW): boolean {
+  return helpers > 0 && commands + helpers + 1 > capacity;
 }
 
 /** Mower commands always stay on the row; helpers and views join them only while everything fits. */
@@ -118,9 +126,43 @@ export function heroActionEntries(model: HeroLayoutModel): { commands: ActionEnt
   return { commands, helpers };
 }
 
+/**
+ * Menu keyboard model: arrows, Home and End move between items, Escape closes and
+ * returns to More, and Tab or focus leaving the menu closes it.
+ */
+function menuKeydown(event: KeyboardEvent, close: (restoreFocus: boolean) => void): void {
+  const menu = event.currentTarget as HTMLElement;
+  const items = [...menu.querySelectorAll<HTMLElement>(".hero-menu-item:not(:disabled)")];
+  const index = items.indexOf(event.target as HTMLElement);
+  const target = {
+    ArrowDown: items[(index + 1) % items.length],
+    ArrowUp: items[(index - 1 + items.length) % items.length],
+    Home: items[0],
+    End: items[items.length - 1],
+  }[event.key];
+  if (target) {
+    event.preventDefault();
+    target.focus();
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    close(true);
+  } else if (event.key === "Tab") {
+    close(false);
+  }
+}
+
+function menuFocusout(event: FocusEvent, close: (restoreFocus: boolean) => void): void {
+  const next = event.relatedTarget as HTMLElement | null;
+  const menu = event.currentTarget as HTMLElement;
+  // Moving to More is its own toggle; anywhere else outside the menu closes it.
+  if (!next || (!menu.contains(next) && !next.classList.contains("more"))) close(false);
+}
+
 function renderMenuItem(entry: ActionEntry, close: () => void): TemplateResult {
   return html`
     <button type="button" class=${`hero-menu-item${entry.options?.active ? " active" : ""}`} role="menuitem"
+      tabindex="-1"
       ?disabled=${entry.options?.disabled}
       @click=${() => { close(); void entry.handler(); }}>
       <ha-icon .icon=${entry.icon}></ha-icon>
@@ -133,12 +175,13 @@ function renderMenuItem(entry: ActionEntry, close: () => void): TemplateResult {
 export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
   const { commands, helpers } = heroActionEntries(model);
   // The dashboard layout has its own multi-column command grid, so it keeps every button.
-  const menu = !model.dashboard && Boolean(model.onMoreMenu) && helpersInMenu(commands.length, helpers.length);
+  const menu = !model.dashboard && Boolean(model.onMoreMenu) && helpersInMenu(commands.length, helpers.length, model.actionRowCapacity);
   const inline = menu ? commands : [...commands, ...helpers];
   const open = menu && Boolean(model.moreMenuOpen);
-  const close = () => model.onMoreMenu?.(false);
+  const close = (restoreFocus = true) => model.onMoreMenu?.(false, restoreFocus);
   return html`
-        <div class="hero-actions" aria-label=${model.t("hero.controlsLabel")}>
+        <div class="hero-actions" aria-label=${model.t("hero.controlsLabel")}
+          @keydown=${(event: KeyboardEvent) => { if (open && event.key === "Escape") { event.stopPropagation(); close(); } }}>
           ${inline.map(entry => renderAction(entry.label, entry.icon, entry.handler, entry.options))}
           ${menu
             ? renderAction(model.t("action.more"), "mdi:dots-horizontal", () => model.onMoreMenu?.(!open), { expanded: open, more: true })
@@ -146,9 +189,10 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
         </div>
         ${open ? html`
           <div class="hero-menu" role="menu" aria-label=${model.t("action.more")}
-            @keydown=${(event: KeyboardEvent) => { if (event.key === "Escape") { event.stopPropagation(); close(); } }}>
-            ${helpers.map(entry => renderMenuItem(entry, close))}
-            ${renderMenuItem({ label: model.t("action.details"), icon: "mdi:information-outline", handler: model.onMoreInfo }, close)}
+            @keydown=${(event: KeyboardEvent) => menuKeydown(event, close)}
+            @focusout=${(event: FocusEvent) => menuFocusout(event, close)}>
+            ${helpers.map(entry => renderMenuItem(entry, () => close()))}
+            ${renderMenuItem({ label: model.t("action.details"), icon: "mdi:information-outline", handler: model.onMoreInfo }, () => close())}
           </div>` : nothing}
         ${model.confirmation || nothing}
   `;

@@ -548,6 +548,26 @@ export const heroLayoutStyles = css`
     background: var(--mower-canvas);
   }
 
+  /* The card sizes the row to the buttons that fit, so they share one line; a long label
+     takes a second line instead. The dashboard layout keeps its own grid, and a sixth
+     button lets the row wrap again. */
+  .hero-card:not(.dashboard-card) .hero-actions:not(:has(.hero-action:nth-child(6))) {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+
+  .hero-action > span {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: break-word;
+  }
+
   .hero-action {
     min-width: 0;
     min-height: 54px;
