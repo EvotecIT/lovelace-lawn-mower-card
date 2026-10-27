@@ -507,7 +507,8 @@ export const heroLayoutStyles = css`
   }
 
   .hero-selectors .device-settings-panel,
-  .hero-selectors .preference-panel {
+  .hero-selectors .preference-panel,
+  .hero-selectors .maintenance-panel {
     grid-column: 1 / -1;
   }
 

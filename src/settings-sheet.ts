@@ -174,7 +174,8 @@ export const settingsSheetStyles = css`
   .settings-sheet-body > .mowing-automation,
   .settings-sheet-body > .schedule-panel,
   .settings-sheet-body > .device-settings-panel,
-  .settings-sheet-body > .preference-panel {
+  .settings-sheet-body > .preference-panel,
+  .settings-sheet-body > .maintenance-panel {
     grid-column: 1 / -1;
   }
 
