@@ -301,6 +301,7 @@ export const en = {
   "alerts.item.robot": "Robot maintenance",
   "alerts.item.edge_trimmer": "Edge trimmer",
   "alerts.show": "Show alerts",
+  "action.details": "Mower details",
   "settings.charging": "Charging",
   "settings.rainProtection": "Rain protection",
   "settings.rainDelayLabel": "Rain delay",

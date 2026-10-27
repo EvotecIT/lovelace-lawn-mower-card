@@ -41,7 +41,7 @@ export const dashboardStyles = css`
   .dashboard-card:not(.theme-auto) .hero-stage { border-color:#2d6479; }
   .dashboard-card .hero-stage .hero-scrim { display:none; }
   .dashboard-card .hero-map { padding:0; background:var(--mower-map-ground,#18291e); }
-  .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-actions, .dashboard-card .hero-action-feedback { margin:0; }
+  .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-actions, .dashboard-card .hero-action-feedback, .dashboard-card .hero-menu { margin:0; }
   .dashboard-card .hero-tabs { padding:5px; gap:5px; border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-chrome); }
   .dashboard-card .hero-tab { min-height:42px; font-family:inherit; font-size:13px; font-weight:600; line-height:1.25; color:var(--mower-muted); cursor:pointer; }
   .dashboard-card .hero-tab.selected { background:var(--mower-fill-accent); border-color:var(--mower-border-accent); color:var(--mower-text); box-shadow:none; }

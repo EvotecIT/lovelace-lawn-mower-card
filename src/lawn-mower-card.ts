@@ -1,4 +1,4 @@
-import { formatNextRun, nextScheduledRun } from "./next-run";
+import { clockOptions, formatNextRun, nextScheduledRun } from "./next-run";
 import { withoutDevicePrefix } from "./display-names";
 import { commandPlan, type CommandPlan } from "./command-plan";
 import { cardAppearance } from "./card-appearance";
@@ -327,6 +327,7 @@ export class LawnMowerCard extends LitElement {
   private _heroViewRoute?: string;
   private _heroViewSlot?: string;
   private _actionFeedbackTimer?: number;
+  @state() private _heroMoreOpen = false;
   private _nextRunTimer?: number;
   private _nextRunAt?: number;
   private _actionGeneration = 0;
@@ -970,6 +971,20 @@ export class LawnMowerCard extends LitElement {
       patrolActions: (this._config.show_default_actions ?? true)
         ? this._patrolActions(mower) : [],
       onMoreInfo: () => this._showMoreInfo(),
+      moreMenuOpen: this._heroMoreOpen,
+      onMoreMenu: (open) => this._setHeroMoreMenu(open),
+    });
+  }
+
+  private _setHeroMoreMenu(open: boolean): void {
+    if (this._heroMoreOpen === open) return;
+    this._heroMoreOpen = open;
+    void this.updateComplete.then(() => {
+      // Opening moves focus into the menu; closing returns it to the More button.
+      const target = open
+        ? this.shadowRoot?.querySelector<HTMLElement>(".hero-menu .hero-menu-item:not(:disabled)")
+        : this.shadowRoot?.querySelector<HTMLElement>(".hero-actions .hero-action.more");
+      target?.focus();
     });
   }
 
@@ -3561,7 +3576,7 @@ export class LawnMowerCard extends LitElement {
       calendar ? this.hass.states[calendar.entityId]?.attributes.start_time : undefined,
     );
     this._refreshAt(run);
-    return run ? formatNextRun(run, this._locale, new Date()) : undefined;
+    return run ? formatNextRun(run, this._locale, new Date(), clockOptions(this.hass.locale?.time_format)) : undefined;
   }
 
   /** A schedule that passes without starting the mower changes no entity, so re-render at its time. */

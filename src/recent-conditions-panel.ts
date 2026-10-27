@@ -13,7 +13,7 @@ export const recentConditionsStyles = css`
   .condition-row.warning.active ha-icon { color: var(--mower-warning); }
   .condition-message { overflow-wrap: anywhere; line-height: 1.45; }
   .condition-meta { color: var(--mower-muted); font-size: .78rem; line-height: 1.5; margin-top: 4px; }
-  .hero-shell > .recent-conditions { grid-column: 1 / -1; margin: 0 18px 18px; }
+  .hero-shell > .recent-conditions { grid-column: 1 / -1; margin: 0 var(--hero-gutter) var(--hero-gutter); }
   .dashboard-card .recent-conditions { margin: 0; }
 `;
 

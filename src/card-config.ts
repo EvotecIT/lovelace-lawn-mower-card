@@ -14,7 +14,8 @@ export type HomeAssistant = {
   connection?: object;
   user?: { id: string; is_admin?: boolean };
   language?: string;
-  locale?: { language?: string };
+  /** `time_format` is "language", "system", "12" or "24", from the user's profile. */
+  locale?: { language?: string; time_format?: string };
   /** Active theme; `darkMode` is true when Home Assistant renders in dark mode. */
   themes?: { darkMode?: boolean; theme?: string };
   /** Home location; the starting point for aligning an unaligned map. */
