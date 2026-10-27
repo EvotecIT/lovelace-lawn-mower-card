@@ -1086,9 +1086,10 @@ export class LawnMowerCard extends LitElement {
     const alert = mowerAlerts(this.hass, config, this._t, this._locale).find(item => item.severity !== "info");
     const battery = this._entityState(config.battery_entity) || this._stringAttribute(mower, "battery_level", "%");
     const running = ["mowing", "returning", "paused"].includes(mower.state);
-    const progress = running
-      ? this._companionState("sensor", "runtime_mission_progress") || this._companionState("sensor", "mowing_progress")
-      : undefined;
+    // Same source as the Hero's mission value: a configured progress entity first.
+    const progress = running ? this._heroMissionMetric().value : undefined;
+    // An action result (a failed Start, a dropped connection) takes the tile's line until it clears.
+    const feedback = this._actionFeedback || this._connectionFeedback(mower);
     const helpers = defaultHelperEntities(this.hass.states, config.entity, this.hass.entities, config.schedule_calendar_entity);
     const nextRun = this._nextRunLabel(mower, helpers);
     const { primary } = this._commandPlan(mower);
@@ -1109,6 +1110,7 @@ export class LawnMowerCard extends LitElement {
         [progress, nextRun ? `${this._t("hero.nextRun")} ${nextRun}` : undefined, battery],
       ),
       alertSeverity: alert?.severity,
+      feedback,
       appearance: cardAppearance(config),
       locale: this._locale,
       action: config.show_default_actions === false ? undefined : action,

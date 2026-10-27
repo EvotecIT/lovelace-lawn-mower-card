@@ -34,18 +34,21 @@ export function tileSecondary(
 }
 
 export const tileLayoutStyles = css`
+  /* One Sections row is 56px including the card's border, so the card owns the height
+     and the row only fills what is left inside it. */
   ha-card.tile-card {
-    height: 100%;
-    box-sizing: border-box;
-  }
-
-  .tile {
     display: flex;
-    align-items: center;
-    gap: 10px;
     height: 100%;
     min-height: 56px;
     box-sizing: border-box;
+  }
+
+  .mower-tile {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
     padding: 0 10px;
   }
 
@@ -114,6 +117,10 @@ export const tileLayoutStyles = css`
     font-size: 0.75rem;
   }
 
+  .tile-secondary.error {
+    color: var(--mower-error);
+  }
+
   .tile-action {
     display: grid;
     flex: none;
@@ -148,6 +155,8 @@ export type TileModel = {
   stateKey: string;
   secondary: string;
   alertSeverity?: MowerAlertSeverity;
+  /** The result of the tile's action; it replaces the line so a failure is never silent. */
+  feedback?: { message: string; error: boolean };
   appearance: CardAppearance;
   locale: string;
   action?: { label: string; icon: string; disabled: boolean; handler(): void | Promise<void> };
@@ -155,17 +164,22 @@ export type TileModel = {
 };
 
 export function renderTile(model: TileModel): TemplateResult {
-  const alert = model.alertSeverity && model.alertSeverity !== "info" ? ` alert-${model.alertSeverity}` : "";
+  const feedback = model.feedback;
+  const severity = feedback?.error ? "error" : model.alertSeverity;
+  const alert = severity && severity !== "info" ? ` alert-${severity}` : "";
   return html`
     <ha-card class=${`tile-card${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
-      <div class="tile">
+      <div class="mower-tile">
         <button type="button" class="tile-body" @click=${model.onMoreInfo}>
           <span class=${`tile-icon state-${model.stateKey}${alert}`} aria-hidden="true">
             <ha-icon icon=${alert ? "mdi:alert-circle-outline" : "mdi:robot-mower"}></ha-icon>
           </span>
           <span class="tile-copy">
             <span class="tile-name">${model.title}</span>
-            <span class="tile-secondary">${model.secondary}</span>
+            ${feedback
+              ? html`<span class=${`tile-secondary${feedback.error ? " error" : ""}`} role=${feedback.error ? "alert" : "status"}
+                  title=${feedback.message}>${feedback.message}</span>`
+              : html`<span class="tile-secondary" title=${model.secondary}>${model.secondary}</span>`}
           </span>
         </button>
         ${model.action ? html`
