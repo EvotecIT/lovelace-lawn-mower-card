@@ -24,7 +24,8 @@ test("the row holds as many readable buttons as the card's width allows", () => 
 test("times follow the Home Assistant time format", () => {
   const now = new Date(2026, 9, 27, 10, 0);
   const run = new Date(2026, 9, 28, 8, 15);
-  assert.equal(formatNextRun(run, "en-US", now), "Wed 8:15 AM");
+  // ICU builds differ on the space before AM (U+0020 or U+202F).
+  assert.match(formatNextRun(run, "en-US", now), /^Wed 8:15\s?AM$/);
   assert.equal(formatNextRun(run, "en-US", now, clockOptions("24")), "Wed 08:15");
   assert.match(formatNextRun(new Date(2026, 9, 28, 17, 5), "en-GB", now, clockOptions("12")), /^Wed 5:05\s?pm$/i);
   assert.deepEqual(clockOptions("language"), {});

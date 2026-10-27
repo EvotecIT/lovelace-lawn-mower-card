@@ -422,14 +422,22 @@ export const heroLayoutStyles = css`
     background: none;
   }
 
+  /* The More menu opens upward from the action row, over the content above it, so
+     opening and closing it never shifts the controls below. */
   .hero-menu {
+    position: absolute;
+    z-index: 4;
+    right: var(--hero-gutter);
+    bottom: calc(100% - var(--hero-gutter) + 6px);
     display: grid;
     gap: 2px;
-    margin: 0 var(--hero-gutter) var(--hero-gutter);
+    width: min(260px, calc(100% - 2 * var(--hero-gutter)));
+    box-sizing: border-box;
     padding: 6px;
-    border: 1px solid var(--mower-hairline);
+    border: 1px solid var(--mower-border);
     border-radius: var(--mower-radius-inner);
-    background: var(--mower-fill);
+    background: var(--mower-dialog);
+    box-shadow: var(--dialog-box-shadow, none);
   }
 
   .hero-menu-item {
@@ -541,6 +549,7 @@ export const heroLayoutStyles = css`
   }
 
   .hero-actions {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: 8px;

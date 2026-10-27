@@ -186,14 +186,15 @@ export function renderHeroActions(model: HeroLayoutModel): TemplateResult {
           ${menu
             ? renderAction(model.t("action.more"), "mdi:dots-horizontal", () => model.onMoreMenu?.(!open), { expanded: open, more: true })
             : renderAction(model.t("action.more"), "mdi:dots-horizontal", model.onMoreInfo)}
+          ${open ? html`
+            <!-- An overlay above the row: closing it never moves the control being clicked. -->
+            <div class="hero-menu" role="menu" aria-label=${model.t("action.more")}
+              @keydown=${(event: KeyboardEvent) => menuKeydown(event, close)}
+              @focusout=${(event: FocusEvent) => menuFocusout(event, close)}>
+              ${helpers.map(entry => renderMenuItem(entry, () => close()))}
+              ${renderMenuItem({ label: model.t("action.details"), icon: "mdi:information-outline", handler: model.onMoreInfo }, () => close())}
+            </div>` : nothing}
         </div>
-        ${open ? html`
-          <div class="hero-menu" role="menu" aria-label=${model.t("action.more")}
-            @keydown=${(event: KeyboardEvent) => menuKeydown(event, close)}
-            @focusout=${(event: FocusEvent) => menuFocusout(event, close)}>
-            ${helpers.map(entry => renderMenuItem(entry, () => close()))}
-            ${renderMenuItem({ label: model.t("action.details"), icon: "mdi:information-outline", handler: model.onMoreInfo }, () => close())}
-          </div>` : nothing}
         ${model.confirmation || nothing}
   `;
 }
