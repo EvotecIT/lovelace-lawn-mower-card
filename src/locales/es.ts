@@ -274,6 +274,7 @@ export const es = {
   "alerts.item.robot": "Mantenimiento del robot",
   "alerts.item.edge_trimmer": "Recortabordes",
   "alerts.show": "Mostrar avisos",
+  "week.planned": "Previsto",
   "week.title": "Próximos 7 días",
   "week.none": "Sin cortes",
   "week.rainLikely": "Lluvia probable {chance}",

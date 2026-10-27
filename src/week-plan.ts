@@ -10,10 +10,16 @@ export const RAIN_LIKELY = 60;
 
 export type DayForecast = { probability?: number; condition?: string };
 
+export type PlanRun = {
+  /** HH:MM, or undefined when the plan runs that day but its time can't be placed. */
+  time?: string;
+  label: string;
+};
+
 export type PlanDay = {
   /** Local calendar date, YYYY-MM-DD. */
   date: string;
-  runs: Array<{ time: string; label: string }>;
+  runs: PlanRun[];
   forecast?: DayForecast;
   rainLikely: boolean;
 };
@@ -43,6 +49,36 @@ export function rainLikely(forecast?: DayForecast): boolean {
   return (forecast.probability ?? 0) >= RAIN_LIKELY || (forecast.condition !== undefined && WET.has(forecast.condition));
 }
 
+const weekdayKey = (value: string) => value.trim().slice(0, 3).toLowerCase();
+const hhmm = (value: string): string | undefined => {
+  const match = /^(\d{1,2}):(\d{2})/.exec(value.trim());
+  return match ? `${match[1].padStart(2, "0")}:${match[2]}` : undefined;
+};
+
+/**
+ * Which start times belong to which weekday. The integration flattens a plan into the
+ * days that have tasks and all start times, so a time can only be placed when that is
+ * unambiguous: one time per day (in order) or one time for every day. Otherwise the day
+ * is known but its times are not, and the plan says so rather than inventing them.
+ */
+export function planStarts(control: Pick<ScheduleControl, "weekdays" | "startTimes">): Map<string, Array<string | undefined>> {
+  const days = control.weekdays.map(weekdayKey).filter(day => WEEKDAYS.includes(day));
+  const times = control.startTimes.map(hhmm).filter((time): time is string => Boolean(time));
+  const starts = new Map<string, Array<string | undefined>>();
+  const distinct = [...new Set(times)];
+  if (days.length === 1) {
+    // One day: every start time is that day's.
+    starts.set(days[0], times.length ? times : [undefined]);
+    return starts;
+  }
+  days.forEach((day, index) => {
+    const time = times.length === days.length ? times[index]
+      : distinct.length === 1 ? distinct[0] : undefined;
+    starts.set(day, [...(starts.get(day) ?? []), time]);
+  });
+  return starts;
+}
+
 /**
  * The next seven days of planned starts from the enabled schedule plans, plus the
  * mowing automation's next start, with each day's forecast when there is one.
@@ -59,18 +95,14 @@ export function weekPlan(
     day.setDate(day.getDate() + offset);
     const date = localDate(day);
     const weekday = WEEKDAYS[day.getDay()];
-    const runs: PlanDay["runs"] = [];
+    const runs: PlanRun[] = [];
     for (const control of controls) {
       if (!control.enabled || !control.available) continue;
-      if (!control.weekdays.some(item => item.trim().slice(0, 3).toLowerCase() === weekday)) continue;
-      for (const start of control.startTimes) {
-        const match = /^(\d{1,2}):(\d{2})/.exec(start.trim());
-        if (!match) continue;
-        const time = `${match[1].padStart(2, "0")}:${match[2]}`;
+      for (const time of planStarts(control).get(weekday) ?? []) {
         // Today's starts that have already passed are not part of the plan any more.
-        if (offset === 0) {
+        if (offset === 0 && time) {
           const at = new Date(day);
-          at.setHours(Number(match[1]), Number(match[2]));
+          at.setHours(Number(time.slice(0, 2)), Number(time.slice(3)));
           if (at <= now) continue;
         }
         runs.push({ time, label: control.label });
@@ -85,7 +117,8 @@ export function weekPlan(
         });
       }
     }
-    runs.sort((left, right) => left.time.localeCompare(right.time));
+    // Timed runs in order; runs without a known time come last.
+    runs.sort((left, right) => (left.time ?? "99").localeCompare(right.time ?? "99"));
     const forecast = options.forecast?.get(date);
     return { date, runs, forecast, rainLikely: runs.length > 0 && rainLikely(forecast) };
   });
@@ -171,7 +204,8 @@ export function renderWeekPlan(
   if (!days.some(day => day.runs.length)) return nothing;
   // Run times follow the user's HA time format, like Next run on the card.
   const timeFormat = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", ...clock });
-  const runTime = (date: string, time: string) => timeFormat.format(new Date(`${date}T${time}:00`));
+  // A plan whose time on this day can't be placed shows as planned, without a time.
+  const runTime = (date: string, time?: string) => time ? timeFormat.format(new Date(`${date}T${time}:00`)) : t("week.planned");
   const weekday = new Intl.DateTimeFormat(locale, { weekday: "short" });
   const dayNumber = new Intl.DateTimeFormat(locale, { day: "numeric" });
   const spokenDay = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long" });
@@ -219,6 +253,9 @@ export class ForecastSubscription {
     this.onForecast = onForecast;
   }
 
+  /** Bumped on every change, so replies from an earlier subscription are ignored. */
+  private generation = 0;
+
   update(connection: object | undefined, entityId: string | undefined): void {
     if (connection === this.connection && entityId === this.entityId) return;
     this.close();
@@ -226,22 +263,26 @@ export class ForecastSubscription {
     this.entityId = entityId;
     const socket = connection as Partial<ForecastConnection> | undefined;
     if (!entityId || typeof socket?.subscribeMessage !== "function") return;
+    const generation = this.generation;
+    const current = () => generation === this.generation;
     this.unsubscribe = socket.subscribeMessage(
-      message => this.onForecast(forecastByDay(message.forecast)),
+      message => { if (current()) this.onForecast(forecastByDay(message.forecast)); },
       { type: "weather/subscribe_forecast", forecast_type: "daily", entity_id: entityId },
     ).catch(() => {
       // A weather entity without daily forecasts simply leaves the plan without rain.
-      this.onForecast(undefined);
+      if (current()) this.onForecast(undefined);
       return undefined;
     });
   }
 
   close(): void {
+    this.generation += 1;
     const pending = this.unsubscribe;
+    const hadForecast = Boolean(this.entityId);
     this.unsubscribe = undefined;
     this.connection = undefined;
     this.entityId = undefined;
     void pending?.then(stop => stop?.()).catch(() => undefined);
-    this.onForecast(undefined);
+    if (hadForecast) this.onForecast(undefined);
   }
 }

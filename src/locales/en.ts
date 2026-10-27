@@ -301,6 +301,7 @@ export const en = {
   "alerts.item.robot": "Robot maintenance",
   "alerts.item.edge_trimmer": "Edge trimmer",
   "alerts.show": "Show alerts",
+  "week.planned": "Planned",
   "week.title": "Next 7 days",
   "week.none": "No runs",
   "week.rainLikely": "Rain likely {chance}",

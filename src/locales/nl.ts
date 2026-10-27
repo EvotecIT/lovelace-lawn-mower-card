@@ -285,6 +285,7 @@ export const nl = {
   "alerts.item.robot": "Robotonderhoud",
   "alerts.item.edge_trimmer": "Kantentrimmer",
   "alerts.show": "Meldingen tonen",
+  "week.planned": "Gepland",
   "week.title": "Komende 7 dagen",
   "week.none": "Geen maaibeurt",
   "week.rainLikely": "Regen waarschijnlijk {chance}",

@@ -294,6 +294,7 @@ export const cs = {
   "alerts.item.robot": "Údržba robota",
   "alerts.item.edge_trimmer": "Zastřihovač okrajů",
   "alerts.show": "Zobrazit upozornění",
+  "week.planned": "Naplánováno",
   "week.title": "Příštích 7 dní",
   "week.none": "Žádné sekání",
   "week.rainLikely": "Pravděpodobně déšť {chance}",

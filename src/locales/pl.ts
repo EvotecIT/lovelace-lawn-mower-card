@@ -280,6 +280,7 @@ export const pl = {
   "alerts.item.robot": "Konserwacja robota",
   "alerts.item.edge_trimmer": "Przycinarka krawędzi",
   "alerts.show": "Pokaż alerty",
+  "week.planned": "Zaplanowane",
   "week.title": "Najbliższe 7 dni",
   "week.none": "Brak koszenia",
   "week.rainLikely": "Prawdopodobny deszcz {chance}",

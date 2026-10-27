@@ -337,6 +337,18 @@ export class LawnMowerCard extends LitElement {
   @state() private _maintenanceConfirm?: { mower: string; key: MaintenancePartKey; resetId: string };
   @state() private _forecast?: Map<string, DayForecast>;
   private _forecastSubscription = new ForecastSubscription(days => { this._forecast = days; });
+  private _midnightTimer?: number;
+
+  /** The week plan and next run start from today, so re-render when the local day changes. */
+  private _scheduleMidnight(): void {
+    window.clearTimeout(this._midnightTimer);
+    const next = new Date();
+    next.setHours(24, 0, 1, 0);
+    this._midnightTimer = window.setTimeout(() => {
+      this.requestUpdate();
+      this._scheduleMidnight();
+    }, next.getTime() - Date.now());
+  }
   @state() private _actionRowCapacity?: number;
   private _widthObserver?: ResizeObserver;
   private _nextRunTimer?: number;
@@ -426,6 +438,9 @@ export class LawnMowerCard extends LitElement {
         if (capacity !== this._actionRowCapacity) this._actionRowCapacity = capacity;
       });
     this._widthObserver?.observe(this);
+    // Re-added to the page: subscribe again, and keep the week current across midnight.
+    this._syncForecast();
+    this._scheduleMidnight();
     this._mutationSubscription ??= subscribeMowerMutations((entityId) => {
       if (entityId === this._config?.entity) {
         this.requestUpdate();
@@ -448,6 +463,8 @@ export class LawnMowerCard extends LitElement {
   public disconnectedCallback(): void {
     this._widthObserver?.disconnect();
     this._forecastSubscription.close();
+    window.clearTimeout(this._midnightTimer);
+    this._midnightTimer = undefined;
     this._automationDialog.close();
     this._patrolMenu = undefined;
     this._pendingCustomAction = undefined;
@@ -504,7 +521,6 @@ export class LawnMowerCard extends LitElement {
   protected willUpdate(): void {
     this._automationDialog.reconcile();
     if (this._maintenanceConfirm && !this._maintenanceConfirmCurrent()) this._maintenanceConfirm = undefined;
-    if (this.isConnected) this._forecastSubscription.update(this.hass?.connection, this._config?.weather_entity);
     if (this._patrolMenu && !this._patrolMenuCurrent(this._patrolMenu)) this._patrolMenu = undefined;
     const mower = this._config ? this.hass?.states[this._config.entity] : undefined;
     if (this._areaMenuContext && (!mower || !this._areaMenuShown(mower))) {
@@ -545,7 +561,14 @@ export class LawnMowerCard extends LitElement {
     this._resetCameraRecovery();
   }
 
+  /** Follows the configured weather entity and HA connection, whatever else re-renders. */
+  private _syncForecast(): void {
+    if (this.isConnected) this._forecastSubscription.update(this.hass?.connection, this._config?.weather_entity);
+  }
+
   protected shouldUpdate(changed: PropertyValues): boolean {
+    // Runs on every hass update, including ones filtered out below (a new connection).
+    this._syncForecast();
     if (changed.size === 0 || [...changed.keys()].some((key) => key !== "hass")) {
       return true;
     }
@@ -1010,8 +1033,10 @@ export class LawnMowerCard extends LitElement {
       patrolActions: (this._config.show_default_actions ?? true)
         ? this._patrolActions(mower) : [],
       onMoreInfo: () => this._showMoreInfo(),
-      onNextRun: scheduleControls.some(control => control.enabled) && controlsLayout(this._config.controls_layout) === "sheet"
+      // Next run opens the week plan whenever the sheet has one with a run in it.
+      onNextRun: controlsLayout(this._config.controls_layout) === "sheet"
         && !["hidden", "custom"].includes(this._config.controls_mode || "auto")
+        && this._weekPlanHasRuns(scheduleControls, mowingAutomationStatus(this.hass.states, this._config.entity))
         ? () => this._openWeekPlan() : undefined,
       moreMenuOpen: this._heroMoreOpen,
       actionRowCapacity: this._actionRowCapacity,
@@ -1564,21 +1589,35 @@ export class LawnMowerCard extends LitElement {
         schedules.map(control => ({ ...control, available: control.available && !Boolean(this._mutationInFlight) })),
         (entityId, enabled) => this._toggleSwitch(entityId, enabled), this._t,
         this._renderWeekPlan(schedules, automation),
-      ) : nothing}
+      ) : this._weekPlanHasRuns([], automation) ? html`
+        <!-- Without native plans, the automation's own starts still make a week. -->
+        <section class="schedule-panel">
+          <div class="schedule-heading"><span><ha-icon icon="mdi:calendar-clock"></ha-icon> ${this._t("week.title")}</span></div>
+          ${this._renderWeekPlan([], automation)}
+        </section>` : nothing}
       ${customFirst ? nothing : inlineContent}
       ${this._renderDeviceSettingsControls(groups.settings)}
       ${this._renderPreferenceControls(groups.preferences)}
       ${this._renderMaintenance()}`;
   }
 
-  private _renderWeekPlan(schedules: ScheduleControl[], automation?: MowingAutomationStatus) {
-    const now = new Date();
-    return renderWeekPlan(weekPlan(schedules, now, {
+  private _weekPlanDays(schedules: ScheduleControl[], automation?: MowingAutomationStatus, now = new Date()) {
+    return weekPlan(schedules, now, {
       // The automation only starts runs while it is on.
       automationStart: automation?.enabled ? automation.plan?.nextStart : undefined,
       automationLabel: automation?.scheduleName,
       forecast: this._forecast,
-    }), this._t, this._locale, now, clockOptions(this.hass.locale?.time_format));
+    });
+  }
+
+  private _weekPlanHasRuns(schedules: ScheduleControl[], automation?: MowingAutomationStatus): boolean {
+    return this._weekPlanDays(schedules, automation).some(day => day.runs.length);
+  }
+
+  private _renderWeekPlan(schedules: ScheduleControl[], automation?: MowingAutomationStatus) {
+    const now = new Date();
+    return renderWeekPlan(this._weekPlanDays(schedules, automation, now), this._t, this._locale, now,
+      clockOptions(this.hass.locale?.time_format));
   }
 
   /** The Hero's Next run opens the week plan in the settings sheet. */
@@ -3768,11 +3807,17 @@ export class LawnMowerCard extends LitElement {
       return undefined;
     }
     const calendar = helpers.find((helper) => helper.entityId.startsWith("calendar."));
-    const run = nextScheduledRun(
+    const now = new Date();
+    const scheduled = nextScheduledRun(
       discoverScheduleControls(this.hass.states, this._config.entity),
-      new Date(),
+      now,
       calendar ? this.hass.states[calendar.entityId]?.attributes.start_time : undefined,
     );
+    // The mowing automation's next start counts too, while the automation is on.
+    const automation = mowingAutomationStatus(this.hass.states, this._config.entity);
+    const automationStart = automation?.enabled && automation.plan?.nextStart ? new Date(automation.plan.nextStart) : undefined;
+    const run = automationStart && automationStart > now && (!scheduled || automationStart < scheduled)
+      ? automationStart : scheduled;
     this._refreshAt(run);
     return run ? formatNextRun(run, this._locale, new Date(), clockOptions(this.hass.locale?.time_format)) : undefined;
   }
