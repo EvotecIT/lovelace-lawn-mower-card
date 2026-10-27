@@ -80,7 +80,7 @@ export type LawnMowerCardConfig = {
   entity: string;
   locale?: LocalePreference;
   name?: string;
-  layout?: "default" | "compact" | "wide" | "hero";
+  layout?: "default" | "compact" | "wide" | "hero" | "tile";
   hero_label?: string;
   show_hero_label?: boolean;
   hero_image?: string;

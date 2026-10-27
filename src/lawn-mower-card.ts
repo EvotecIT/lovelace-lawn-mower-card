@@ -1,6 +1,7 @@
 import { clockOptions, formatNextRun, nextScheduledRun } from "./next-run";
 import { actionRowCapacity } from "./hero-actions";
 import { renderMediaSwitch, resolveStandardMedia, standardMediaViews, type StandardMediaView } from "./media-switch";
+import { cardGridOptions, renderTile, tileSecondary, type GridOptions } from "./tile-layout";
 import { withoutDevicePrefix } from "./display-names";
 import { commandPlan, type CommandPlan } from "./command-plan";
 import { cardAppearance } from "./card-appearance";
@@ -565,6 +566,7 @@ export class LawnMowerCard extends LitElement {
       this._friendlyName(mower) ||
       this._entityName(this._config.entity);
     const layout = this._config.layout || "default";
+    if (layout === "tile") return this._renderTileCard(mower, title);
     const subtitle = this._entityState(this._config.status_entity) || this._friendlyMowerState(mower.state);
     const mapEntity = this._config.map_entity ? this.hass.states[this._config.map_entity] : undefined;
     if (this._mediaVisible) {
@@ -787,7 +789,13 @@ export class LawnMowerCard extends LitElement {
     `;
   }
 
+  /** Default size and resize limits in a Sections view. */
+  public getGridOptions(): GridOptions {
+    return cardGridOptions(this._config?.layout || "default");
+  }
+
   public getCardSize(): number {
+    if (this._config?.layout === "tile") return 1;
     const showMap = this._config?.show_map ?? Boolean(this._config?.map_entity);
     const mapEntity = this._config?.map_entity
       ? this.hass?.states[this._config.map_entity]
@@ -1070,6 +1078,44 @@ export class LawnMowerCard extends LitElement {
         }
       }, CAMERA_VIEW_GRACE_MS);
     }
+  }
+
+  /** One row for Sections grids: state or the reason it stopped, and the one next action. */
+  private _renderTileCard(mower: HassEntity, title: string) {
+    const config = this._config!;
+    const alert = mowerAlerts(this.hass, config, this._t, this._locale).find(item => item.severity !== "info");
+    const battery = this._entityState(config.battery_entity) || this._stringAttribute(mower, "battery_level", "%");
+    const running = ["mowing", "returning", "paused"].includes(mower.state);
+    // Same source as the Hero's mission value: a configured progress entity first.
+    const progress = running ? this._heroMissionMetric().value : undefined;
+    // An action result (a failed Start, a dropped connection) takes the tile's line until it clears.
+    const feedback = this._actionFeedback || this._connectionFeedback(mower);
+    const helpers = defaultHelperEntities(this.hass.states, config.entity, this.hass.entities, config.schedule_calendar_entity);
+    const nextRun = this._nextRunLabel(mower, helpers);
+    const { primary } = this._commandPlan(mower);
+    const busy = Boolean(this._mutationInFlight);
+    const action = primary === "pause" && mowerSupportsFeature(mower, LawnMowerFeature.PAUSE)
+      ? { label: this._t("action.pause"), icon: "mdi:pause", disabled: busy, handler: () => this._pauseMowing() }
+      : primary === "start" && mowerSupportsFeature(mower, LawnMowerFeature.START_MOWING)
+      // The tile has no room for the area menu, so Start mows the current selection.
+      ? { label: this._t("action.start"), icon: "mdi:play", disabled: busy || !this._canStartSelectedTarget(),
+        handler: () => this._startMowing() }
+      : undefined;
+    return renderTile({
+      title,
+      stateKey: mower.state,
+      secondary: tileSecondary(
+        this._friendlyMowerState(mower.state),
+        alert ? [alert.title, alert.detail].filter(Boolean).join(" · ") : undefined,
+        [progress, nextRun ? `${this._t("hero.nextRun")} ${nextRun}` : undefined, battery],
+      ),
+      alertSeverity: alert?.severity,
+      feedback,
+      appearance: cardAppearance(config),
+      locale: this._locale,
+      action: config.show_default_actions === false ? undefined : action,
+      onMoreInfo: () => this._showMoreInfo(),
+    });
   }
 
   private _selectStandardMedia(view: StandardMediaView, mapEntity?: HassEntity): void {

@@ -280,6 +280,7 @@ export const pl = {
   "alerts.item.robot": "Konserwacja robota",
   "alerts.item.edge_trimmer": "Przycinarka krawędzi",
   "alerts.show": "Pokaż alerty",
+  "editor.layoutTile": "Kafelek",
   "action.details": "Szczegóły kosiarki",
   "settings.charging": "Ładowanie",
   "settings.rainProtection": "Ochrona przed deszczem",
