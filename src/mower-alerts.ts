@@ -95,7 +95,8 @@ export function mowerAlerts(
     alerts.push({
       key: "maintenance", severity: "warning", icon: "mdi:wrench-clock", title: t("alerts.maintenance"),
       // When the card can reset a due part itself, say so instead of pointing elsewhere.
-      detail: [items, t(maintenanceParts(hass, config.entity).some(part => part.status === "due" && part.resetId)
+      detail: [items, t(!["hidden", "custom"].includes(config.controls_mode || "auto") &&
+        maintenanceParts(hass, config.entity).some(part => part.status === "due" && part.resetId)
         ? "alerts.maintenanceResetHere" : "alerts.maintenanceDetail")].filter(Boolean).join(" · "), entityId: due.entity_id,
     });
   }

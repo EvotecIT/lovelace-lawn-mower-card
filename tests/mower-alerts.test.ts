@@ -97,6 +97,20 @@ test("a rain notice is not repeated under the rain delay", () => {
   ).map(alert => alert.key), ["rain"]);
 });
 
+test("due maintenance points to the card's reset only when the card shows it", () => {
+  const items = [
+    { ...entity(config.entity, "docked") },
+    entity("binary_sensor.garden_maintenance_due", "on", { due_items: ["robot"] }),
+    entity("sensor.garden_robot_maintenance_remaining", "0", { due: true }),
+    entity("button.garden_reset_robot_maintenance_maintenance", "unknown"),
+  ];
+  const states = Object.fromEntries(items.map(item => [item.entity_id, item]));
+  const detail = (extra: object) => mowerAlerts({ states, entities: {} }, { ...config, ...extra }, t, "en-GB", now)[0].detail;
+  assert.equal(detail({}), "Robot maintenance · Reset it in Mower settings after servicing");
+  assert.equal(detail({ controls_mode: "hidden" }), "Robot maintenance · Reset the counter after servicing");
+  assert.equal(detail({ controls_mode: "custom" }), "Robot maintenance · Reset the counter after servicing");
+});
+
 test("show_alerts: false turns the strip off", () => {
   assert.deepEqual(mowerAlerts(hass("error"), { ...config, show_alerts: false }, t, "en-GB", now), []);
 });

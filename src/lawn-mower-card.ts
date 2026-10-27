@@ -1563,7 +1563,9 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _maintenanceParts() {
-    return this._config ? maintenanceParts(this.hass, this._config.entity) : [];
+    // Like the other automatic controls, Hidden and Custom leave maintenance out.
+    if (!this._config || ["hidden", "custom"].includes(this._config.controls_mode || "auto")) return [];
+    return maintenanceParts(this.hass, this._config.entity);
   }
 
   /**

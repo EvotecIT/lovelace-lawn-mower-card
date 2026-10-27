@@ -54,7 +54,8 @@ needs replacing soon. Parts that need attention also show on the settings row.
 Maintenance** button is enabled. These buttons are disabled by default; enable
 them on the mower's device page in Home Assistant. Reset asks for confirmation
 first, because it can't be undone. The **Maintenance due** alert opens this
-section.
+section. Like the other automatic controls, it is left out when
+`controls_mode` is `hidden` or `custom`.
 
 ## Recent conditions
 
