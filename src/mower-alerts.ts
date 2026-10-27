@@ -5,17 +5,20 @@ import type { TranslationKey, Translator } from "./localization";
 import { mowingAutomationStatus } from "./mowing-automation.ts";
 import { clockOptions } from "./next-run.ts";
 import { maintenanceParts } from "./maintenance.ts";
+import { availabilityAlert, type IntegrationStatus } from "./availability.ts";
 
 export type MowerAlertSeverity = "error" | "warning" | "info";
 
 export type MowerAlert = {
-  key: "error" | "rain" | "maintenance" | "hold" | "notice" | "maintenance-soon";
+  key: "integration" | "offline" | "error" | "rain" | "maintenance" | "hold" | "notice" | "maintenance-soon";
   severity: MowerAlertSeverity;
   icon: string;
   title: string;
   detail?: string;
   /** Entity whose more-info dialog explains the alert. */
   entityId?: string;
+  /** A Home Assistant page that fixes it (the integration's page), opened instead of details. */
+  path?: string;
 };
 
 const EMPTY = new Set(["", "none", "unknown", "unavailable", "ok", "no_error", "no error", "null"]);
@@ -56,16 +59,20 @@ export function mowerAlerts(
   t: Translator,
   locale: string,
   now = new Date(),
+  integration?: IntegrationStatus,
 ): MowerAlert[] {
   if (config.show_alerts === false) return [];
   const states = hass.states;
   const mower = states[config.entity];
   if (!mower) return [];
+  // An unreachable mower explains itself first; its other inputs are unavailable too.
+  const availability = availabilityAlert(hass, config, t, locale, now, integration);
+  if (availability && ["unavailable", "unknown"].includes(mower.state)) return [availability];
   const companion = (domain: string, suffix: string): HassEntity | undefined => {
     const id = resolvedMowerCompanionEntity(states, config.entity, hass.entities, domain, suffix);
     return id ? states[id] : undefined;
   };
-  const alerts: MowerAlert[] = [];
+  const alerts: MowerAlert[] = availability ? [availability] : [];
 
   const errorSensor = companion("sensor", "error");
   const sensorError = present(errorSensor?.state) ? errorSensor!.state : undefined;

@@ -128,6 +128,7 @@ import { AutomationDialogController } from "./automation-dialog-controller";
 import { recentMowerConditions } from "./recent-conditions";
 import { renderRecentConditions } from "./recent-conditions-panel";
 import { mowerAlerts, renderMowerAlerts, type MowerAlert } from "./mower-alerts";
+import { integrationStatus, type IntegrationStatus } from "./availability";
 import {
   normalizedZoneSelection,
   reconciledZoneSelectionKeys,
@@ -333,6 +334,11 @@ export class LawnMowerCard extends LitElement {
   private _heroViewSlot?: string;
   private _actionFeedbackTimer?: number;
   @state() private _heroMoreOpen = false;
+  @state() private _integration?: IntegrationStatus;
+  private _integrationCheckedAt?: number;
+  /** The mower the cached status and its throttle belong to. */
+  private _integrationFor?: string;
+  private _integrationRequest = 0;
   @state() private _maintenanceConfirm?: { mower: string; key: MaintenancePartKey; resetId: string };
   @state() private _actionRowCapacity?: number;
   private _widthObserver?: ResizeObserver;
@@ -376,6 +382,7 @@ export class LawnMowerCard extends LitElement {
   public setConfig(config: LawnMowerCardConfig): void {
     this._clearNextRunTimer();
     this._maintenanceConfirm = undefined;
+    if (config.entity !== this._config?.entity) this._resetIntegrationStatus();
     if (!config.entity) {
       throw new Error("The 'entity' option is required.");
     }
@@ -540,7 +547,52 @@ export class LawnMowerCard extends LitElement {
     this._resetCameraRecovery();
   }
 
+  /**
+   * The interactive map's path, unless its camera is unavailable; a saved preview the
+   * integration keeps across a restart still shows.
+   */
+  private _mapPath(mapEntity?: HassEntity): string | undefined {
+    if (mapEntity && ["unavailable", "unknown"].includes(mapEntity.state) && mapEntity.attributes.restart_preview !== true) return undefined;
+    return mowingMapPath(mapEntity?.attributes.mowing_map_api_path);
+  }
+
+  /** Forgets the cached entry status and invalidates any request still in flight. */
+  private _resetIntegrationStatus(): void {
+    this._integration = undefined;
+    this._integrationCheckedAt = undefined;
+    this._integrationFor = undefined;
+    this._integrationRequest += 1;
+  }
+
+  /**
+   * While the mower is unreachable, ask HA why: the config entry's state and reason.
+   * At most once a minute per mower, and dropped once it's back or the card changes mower.
+   */
+  private _syncIntegrationStatus(): void {
+    const mowerId = this._config?.entity;
+    const mower = mowerId ? this.hass?.states[mowerId] : undefined;
+    if (!mower || !["unavailable", "unknown"].includes(mower.state) || this._integrationFor !== mowerId) {
+      if (this._integrationFor !== undefined || this._integration) this._resetIntegrationStatus();
+      if (!mower || !["unavailable", "unknown"].includes(mower.state)) return;
+    }
+    const domain = this.hass.entities?.[mowerId!]?.platform;
+    if (!domain) return;
+    if (this._integrationCheckedAt !== undefined && Date.now() - this._integrationCheckedAt < 60000) return;
+    this._integrationCheckedAt = Date.now();
+    this._integrationFor = mowerId;
+    // Only the latest request for this mower and this unavailable spell may answer.
+    const request = ++this._integrationRequest;
+    this.hass.callWS<unknown>({ type: "config_entries/get", domain })
+      .then(entries => {
+        if (request === this._integrationRequest && this._config?.entity === mowerId) {
+          this._integration = integrationStatus(entries, this.hass, mowerId!);
+        }
+      })
+      .catch(() => undefined);
+  }
+
   protected shouldUpdate(changed: PropertyValues): boolean {
+    this._syncIntegrationStatus();
     if (changed.size === 0 || [...changed.keys()].some((key) => key !== "hass")) {
       return true;
     }
@@ -574,7 +626,8 @@ export class LawnMowerCard extends LitElement {
     const subtitle = this._entityState(this._config.status_entity) || this._friendlyMowerState(mower.state);
     const mapEntity = this._config.map_entity ? this.hass.states[this._config.map_entity] : undefined;
     if (this._mediaVisible) {
-      this._visibleMapUrl = mapEntity ? this._cameraUrl(mapEntity) : undefined;
+      // An unavailable map camera has no image to load; the placeholder says so.
+      this._visibleMapUrl = mapEntity && !["unavailable", "unknown"].includes(mapEntity.state) ? this._cameraUrl(mapEntity) : undefined;
     }
     const mapUrl = this._visibleMapUrl;
     const showMap = this._config.show_map ?? Boolean(this._config.map_entity);
@@ -639,7 +692,7 @@ export class LawnMowerCard extends LitElement {
               ? html`
                   <div class="map" id="media-panel-map" role=${mediaViews.length > 1 ? "tabpanel" : nothing}
                     aria-labelledby=${mediaViews.length > 1 ? "media-tab-map" : nothing}>
-                    ${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)
+                    ${this._mapPath(mapEntity)
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
                           .appearanceContext=${this._config}
@@ -648,7 +701,7 @@ export class LawnMowerCard extends LitElement {
                           .entityId=${this._config.entity} .tiles=${worldTileConfig(this._config)}
                           .mowerSize=${mowerMarkerSize(this._config)}
                           .worldDim=${this._config.world_background_dim}
-                          .path=${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)}
+                          .path=${this._mapPath(mapEntity)}
                           .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
                           .active=${this._mediaVisible}></lawn-mower-mowing-map>`
                       : mapUrl
@@ -661,8 +714,8 @@ export class LawnMowerCard extends LitElement {
                           alt=${title}
                           @click=${() => this._showMoreInfo(mapEntity?.entity_id)}
                         />`
-                      : html`<div class="map-placeholder">${this._t("card.mapMissing")}</div>`}
-                    ${mapEntity && !mowingMapPath(mapEntity.attributes.mowing_map_api_path)
+                      : html`<div class="map-placeholder" role="status">${this._t(mapEntity ? "card.mapUnavailable" : "card.mapMissing")}</div>`}
+                    ${mapEntity && mapUrl && !mowingMapPath(mapEntity.attributes.mowing_map_api_path)
                       ? this._renderMapStatus(mapEntity, mower.state) : nothing}
                   </div>
                 `
@@ -869,7 +922,7 @@ export class LawnMowerCard extends LitElement {
     )
       ? this._renderControlContent(controlEntities, scheduleControls, true) : undefined;
     const scenePath = this._config.show_map === false ? undefined
-      : mowingMapPath(configuredMapEntity?.attributes.mowing_map_api_path);
+      : this._mapPath(configuredMapEntity);
     const availableViews = availableHeroViews({
       map: Boolean(mapUrl || scenePath),
       pointCloud: Boolean(pointCloudPath),
@@ -1087,7 +1140,7 @@ export class LawnMowerCard extends LitElement {
   /** One row for Sections grids: state or the reason it stopped, and the one next action. */
   private _renderTileCard(mower: HassEntity, title: string) {
     const config = this._config!;
-    const alert = mowerAlerts(this.hass, config, this._t, this._locale).find(item => item.severity !== "info");
+    const alert = mowerAlerts(this.hass, config, this._t, this._locale, new Date(), this._integration).find(item => item.severity !== "info");
     const battery = this._entityState(config.battery_entity) || this._stringAttribute(mower, "battery_level", "%");
     const running = ["mowing", "returning", "paused"].includes(mower.state);
     // Same source as the Hero's mission value: a configured progress entity first.
@@ -1207,7 +1260,7 @@ export class LawnMowerCard extends LitElement {
   private _renderAlerts(mower: HassEntity) {
     if (!this.hass || !this._config) return nothing;
     return renderMowerAlerts({
-      alerts: mowerAlerts(this.hass, this._config, this._t, this._locale),
+      alerts: mowerAlerts(this.hass, this._config, this._t, this._locale, new Date(), this._integration),
       idle: !["mowing", "returning"].includes(mower.state),
       t: this._t,
       onSelect: alert => this._selectAlert(alert),
@@ -1216,6 +1269,12 @@ export class LawnMowerCard extends LitElement {
 
   /** Due maintenance opens the card's own Maintenance section; other alerts open their entity. */
   private _selectAlert(alert: MowerAlert): void {
+    // An alert with a fix elsewhere in HA (the integration's page) goes there.
+    if (alert.path) {
+      history.pushState(null, "", alert.path);
+      window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+      return;
+    }
     if (alert.key !== "maintenance" || !this._maintenanceParts().length) {
       this._showMoreInfo(alert.entityId);
       return;
