@@ -195,6 +195,15 @@ var xs=Object.defineProperty;var zs=Object.getOwnPropertyDescriptor;var v=(t,n,e
     color: var(--mower-error);
   }
 
+  .tile-live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .tile-action {
     display: grid;
     flex: none;
@@ -231,10 +240,11 @@ var xs=Object.defineProperty;var zs=Object.getOwnPropertyDescriptor;var v=(t,n,e
           </span>
           <span class="tile-copy">
             <span class="tile-name">${t.title}</span>
-            ${n?d`<span class=${`tile-secondary${n.error?" error":""}`} role=${n.error?"alert":"status"}
-                  title=${n.message}>${n.message}</span>`:d`<span class="tile-secondary" title=${t.secondary}>${t.secondary}</span>`}
+            ${n?d`<span class=${`tile-secondary${n.error?" error":""}`} title=${n.message}>${n.message}</span>`:d`<span class="tile-secondary" title=${t.secondary}>${t.secondary}</span>`}
           </span>
         </button>
+        <!-- Announced from outside the button: a live region inside a button isn't read reliably. -->
+        <span class="tile-live" role=${n?.error?"alert":"status"}>${n?.message??""}</span>
         ${t.action?d`
           <button type="button" class="tile-action" aria-label=${t.action.label} title=${t.action.label}
             ?disabled=${t.action.disabled} @click=${t.action.handler}>

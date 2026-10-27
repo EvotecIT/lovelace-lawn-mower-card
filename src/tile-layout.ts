@@ -121,6 +121,15 @@ export const tileLayoutStyles = css`
     color: var(--mower-error);
   }
 
+  .tile-live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .tile-action {
     display: grid;
     flex: none;
@@ -177,11 +186,12 @@ export function renderTile(model: TileModel): TemplateResult {
           <span class="tile-copy">
             <span class="tile-name">${model.title}</span>
             ${feedback
-              ? html`<span class=${`tile-secondary${feedback.error ? " error" : ""}`} role=${feedback.error ? "alert" : "status"}
-                  title=${feedback.message}>${feedback.message}</span>`
+              ? html`<span class=${`tile-secondary${feedback.error ? " error" : ""}`} title=${feedback.message}>${feedback.message}</span>`
               : html`<span class="tile-secondary" title=${model.secondary}>${model.secondary}</span>`}
           </span>
         </button>
+        <!-- Announced from outside the button: a live region inside a button isn't read reliably. -->
+        <span class="tile-live" role=${feedback?.error ? "alert" : "status"}>${feedback?.message ?? ""}</span>
         ${model.action ? html`
           <button type="button" class="tile-action" aria-label=${model.action.label} title=${model.action.label}
             ?disabled=${model.action.disabled} @click=${model.action.handler}>
