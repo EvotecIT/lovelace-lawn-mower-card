@@ -1266,6 +1266,17 @@
         stateStore["sensor.backyard_mower_error"] = { entity_id: "sensor.backyard_mower_error",
           state: "Wheel blocked. Check the mower and the grass around it.", attributes: { friendly_name: "Error" } };
       }
+      // ?alert=integration is the live check's state: the entry retrying setup, every
+      // entity restored and unavailable. ?alert=offline: running, mower unreachable.
+      if (alertScenario === "integration" || alertScenario === "offline") {
+        const mower = stateStore["lawn_mower.backyard_mower"];
+        mower.state = "unavailable";
+        mower.attributes = { friendly_name: "Backyard mower", supported_features: 7, ...(alertScenario === "integration" ? { restored: true } : {}) };
+        mower.last_changed = new Date(Date.now() - 2 * 3600_000).toISOString();
+        stateStore["camera.backyard_mower_map"].state = "unavailable";
+        stateStore["sensor.backyard_mower_state_name"].state = "unavailable";
+        stateStore["sensor.backyard_mower_battery"].state = "unavailable";
+      }
       if (alertScenario === "maintenance") {
         stateStore["binary_sensor.backyard_mower_maintenance_due"] = {
           entity_id: "binary_sensor.backyard_mower_maintenance_due", state: "on",
@@ -1351,6 +1362,12 @@
         async callWS(message) {
           if (message?.type === "config/entity_registry/get") return { unique_id: "backyard_mowing" };
           if (message?.type === "schedule/list") return [demoSchedule];
+          if (message?.type === "config_entries/get") return [{
+            entry_id: "demo-entry", domain: "dreame_lawn_mower", title: "Backyard mower",
+            state: alertScenario === "integration" ? "setup_retry" : "loaded",
+            reason: alertScenario === "integration" ? "Initial device properties are unavailable" : null,
+            disabled_by: null,
+          }];
           if (message?.type === "schedule/update") {
             Object.assign(demoSchedule, message);
             return demoSchedule;
