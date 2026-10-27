@@ -285,6 +285,7 @@ export const nl = {
   "alerts.item.robot": "Robotonderhoud",
   "alerts.item.edge_trimmer": "Kantentrimmer",
   "alerts.show": "Meldingen tonen",
+  "action.details": "Maaierdetails",
   "settings.charging": "Opladen",
   "settings.rainProtection": "Regenbescherming",
   "settings.rainDelayLabel": "Regenvertraging",

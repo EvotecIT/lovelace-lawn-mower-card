@@ -179,4 +179,9 @@ window.addEventListener("load", async () => {
     await new Promise(resolve => setTimeout(resolve, 300));
     card.shadowRoot?.querySelector(".settings-entry")?.click();
   }
+  // ?open=more opens the Hero's More menu.
+  if (params.get("open") === "more") {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    card.shadowRoot?.querySelector(".hero-action.more")?.click();
+  }
 });

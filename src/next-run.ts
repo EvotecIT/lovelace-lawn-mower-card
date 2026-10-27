@@ -35,11 +35,25 @@ export function nextScheduledRun(
   return candidates.sort((left, right) => left.getTime() - right.getTime())[0];
 }
 
-/** "Wed 08:15" in the card's locale; a run more than six days away also names its date. */
-export function formatNextRun(run: Date, locale: string, now: Date): string {
+/**
+ * Clock options from the user's Home Assistant time format: "12", "24", "system"
+ * (the browser's clock) or "language" (the locale's own convention).
+ */
+export function clockOptions(timeFormat: unknown): Intl.DateTimeFormatOptions {
+  if (timeFormat === "12") return { hour12: true };
+  if (timeFormat === "24") return { hourCycle: "h23" };
+  if (timeFormat === "system") {
+    const cycle = new Intl.DateTimeFormat(undefined, { hour: "numeric" }).resolvedOptions().hourCycle;
+    return cycle ? { hourCycle: cycle } : {};
+  }
+  return {};
+}
+
+/** "Wed 8:15" in the card's locale; a run more than six days away also names its date. */
+export function formatNextRun(run: Date, locale: string, now: Date, clock: Intl.DateTimeFormatOptions = {}): string {
   const soon = run.getTime() - now.getTime() < 6 * 24 * 60 * 60 * 1000;
   return new Intl.DateTimeFormat(locale, {
-    weekday: "short", hour: "2-digit", minute: "2-digit",
+    weekday: "short", hour: "numeric", minute: "2-digit", ...clock,
     ...(soon ? {} : { day: "numeric", month: "short" }),
   }).format(run);
 }

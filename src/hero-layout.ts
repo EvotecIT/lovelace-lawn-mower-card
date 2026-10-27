@@ -122,6 +122,11 @@ export type HeroLayoutModel = {
   /** Built-in Dreame patrols, shown after Dock when the integration offers them. */
   patrolActions?: Array<{ label: string; icon?: string; disabled: boolean; handler(): void | Promise<void> }>;
   onMoreInfo(): void;
+  /** The More menu holds helpers that don't fit on the action row. */
+  moreMenuOpen?: boolean;
+  /** Buttons that fit on the action row at the card's width; unknown keeps the default. */
+  actionRowCapacity?: number;
+  onMoreMenu?(open: boolean, restoreFocus?: boolean): void;
 };
 
 function renderMetric(icon: string, label: string, value: string, variant?: string): TemplateResult {
@@ -201,7 +206,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   const showControls = !model.customSectionOrder && Boolean(model.controls);
   const controlsAfterActions = showControls && model.settingsSheet && !model.dashboard;
   const controlsBeforeActions = showControls && !controlsAfterActions;
-  const selectors = html`<div class="hero-selectors" aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>`;
+  const selectors = html`<div class=${`hero-selectors${controlsAfterActions ? " after-actions" : ""}`} aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>`;
   return html`
     <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.dashboard && !hasAside ? " dashboard-no-aside" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
       <div class="hero-shell">
@@ -216,7 +221,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
             <div class="hero-title-block">
               ${model.label ? html`<span class="hero-eyebrow">${model.label}</span>` : nothing}
               <h2>${model.title}</h2>
-              ${mainView !== "map" || model.subtitle.toLowerCase() !== model.stateLabel.toLowerCase()
+              ${model.subtitle.trim().toLowerCase() !== model.stateLabel.trim().toLowerCase()
                 ? html`<span class="hero-subtitle">${model.subtitle}</span>` : nothing}
             </div>
             <div class=${`hero-state state-${model.stateKey}`}>

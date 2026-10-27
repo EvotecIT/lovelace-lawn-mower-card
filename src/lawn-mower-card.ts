@@ -1,4 +1,5 @@
-import { formatNextRun, nextScheduledRun } from "./next-run";
+import { clockOptions, formatNextRun, nextScheduledRun } from "./next-run";
+import { actionRowCapacity } from "./hero-actions";
 import { withoutDevicePrefix } from "./display-names";
 import { commandPlan, type CommandPlan } from "./command-plan";
 import { cardAppearance } from "./card-appearance";
@@ -327,6 +328,9 @@ export class LawnMowerCard extends LitElement {
   private _heroViewRoute?: string;
   private _heroViewSlot?: string;
   private _actionFeedbackTimer?: number;
+  @state() private _heroMoreOpen = false;
+  @state() private _actionRowCapacity?: number;
+  private _widthObserver?: ResizeObserver;
   private _nextRunTimer?: number;
   private _nextRunAt?: number;
   private _actionGeneration = 0;
@@ -406,6 +410,13 @@ export class LawnMowerCard extends LitElement {
   public connectedCallback(): void {
     super.connectedCallback();
     this._mediaVisibility.connect();
+    // The Hero action row holds as many readable buttons as the card's width allows.
+    this._widthObserver ??= typeof ResizeObserver === "undefined" ? undefined
+      : new ResizeObserver(([entry]) => {
+        const capacity = actionRowCapacity(entry.contentRect.width);
+        if (capacity !== this._actionRowCapacity) this._actionRowCapacity = capacity;
+      });
+    this._widthObserver?.observe(this);
     this._mutationSubscription ??= subscribeMowerMutations((entityId) => {
       if (entityId === this._config?.entity) {
         this.requestUpdate();
@@ -426,6 +437,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   public disconnectedCallback(): void {
+    this._widthObserver?.disconnect();
     this._automationDialog.close();
     this._patrolMenu = undefined;
     this._pendingCustomAction = undefined;
@@ -970,6 +982,23 @@ export class LawnMowerCard extends LitElement {
       patrolActions: (this._config.show_default_actions ?? true)
         ? this._patrolActions(mower) : [],
       onMoreInfo: () => this._showMoreInfo(),
+      moreMenuOpen: this._heroMoreOpen,
+      actionRowCapacity: this._actionRowCapacity,
+      onMoreMenu: (open, restoreFocus) => this._setHeroMoreMenu(open, restoreFocus),
+    });
+  }
+
+  private _setHeroMoreMenu(open: boolean, restoreFocus = true): void {
+    if (this._heroMoreOpen === open) return;
+    this._heroMoreOpen = open;
+    // Tabbing or clicking away closes the menu without pulling focus back.
+    if (!open && !restoreFocus) return;
+    void this.updateComplete.then(() => {
+      // Opening moves focus into the menu; closing returns it to the More button.
+      const target = open
+        ? this.shadowRoot?.querySelector<HTMLElement>(".hero-menu .hero-menu-item:not(:disabled)")
+        : this.shadowRoot?.querySelector<HTMLElement>(".hero-actions .hero-action.more");
+      target?.focus();
     });
   }
 
@@ -3561,7 +3590,7 @@ export class LawnMowerCard extends LitElement {
       calendar ? this.hass.states[calendar.entityId]?.attributes.start_time : undefined,
     );
     this._refreshAt(run);
-    return run ? formatNextRun(run, this._locale, new Date()) : undefined;
+    return run ? formatNextRun(run, this._locale, new Date(), clockOptions(this.hass.locale?.time_format)) : undefined;
   }
 
   /** A schedule that passes without starting the mower changes no entity, so re-render at its time. */

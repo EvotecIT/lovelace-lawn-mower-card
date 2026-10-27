@@ -3,6 +3,7 @@ import type { HassEntity, HomeAssistant, LawnMowerCardConfig } from "./card-conf
 import { resolvedMowerCompanionEntity } from "./card-logic.ts";
 import type { TranslationKey, Translator } from "./localization";
 import { mowingAutomationStatus } from "./mowing-automation.ts";
+import { clockOptions } from "./next-run.ts";
 
 export type MowerAlertSeverity = "error" | "warning" | "info";
 
@@ -32,13 +33,15 @@ function itemNames(value: unknown, t: Translator): string | undefined {
 }
 
 /** "16:20", or "Tue 16:20" when the time is not today. */
-export function alertTime(value: unknown, locale: string, now: Date): string | undefined {
+export function alertTime(
+  value: unknown, locale: string, now: Date, clock: Intl.DateTimeFormatOptions = {},
+): string | undefined {
   if (typeof value !== "string") return undefined;
   const time = new Date(value);
   if (Number.isNaN(time.getTime()) || time <= now) return undefined;
   const today = time.toDateString() === now.toDateString();
   return new Intl.DateTimeFormat(locale, {
-    hour: "numeric", minute: "2-digit", ...(today ? {} : { weekday: "short" }),
+    hour: "numeric", minute: "2-digit", ...clock, ...(today ? {} : { weekday: "short" }),
   }).format(time);
 }
 
@@ -47,7 +50,7 @@ export function alertTime(value: unknown, locale: string, now: Date): string | u
  * reports. Errors come first, then reasons that stop a run, then notes.
  */
 export function mowerAlerts(
-  hass: Pick<HomeAssistant, "states" | "entities">,
+  hass: Pick<HomeAssistant, "states" | "entities" | "locale">,
   config: LawnMowerCardConfig,
   t: Translator,
   locale: string,
@@ -78,7 +81,7 @@ export function mowerAlerts(
 
   const rain = companion("binary_sensor", "rain_delay_active");
   if (rain?.state === "on") {
-    const until = alertTime(rain.attributes.rain_protect_end_time_iso, locale, now);
+    const until = alertTime(rain.attributes.rain_protect_end_time_iso, locale, now, clockOptions(hass.locale?.time_format));
     alerts.push({
       key: "rain", severity: "warning", icon: "mdi:weather-pouring", title: t("alerts.rain"),
       detail: until ? t("alerts.rainUntil", { time: until }) : t("alerts.rainDetail"), entityId: rain.entity_id,
@@ -190,8 +193,8 @@ export const mowerAlertStyles = css`
     font-size: 0.75rem;
   }
 
-  .hero-shell > .mower-alerts { grid-column: 1 / -1; margin: 0 18px 12px; }
-  .dashboard-command-panel > .mower-alerts { margin: 0 0 12px; }
+  .hero-shell > .mower-alerts { grid-column: 1 / -1; margin: var(--hero-gutter) var(--hero-gutter) 0; }
+  .dashboard-command-panel > .mower-alerts { margin: 0; }
 `;
 
 export type MowerAlertsModel = {

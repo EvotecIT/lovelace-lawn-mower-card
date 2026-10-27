@@ -294,6 +294,7 @@ export const cs = {
   "alerts.item.robot": "Údržba robota",
   "alerts.item.edge_trimmer": "Zastřihovač okrajů",
   "alerts.show": "Zobrazit upozornění",
+  "action.details": "Podrobnosti sekačky",
   "settings.charging": "Nabíjení",
   "settings.rainProtection": "Ochrana proti dešti",
   "settings.rainDelayLabel": "Zpoždění po dešti",

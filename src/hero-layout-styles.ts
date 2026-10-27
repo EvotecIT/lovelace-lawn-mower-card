@@ -20,6 +20,8 @@ export const heroLayoutStyles = css`
   .view-map.interactive-map .hero-mowing-map { position:relative; order:2;
     height:auto; flex:1 1 auto; min-height:0; }
   ha-card.hero-card {
+    /* One side margin for every block below the media, so their edges line up. */
+    --hero-gutter:12px;
     --mower-chrome:transparent;
     --mower-shell-glow:transparent;
     overflow: hidden;
@@ -71,7 +73,7 @@ export const heroLayoutStyles = css`
     display: flex;
     align-items: center;
     gap: 8px;
-    margin: 0 14px 10px;
+    margin: var(--hero-gutter) var(--hero-gutter) 0;
     border: 1px solid color-mix(in srgb, var(--mower-success) 42%, transparent);
     border-radius: var(--mower-radius-control);
     padding: 9px 11px;
@@ -408,9 +410,71 @@ export const heroLayoutStyles = css`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 8px;
-    padding: 10px 12px;
+    padding: 10px var(--hero-gutter);
     border-bottom: 1px solid var(--mower-hairline);
     background: var(--mower-chrome);
+  }
+
+  /* The settings row after the actions continues the same area instead of starting a band. */
+  .hero-selectors.after-actions {
+    padding: 0 var(--hero-gutter) var(--hero-gutter);
+    border-bottom: 0;
+    background: none;
+  }
+
+  /* The More menu opens upward from the action row, over the content above it, so
+     opening and closing it never shifts the controls below. */
+  .hero-menu {
+    position: absolute;
+    z-index: 4;
+    right: var(--hero-gutter);
+    bottom: calc(100% - var(--hero-gutter) + 6px);
+    display: grid;
+    gap: 2px;
+    width: min(260px, calc(100% - 2 * var(--hero-gutter)));
+    box-sizing: border-box;
+    padding: 6px;
+    border: 1px solid var(--mower-border);
+    border-radius: var(--mower-radius-inner);
+    background: var(--mower-dialog);
+    box-shadow: var(--dialog-box-shadow, none);
+  }
+
+  .hero-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    margin: 0;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: var(--mower-radius-control);
+    color: var(--mower-text);
+    background: transparent;
+    font: inherit;
+    font-size: 0.9rem;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .hero-menu-item:hover,
+  .hero-menu-item.active {
+    background: var(--mower-fill-strong);
+  }
+
+  .hero-menu-item:focus-visible {
+    outline: 2px solid var(--mower-accent);
+    outline-offset: -2px;
+  }
+
+  .hero-menu-item:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+
+  .hero-menu-item ha-icon {
+    --mdc-icon-size: 20px;
+    color: var(--mower-muted);
   }
 
   .hero-selectors .selector-card {
@@ -485,11 +549,32 @@ export const heroLayoutStyles = css`
   }
 
   .hero-actions {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: 8px;
-    padding: 12px;
+    padding: var(--hero-gutter);
     background: var(--mower-canvas);
+  }
+
+  /* The card sizes the row to the buttons that fit, so they share one line; a long label
+     takes a second line instead. The dashboard layout keeps its own grid, and a sixth
+     button lets the row wrap again. */
+  .hero-card:not(.dashboard-card) .hero-actions:not(:has(.hero-action:nth-child(6))) {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+
+  .hero-action > span {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: break-word;
   }
 
   .hero-action {
@@ -515,7 +600,8 @@ export const heroLayoutStyles = css`
   }
 
   .hero-action:hover,
-  .hero-action.active {
+  .hero-action.active,
+  .hero-action.more[aria-expanded="true"] {
     color: var(--mower-text);
     border-color: color-mix(in srgb, var(--mower-accent) 32%, transparent);
     background: color-mix(in srgb, var(--mower-accent) 16%, transparent);
@@ -594,7 +680,6 @@ export const heroLayoutStyles = css`
 
     .hero-actions {
       gap: 6px;
-      padding: 9px;
     }
 
     .hero-action {
