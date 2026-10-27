@@ -189,7 +189,8 @@ export type MaintenancePanelModel = {
   busy: boolean;
   /** The part whose reset is waiting for confirmation. */
   confirming?: MaintenancePartKey;
-  onAsk(key?: MaintenancePartKey): void;
+  onAsk(part: MaintenancePart): void;
+  onCancel(key: MaintenancePartKey): void;
   onReset(part: MaintenancePart): void;
 };
 
@@ -198,7 +199,8 @@ export function renderMaintenancePanel(model: MaintenancePanelModel): TemplateRe
   const { t } = model;
   const percent = new Intl.NumberFormat(model.locale, { maximumFractionDigits: 0 });
   const hours = new Intl.NumberFormat(model.locale, { maximumFractionDigits: 0 });
-  const canReset = model.parts.some(part => part.resetId);
+  // The buttons are enabled one by one, so the hint stays while any shown part lacks one.
+  const missingReset = model.parts.some(part => !part.resetId);
   return html`
     <section class="maintenance-panel" id="maintenance-panel" aria-labelledby="maintenance-title">
       <h3 id="maintenance-title">${t("maintenance.title")}</h3>
@@ -222,18 +224,18 @@ export function renderMaintenancePanel(model: MaintenancePanelModel): TemplateRe
               <span class="maintenance-meta">${meta}</span>
             </div>
             ${part.resetId && !asking ? html`<div class="maintenance-actions">
-              <button type="button" ?disabled=${model.busy} @click=${() => model.onAsk(part.key)}
+              <button type="button" data-maintenance-reset=${part.key} ?disabled=${model.busy} @click=${() => model.onAsk(part)}
                 aria-label=${t("maintenance.resetPart", { part: name })}>${t("maintenance.reset")}</button>
             </div>` : nothing}
             ${asking ? html`
-              <p class="maintenance-confirm" role="alert">${t("maintenance.confirm", { part: name })}</p>
-              <div class="maintenance-actions" style="grid-column: 2 / -1">
-                <button type="button" @click=${() => model.onAsk(undefined)}>${t("custom.cancel")}</button>
+              <p class="maintenance-confirm" role="alert" id=${`maintenance-confirm-${part.key}`}>${t("maintenance.confirm", { part: name })}</p>
+              <div class="maintenance-actions" style="grid-column: 2 / -1" role="group" aria-labelledby=${`maintenance-confirm-${part.key}`}>
+                <button type="button" data-maintenance-cancel=${part.key} @click=${() => model.onCancel(part.key)}>${t("custom.cancel")}</button>
                 <button type="button" class="confirm" ?disabled=${model.busy} @click=${() => model.onReset(part)}>${t("maintenance.resetPart", { part: name })}</button>
               </div>` : nothing}
           </div>`;
       })}
-      ${canReset ? nothing : html`<p class="maintenance-hint">${t("maintenance.enableReset")}</p>`}
+      ${missingReset ? html`<p class="maintenance-hint">${t("maintenance.enableReset")}</p>` : nothing}
     </section>
   `;
 }
