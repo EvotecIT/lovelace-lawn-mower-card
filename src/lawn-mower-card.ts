@@ -1,5 +1,6 @@
 import { clockOptions, formatNextRun, nextScheduledRun } from "./next-run";
 import { actionRowCapacity } from "./hero-actions";
+import { renderMediaSwitch, resolveStandardMedia, standardMediaViews, type StandardMediaView } from "./media-switch";
 import { withoutDevicePrefix } from "./display-names";
 import { commandPlan, type CommandPlan } from "./command-plan";
 import { cardAppearance } from "./card-appearance";
@@ -306,6 +307,7 @@ export class LawnMowerCard extends LitElement {
   @state() private _heroViewChosen = false;
   @state() private _pointCloudMounted = false;
   @state() private _traditionalPointCloudActive = false;
+  @state() private _standardMediaView: StandardMediaView = "map";
   @state() private _traditionalPointCloudLoading = false;
   @state() private _pointCloudLoadError?: string;
   @state() private _cameraMounted = false;
@@ -593,6 +595,9 @@ export class LawnMowerCard extends LitElement {
     const showAdvancedDetails = this._config.show_advanced_details ?? false;
     const visibleActionFeedback =
       this._actionFeedback || this._connectionFeedback(mower);
+    // Map and 3D share one media area; 3D takes no space until it is chosen.
+    const mediaViews = standardMediaViews(showMap, showPointCloud);
+    const mediaView = resolveStandardMedia(this._standardMediaView, mediaViews);
 
     if (layout === "hero") {
       return this._renderHeroCard(
@@ -620,9 +625,14 @@ export class LawnMowerCard extends LitElement {
             ${this._renderAlerts(mower)}
 
             ${renderSummary(headerSummary)}
-            ${showMap
+            ${renderMediaSwitch({
+              views: mediaViews, active: mediaView, t: this._t,
+              onSelect: (view) => this._selectStandardMedia(view, mapEntity),
+            })}
+            ${mediaView === "map"
               ? html`
-                  <div class="map">
+                  <div class="map" id="media-panel-map" role=${mediaViews.length > 1 ? "tabpanel" : nothing}
+                    aria-labelledby=${mediaViews.length > 1 ? "media-tab-map" : nothing}>
                     ${mowingMapPath(mapEntity?.attributes.mowing_map_api_path)
                       ? html`<lawn-mower-mowing-map style="height:320px"
                           .hass=${this.hass} .locale=${this._locale}
@@ -651,9 +661,10 @@ export class LawnMowerCard extends LitElement {
                   </div>
                 `
               : nothing}
-            ${showPointCloud
+            ${mediaView === "point-cloud"
               ? html`
-                  <div class="point-cloud-panel">
+                  <div class="point-cloud-panel" id="media-panel-point-cloud" role=${mediaViews.length > 1 ? "tabpanel" : nothing}
+                    aria-labelledby=${mediaViews.length > 1 ? "media-tab-point-cloud" : nothing}>
                     ${!pointCloudPath
                       ? html`
                           <div class="point-cloud-placeholder" role="status">
@@ -1059,6 +1070,12 @@ export class LawnMowerCard extends LitElement {
         }
       }, CAMERA_VIEW_GRACE_MS);
     }
+  }
+
+  private _selectStandardMedia(view: StandardMediaView, mapEntity?: HassEntity): void {
+    this._standardMediaView = view;
+    // Choosing 3D is the request to load it, unless the integration can't confirm it works.
+    if (view === "point-cloud" && !pointCloudNeedsConfirmation(mapEntity)) this._activateTraditionalPointCloud();
   }
 
   private _retryPointCloudModule = (): void => {

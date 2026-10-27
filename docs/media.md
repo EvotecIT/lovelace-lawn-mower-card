@@ -114,7 +114,9 @@ The download is deliberately on demand:
 
 - in Hero, select the **3D** tab; if support is unverified, read the explanation
   and press **Load 3D map** only when you want to try a generation request
-- in compact, default, or wide layouts, press **Load 3D map**
+- in compact, default, or wide layouts, choose **3D** in the Map / 3D switch
+  above the map; the map and the 3D view share one area, and 3D loads when you
+  choose it (or after **Load 3D map** when support is unverified)
 - use the viewer to orbit, pan, zoom, change point size, reset, or refresh
 - press **PCD** to make a separate signed request for the original file; the
   viewer does not retain the large downloaded source buffer after parsing
