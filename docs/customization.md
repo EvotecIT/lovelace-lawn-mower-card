@@ -59,6 +59,27 @@ hero_overlay: 85
 The older `hero_theme` setting still works when no preset is selected. A selected
 preset follows Home Assistant instead, without deleting that saved legacy setting.
 
+### How the card follows your theme
+
+Every layout reads the same Home Assistant theme variables: text, divider and
+primary colours, `--ha-card-border-radius`, `--switch-checked-color` and the lawn
+mower state colours (`--state-lawn_mower-active-color`,
+`--state-lawn_mower-error-color`). The card surface itself is left to `ha-card`,
+so `--ha-card-background`, its border and `--ha-card-backdrop-filter` apply as
+they do on built-in cards. Panels, fields and buttons inside the card are light
+tints over that surface rather than a second solid colour, so transparent and
+wallpaper themes stay see-through.
+
+Photos, the camera, the 3D view and map imagery keep their own dark overlay and
+light text, because they sit on an image rather than on the theme.
+
+The original Hero and Dashboard colours (`hero_theme: dark`, the default when no
+preset is selected) are a fixed palette. Use `hero_theme: auto` or any preset to
+follow the theme instead.
+
+To check a change against several themes, open the preview with `?theme=ha-light`,
+`ha-dark`, `glass` or `accent`, and add `&hero_theme=auto` for the Hero.
+
 For the Cinematic Hero composition, change the small label above the card title
 with `hero_label`, or hide it while keeping the title with
 `show_hero_label: false`. Both settings are also available under **Hero
