@@ -30,6 +30,8 @@ export type HomeAssistant = {
       translation_key?: string;
     }
   >;
+  /** Device registry; a device lists the config entries it belongs to. */
+  devices?: Record<string, { config_entries?: string[] }>;
   services?: Record<string, Record<string, unknown>>;
   formatEntityState?(entity: HassEntity, state?: string): string;
   formatEntityAttributeValue?(
