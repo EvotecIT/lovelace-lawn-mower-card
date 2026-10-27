@@ -377,6 +377,23 @@ export const heroLayoutStyles = css`
     color: #a8ce95;
   }
 
+  button.hero-metric {
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  button.hero-metric:hover {
+    border-color: rgba(255, 255, 255, 0.32);
+  }
+
+  button.hero-metric:focus-visible {
+    outline: 2px solid var(--mower-accent);
+    outline-offset: 2px;
+  }
+
   .hero-metric-copy {
     min-width: 0;
     display: grid;

@@ -1330,9 +1330,26 @@
         thursday: [], friday: [{ from: "10:00:00", to: "12:00:00" }], saturday: [], sunday: [],
       };
       const previewLocale = previewParameters.get("locale") || "en";
+      // A daily forecast for weather.home, as HA's weather/subscribe_forecast sends it:
+      // rain likely on the next Wednesday and Friday, so the week plan marks those runs.
+      stateStore["weather.home"] = { entity_id: "weather.home", state: "cloudy", attributes: { friendly_name: "Home" } };
+      const forecastDays = Array.from({ length: 7 }, (_, offset) => {
+        const day = new Date();
+        day.setHours(12, 0, 0, 0);
+        day.setDate(day.getDate() + offset);
+        const wet = [3, 5].includes(day.getDay());
+        return { datetime: day.toISOString(), condition: wet ? "rainy" : "partlycloudy", precipitation_probability: wet ? 80 : 10 };
+      });
+      const demoConnection = {
+        subscribeMessage(callback, message) {
+          if (message?.type === "weather/subscribe_forecast") callback({ type: "daily", forecast: forecastDays });
+          return Promise.resolve(() => {});
+        },
+      };
       const hass = {
         language: previewLocale,
         locale: { language: previewLocale },
+        connection: demoConnection,
         states: stateStore,
         entities: {
           "lawn_mower.backyard_mower": {
@@ -1540,6 +1557,7 @@
         show_map: true,
         show_point_cloud: true,
         status_entity: "sensor.backyard_mower_state_name",
+        weather_entity: "weather.home",
         battery_entity: "sensor.backyard_mower_battery",
         progress_entity: "sensor.backyard_mower_runtime_mission_progress",
         show_default_actions: true,

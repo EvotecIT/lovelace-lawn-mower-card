@@ -46,6 +46,24 @@ entity it comes from. The strip is hidden when nothing is reported, and errors
 and rain delays no longer appear as separate summary chips. Set `show_alerts: false`, or
 turn off **Show alerts** in the editor, to hide it.
 
+## Week plan
+
+When the mower has schedule plans, the **Schedules** panel in Mower settings
+starts with the next seven days: each day's planned start times from the enabled
+plans, plus the mowing automation's next start while it is on. Tap **Next run**
+on the Hero card to open it.
+
+Set `weather_entity` (or **Weather forecast** in the editor) to a weather entity
+with a daily forecast, and days with a planned run and at least a 60% chance of
+rain, or a rainy forecast, show the chance and strike the run through as likely
+skipped.
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.my_mower
+weather_entity: weather.home
+```
+
 ## Maintenance
 
 With the Dreame integration, **Mower settings** has a **Maintenance** section

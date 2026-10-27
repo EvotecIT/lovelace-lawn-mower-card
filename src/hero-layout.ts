@@ -122,6 +122,8 @@ export type HeroLayoutModel = {
   /** Built-in Dreame patrols, shown after Dock when the integration offers them. */
   patrolActions?: Array<{ label: string; icon?: string; disabled: boolean; handler(): void | Promise<void> }>;
   onMoreInfo(): void;
+  /** Opens the week plan; Next run is only a button when there is one to show. */
+  onNextRun?(): void;
   /** The More menu holds helpers that don't fit on the action row. */
   moreMenuOpen?: boolean;
   /** Buttons that fit on the action row at the card's width; unknown keeps the default. */
@@ -129,16 +131,17 @@ export type HeroLayoutModel = {
   onMoreMenu?(open: boolean, restoreFocus?: boolean): void;
 };
 
-function renderMetric(icon: string, label: string, value: string, variant?: string): TemplateResult {
-  return html`
-    <div class=${`hero-metric${variant ? ` ${variant}` : ""}`}>
-      <ha-icon .icon=${icon}></ha-icon>
-      <span class="hero-metric-copy">
-        <span class="hero-metric-label">${label}</span>
-        <strong>${value}</strong>
-      </span>
-    </div>
-  `;
+function renderMetric(icon: string, label: string, value: string, variant?: string, onClick?: () => void): TemplateResult {
+  const content = html`
+    <ha-icon .icon=${icon}></ha-icon>
+    <span class="hero-metric-copy">
+      <span class="hero-metric-label">${label}</span>
+      <strong>${value}</strong>
+    </span>`;
+  // A metric with more behind it (the week plan behind Next run) is a button.
+  return onClick
+    ? html`<button type="button" class=${`hero-metric${variant ? ` ${variant}` : ""} actionable`} @click=${onClick}>${content}</button>`
+    : html`<div class=${`hero-metric${variant ? ` ${variant}` : ""}`}>${content}</div>`;
 }
 
 function renderTab(
@@ -196,7 +199,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   const metrics = [
     model.battery ? renderMetric("mdi:battery-high", model.t("hero.battery"), model.battery) : undefined,
     model.nextRun
-      ? renderMetric("mdi:calendar-clock", model.t("hero.nextRun"), model.nextRun, "next-run")
+      ? renderMetric("mdi:calendar-clock", model.t("hero.nextRun"), model.nextRun, "next-run", model.onNextRun)
       : model.progress ? renderMetric("mdi:progress-clock", model.progressLabel || model.t("hero.mission"), model.progress) : undefined,
     model.coverage ? renderMetric("mdi:grass", model.coverageLabel || model.t("hero.coverage"), model.coverage) : undefined,
   ].filter((metric): metric is TemplateResult => Boolean(metric));

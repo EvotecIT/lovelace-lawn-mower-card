@@ -115,6 +115,8 @@ export type LawnMowerCardConfig = {
   show_recent_conditions?: boolean;
   /** The strip with errors and what keeps the mower from mowing; shown by default. */
   show_alerts?: boolean;
+  /** Optional weather entity whose daily forecast marks runs that rain will likely skip. */
+  weather_entity?: string;
   show_map?: boolean;
   show_point_cloud?: boolean;
   status_entity?: string;
