@@ -150,3 +150,22 @@ export function mountThemePicker(container) {
   pick("Theme", "theme", Object.entries(themes).map(([key, theme]) => [key, theme.label]), themeKey);
   pick("Hero colours", "hero_theme", [["", "Original (default)"], ["auto", "Follow theme"]], heroTheme || "");
 }
+
+// Screenshot mode for before/after images in PRs: `?state=docked&capture=hero&width=420`
+// sets the mower state, then shows only that card on the theme's page background.
+window.addEventListener("load", async () => {
+  const params = new URLSearchParams(window.location.search);
+  const state = params.get("state");
+  const button = state && document.querySelector(`[data-state="${CSS.escape(state)}"]`);
+  // The preview wires its state buttons after some async setup, so retry until the click takes.
+  for (let attempt = 0; button && !button.classList.contains("active") && attempt < 50; attempt++) {
+    button.click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  const card = params.get("capture") && document.getElementById(`preview-card-${params.get("capture")}`);
+  if (!card) return;
+  const frame = document.createElement("div");
+  frame.style.cssText = `width:${Number(params.get("width")) || 420}px;padding:16px`;
+  frame.append(card);
+  document.body.replaceChildren(frame);
+});
