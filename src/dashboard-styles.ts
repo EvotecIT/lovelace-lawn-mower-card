@@ -122,5 +122,7 @@ export const dashboardStyles = css`
     .dashboard-card .hero-action { min-height:52px; flex-direction:row; gap:7px; padding:8px 6px; font-size:13px; }
     .dashboard-card .hero-action ha-icon { --mdc-icon-size:22px; }
     .dashboard-card .hero-tab { padding:8px 4px; gap:5px; font-size:12px; }
+    .dashboard-card .hero-tabs.many-views { padding:4px; gap:3px; }
+    .dashboard-card .hero-tabs.many-views .hero-tab { padding:7px 1px; font-size:11px; }
   }
 `;

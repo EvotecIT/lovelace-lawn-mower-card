@@ -60,3 +60,8 @@ export function isHeroViewAvailable(
 ): boolean {
   return availableViews.includes(view);
 }
+
+/** Up to five views share one row; six make two even rows of three. */
+export function tabColumns(views: number): number {
+  return views <= 5 ? Math.max(1, views) : Math.ceil(views / 2);
+}

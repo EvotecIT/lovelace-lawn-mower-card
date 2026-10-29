@@ -21,6 +21,7 @@ export { heroLayoutStyles } from "./hero-layout-styles";
 import type { SupportedLocale, Translator } from "./localization";
 import {
   showHeroViewTabs,
+  tabColumns,
   type HeroView,
 } from "./hero-views";
 
@@ -215,6 +216,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
     ? html`
         <nav
           class=${`hero-tabs${model.availableViews.length > 3 ? " many-views" : ""}`}
+          style=${`--tab-columns:${tabColumns(model.availableViews.length)}`}
           role="tablist"
           aria-label=${model.t("hero.viewLabel")}
         >

@@ -1,6 +1,8 @@
 // Local fixture stand-in for Home Assistant's icon host. Production uses ha-icon.
 // Authored SVG geometry keeps the preview legible without downloading an icon font.
 const shapes = {
+  "mdi:rotate-3d-variant": '<path d="M12 3 4 7.5v9L12 21l8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>',
+  "mdi:image-multiple-outline": '<rect x="6" y="3" width="15" height="13" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h12M6 13l4-4 4 4 2-2 5 5"/>',
   "mdi:history": '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
   "mdi:refresh": '<path d="M20 12a8 8 0 1 1-2.3-5.7L20 8.6"/><path d="M20 3v5.6h-5.6"/>',
   "mdi:chevron-right": '<path d="m9 5 7 7-7 7"/>',

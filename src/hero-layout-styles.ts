@@ -688,8 +688,9 @@ export const heroLayoutStyles = css`
       display: block;
     }
 
-    /* Up to five views share one row on a phone; only more than that wraps, evenly. */
-    .hero-tabs.many-views { grid-auto-flow:row; grid-template-columns:repeat(auto-fit,minmax(60px,1fr)); }
+    /* Up to five views share one row on a phone; six make two even rows. */
+    .hero-tabs.many-views { grid-auto-flow:row; grid-template-columns:repeat(var(--tab-columns,3),minmax(0,1fr)); }
+    .hero-tabs.many-views .hero-tab span { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     .hero-tabs {
       gap: 2px;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { historyDays, historySummary, historyDirection, historyPreferenceRows, historyMapBounds, historyPath, readHistoryDetail, readHistoryList } from "../src/task-history-logic.ts";
-import { availableHeroViews, resolveHeroView } from "../src/hero-views.ts";
+import { availableHeroViews, resolveHeroView, tabColumns } from "../src/hero-views.ts";
 import { fetchPrivateApi } from "../src/private-api.ts";
 
 const path = "/api/dreame_lawn_mower/task-history/entry";
@@ -109,4 +109,8 @@ test("tasks are grouped under their local day, newest first, with totals for the
     [["2026-10-29", 0, "a"], ["2026-10-28", 1, "bc"], ["2026-10-20", 9, "d"], ["", Number.POSITIVE_INFINITY, "e"]]);
   assert.deepEqual(historySummary(tasks, now), { runs: 3, area: 230, minutes: 60 });
   assert.deepEqual(historySummary([], now), { runs: 0, area: 0, minutes: 0 });
+});
+
+test("view tabs keep five views in one row and split six evenly", () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(tabColumns), [1, 2, 3, 4, 5, 3]);
 });

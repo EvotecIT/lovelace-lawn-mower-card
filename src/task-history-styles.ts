@@ -31,10 +31,11 @@ export const taskHistoryStyles = css`
   .task-copy strong { font-size:14px; }
   .task-copy > span { font-size:12px; color:var(--mower-muted,var(--secondary-text-color)); font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .chevron { color:var(--mower-muted,var(--secondary-text-color)); --mdc-icon-size:18px; }
-  .badge { flex:none; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:600; line-height:1.4; white-space:nowrap; color:var(--mower-muted,var(--secondary-text-color)); background:var(--mower-fill,color-mix(in srgb,currentColor 10%,transparent)); }
-  .badge-done { color:var(--mower-success,#4f9b58); background:color-mix(in srgb,var(--mower-success,#4f9b58) 16%,transparent); }
-  .badge-stopped { color:var(--mower-warning,#c08a2e); background:color-mix(in srgb,var(--mower-warning,#c08a2e) 16%,transparent); }
-  .badge-partial { color:var(--mower-info,#4b8fb0); background:color-mix(in srgb,var(--mower-info,#4b8fb0) 16%,transparent); }
+  .badge { --tone:var(--mower-muted,var(--secondary-text-color)); display:inline-flex; align-items:center; gap:6px; flex:none; padding:2px 9px 2px 7px; border:1px solid color-mix(in srgb,var(--tone) 45%,transparent); border-radius:999px; font-size:11px; font-weight:600; line-height:1.4; white-space:nowrap; color:var(--mower-text,var(--primary-text-color)); background:color-mix(in srgb,var(--tone) 12%,transparent); }
+  .badge::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--tone); }
+  .badge-done { --tone:var(--mower-success,#4f9b58); }
+  .badge-stopped { --tone:var(--mower-warning,#c08a2e); }
+  .badge-partial { --tone:var(--mower-info,#4b8fb0); }
   .detail { display:grid; gap:14px; }
   .detail-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
   .detail-title { font-size:18px; border-radius:4px; }
