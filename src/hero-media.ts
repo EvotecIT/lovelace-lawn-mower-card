@@ -46,7 +46,7 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
         .appearanceContext=${model.appearanceContext}
         .layoutContext=${model}
         .background=${model.mapBackground}
-        .entityId=${model.mowerEntityId} .tiles=${model.worldTiles} .mowerSize=${model.mowerSize ?? null}
+        .entityId=${model.mowerEntityId} .tiles=${model.worldTiles} .mowerSize=${model.mowerSize ?? null} .markerImage=${model.markerImage}
         .worldDim=${model.worldDim}
         .fallbackUrl=${model.mapUrl} .fallbackSaved=${Boolean(model.mapSavedPreview)}
         .active=${views.includes("map") && model.activeView === "map" && model.mediaVisible !== false}

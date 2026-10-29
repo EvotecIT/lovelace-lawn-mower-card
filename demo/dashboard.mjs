@@ -71,7 +71,7 @@ const hass = {
     if (route === path && query.get("map") !== "error") {
       if (sceneUrl) URL.revokeObjectURL(sceneUrl);
       sceneUrl = URL.createObjectURL(new Blob([JSON.stringify({schema_version:1,revision,map_index:0,map_id:1,name:"Garden · three zones",width:900,height:650,background_path:backgroundPath,
-        ...geo,overlay:{position:{x:640,y:330,heading:180},trail:[[[185,220],[665,240],[675,265],[190,245],[195,275],[685,295],[690,320],[200,300],[205,330],[640,350],[640,330]]],position_status:query.get("dock")?"known_dock":"current",docked:Boolean(query.get("dock")),position_observed_at:new Date().toISOString(),updated_at:new Date(Date.now()-(query.get("map")==="stale"?120000:0)).toISOString(),max_age_seconds:90}})],{type:"application/json"}));
+        ...geo,overlay:{position:{x:640,y:330,heading:Number(query.get("heading") ?? 180)},trail:[[[185,220],[665,240],[675,265],[190,245],[195,275],[685,295],[690,320],[200,300],[205,330],[640,350],[640,330]]],position_status:query.get("dock")?"known_dock":"current",docked:Boolean(query.get("dock")),position_observed_at:new Date().toISOString(),updated_at:new Date(Date.now()-(query.get("map")==="stale"?120000:0)).toISOString(),max_age_seconds:90}})],{type:"application/json"}));
       return sceneUrl;
     }
     return route;
@@ -105,7 +105,7 @@ card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"h
   dashboard_panels:query.get("panels")==="none"?[]:query.get("panels")==="camera"?["camera"]:query.get("panels")==="mission"?["mission"]:undefined,
   status_entity:query.get("status")?"sensor.demo_status":undefined,
   map_entity:query.get("map")==="none"?undefined:"image.demo_map",show_map:query.get("map")!=="none",show_point_cloud:query.has("allViews"),
-  camera_entity:query.get("camera")==="none"?undefined:"camera.demo",progress_entity:"sensor.demo_progress",coverage_entity:"sensor.demo_area",coverage_total_entity:"sensor.demo_total",control_entities:[],show_helper_actions:query.get("helpers")==="true"});
+  camera_entity:query.get("camera")==="none"?undefined:"camera.demo",progress_entity:"sensor.demo_progress",coverage_entity:"sensor.demo_area",coverage_total_entity:"sensor.demo_total",control_entities:[],show_helper_actions:query.get("helpers")==="true",mower_marker_image:query.get("marker")?"/demo/mower-marker.svg":undefined});
 if (query.get("camera")==="none") {delete hass.states["camera.demo"];delete hass.entities["camera.demo"];}
 card.hass=hass;
 

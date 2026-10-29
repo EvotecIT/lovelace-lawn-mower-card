@@ -550,6 +550,8 @@ export const pl = {
   "editor.mowerMarkerRealSize": "Rzeczywisty rozmiar, gdy skala mapy jest znana",
   "editor.mowerMarkerFixed": "Stały rozmiar",
   "editor.mowerMarkerHint": "W rzeczywistym rozmiarze ikona podąża za powiększeniem; z daleka zachowuje stały rozmiar, aby była widoczna. Domyślny rozmiar: 65,9 × 43,9 cm.",
+  "editor.mowerMarkerImage": "Obrazek kosiarki na mapie",
+  "editor.mowerMarkerImageHint": "Opcjonalnie. Widok z góry z przodem kosiarki skierowanym w górę, w folderze www Home Assistanta, np. /local/mower/marker.png. Obraca się zgodnie z kierunkiem jazdy kosiarki.",
   "editor.mowerLength": "Długość kosiarki (cm)",
   "editor.mowerWidth": "Szerokość kosiarki (cm)",
   "editor.worldBackgroundDim": "Przyciemnij mapę ulic i satelitę (0–100)",

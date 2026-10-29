@@ -205,6 +205,8 @@ export const it = {
   "editor.mowerMarkerRealSize": "Dimensione reale se la scala della mappa è nota",
   "editor.mowerMarkerFixed": "Dimensione fissa",
   "editor.mowerMarkerHint": "A dimensione reale l’icona segue lo zoom; da lontano mantiene la dimensione fissa per restare visibile. Dimensione predefinita: 65,9 × 43,9 cm.",
+  "editor.mowerMarkerImage": "Immagine del robot sulla mappa",
+  "editor.mowerMarkerImageHint": "Facoltativa. Un'immagine dall'alto con la parte anteriore del robot rivolta in su, nella cartella www di Home Assistant, ad esempio /local/mower/marker.png. Ruota secondo la direzione del robot.",
   "editor.mowerLength": "Lunghezza del rasaerba (cm)",
   "editor.mowerWidth": "Larghezza del rasaerba (cm)",
   "editor.worldBackgroundDim": "Attenua mappa stradale e satellite (0–100)",

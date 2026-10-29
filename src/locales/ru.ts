@@ -207,6 +207,8 @@ export const ru = {
   "editor.mowerMarkerRealSize": "Реальный размер, если известен масштаб карты",
   "editor.mowerMarkerFixed": "Фиксированный размер",
   "editor.mowerMarkerHint": "В реальном размере значок следует за масштабом; издалека он сохраняет фиксированный размер, чтобы оставаться видимым. Размер по умолчанию: 65,9 × 43,9 см.",
+  "editor.mowerMarkerImage": "Изображение косилки на карте",
+  "editor.mowerMarkerImageHint": "Необязательно. Вид сверху, носом косилки вверх, в папке www Home Assistant, например /local/mower/marker.png. Поворачивается по направлению движения косилки.",
   "editor.mowerLength": "Длина газонокосилки (см)",
   "editor.mowerWidth": "Ширина газонокосилки (см)",
   "editor.worldBackgroundDim": "Приглушить карту улиц и спутник (0–100)",

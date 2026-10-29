@@ -590,6 +590,8 @@ export const nl = {
   "editor.mowerMarkerRealSize": "Echte grootte als de kaartschaal bekend is",
   "editor.mowerMarkerFixed": "Vaste grootte",
   "editor.mowerMarkerHint": "Op echte grootte volgt het icoon de zoom; van ver houdt het de vaste grootte zodat het zichtbaar blijft. Standaardgrootte: 65,9 × 43,9 cm.",
+  "editor.mowerMarkerImage": "Maaierafbeelding op de kaart",
+  "editor.mowerMarkerImageHint": "Optioneel. Een bovenaanzicht met de voorkant van de maaier naar boven, in de www-map van Home Assistant, bijvoorbeeld /local/mower/marker.png. Draait mee met de richting van de maaier.",
   "editor.mowerLength": "Lengte van de maaier (cm)",
   "editor.mowerWidth": "Breedte van de maaier (cm)",
   "editor.worldBackgroundDim": "Stratenkaart en satelliet dempen (0–100)",

@@ -606,6 +606,8 @@ export const cs = {
   "editor.mowerMarkerRealSize": "Skutečná velikost, je-li měřítko mapy známé",
   "editor.mowerMarkerFixed": "Pevná velikost",
   "editor.mowerMarkerHint": "Ve skutečné velikosti ikona sleduje přiblížení; zdálky si ponechá pevnou velikost, aby zůstala viditelná. Výchozí velikost: 65,9 × 43,9 cm.",
+  "editor.mowerMarkerImage": "Obrázek sekačky na mapě",
+  "editor.mowerMarkerImageHint": "Volitelné. Pohled shora s přídí sekačky nahoru, ve složce www Home Assistantu, například /local/mower/marker.png. Otáčí se podle směru sekačky.",
   "editor.mowerLength": "Délka sekačky (cm)",
   "editor.mowerWidth": "Šířka sekačky (cm)",
   "editor.worldBackgroundDim": "Ztlumit mapu ulic a satelit (0–100)",

@@ -205,6 +205,8 @@ export const fr = {
   "editor.mowerMarkerRealSize": "Taille réelle si l’échelle de la carte est connue",
   "editor.mowerMarkerFixed": "Taille fixe",
   "editor.mowerMarkerHint": "En taille réelle, l’icône suit le zoom ; de loin, elle garde la taille fixe pour rester visible. Taille par défaut : 65,9 × 43,9 cm.",
+  "editor.mowerMarkerImage": "Image de la tondeuse sur la carte",
+  "editor.mowerMarkerImageHint": "Facultatif. Une image vue de dessus, avant de la tondeuse vers le haut, dans le dossier www de Home Assistant, par exemple /local/mower/marker.png. Elle pivote selon l'orientation de la tondeuse.",
   "editor.mowerLength": "Longueur de la tondeuse (cm)",
   "editor.mowerWidth": "Largeur de la tondeuse (cm)",
   "editor.worldBackgroundDim": "Atténuer le plan et le satellite (0–100)",

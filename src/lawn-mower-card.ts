@@ -28,7 +28,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import "./lawn-mower-card-editor";
 import { mowerHassChanged } from "./card-update-scope";
 import { MediaVisibility } from "./media-visibility";
-import { mowerMarkerSize, mowingMapPath } from "./mowing-map-logic";
+import { markerImageUrl, mowerMarkerSize, mowingMapPath } from "./mowing-map-logic";
 import { photoAlbumAvailable } from "./photo-album-logic";
 import { mowingAreaProgress, type MowingAreaProgress } from "./mowing-progress";
 
@@ -754,6 +754,7 @@ export class LawnMowerCard extends LitElement {
                           .background=${this._config.map_background}
                           .entityId=${this._config.entity} .tiles=${worldTileConfig(this._config)}
                           .mowerSize=${mowerMarkerSize(this._config)}
+            .markerImage=${markerImageUrl(this._config.mower_marker_image)}
                           .worldDim=${this._config.world_background_dim}
                           .path=${this._mapPath(mapEntity)}
                           .fallbackUrl=${mapUrl} .fallbackSaved=${mapEntity?.attributes.restart_preview === true}
@@ -1026,6 +1027,7 @@ export class LawnMowerCard extends LitElement {
       mowerEntityId: this._config.entity,
       worldTiles: worldTileConfig(this._config),
       mowerSize: mowerMarkerSize(this._config),
+      markerImage: markerImageUrl(this._config.mower_marker_image),
       worldDim: this._config.world_background_dim,
       photoEntityId: this._config.entity,
       mapSavedPreview: configuredMapEntity?.attributes.restart_preview === true,

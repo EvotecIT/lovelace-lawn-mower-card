@@ -205,6 +205,8 @@ export const de = {
   "editor.mowerMarkerRealSize": "Echte Größe, wenn der Kartenmaßstab bekannt ist",
   "editor.mowerMarkerFixed": "Feste Größe",
   "editor.mowerMarkerHint": "In echter Größe folgt das Symbol dem Zoom; aus der Ferne behält es die feste Größe, damit es sichtbar bleibt. Standardgröße: 65,9 × 43,9 cm.",
+  "editor.mowerMarkerImage": "Mäherbild auf der Karte",
+  "editor.mowerMarkerImageHint": "Optional. Ein Bild von oben mit der Mäherfront nach oben, im www-Ordner von Home Assistant, zum Beispiel /local/mower/marker.png. Es dreht sich mit der Fahrtrichtung des Mähers.",
   "editor.mowerLength": "Länge des Mähers (cm)",
   "editor.mowerWidth": "Breite des Mähers (cm)",
   "editor.worldBackgroundDim": "Straßenkarte und Satellit abschwächen (0–100)",
