@@ -4,9 +4,10 @@
 
 The banner is illustrative. The card previews below show the current UI.
 
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://hacs.xyz/)
+[![Marketplace Catalog](https://img.shields.io/badge/Marketplace-Catalog-41BDF5.svg?style=for-the-badge)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=EvotecIT&repository=lovelace-lawn-mower-card&category=plugin)
 [![CI](https://img.shields.io/github/actions/workflow/status/EvotecIT/lovelace-lawn-mower-card/validate.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/EvotecIT/lovelace-lawn-mower-card/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/EvotecIT/lovelace-lawn-mower-card?style=for-the-badge)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/EvotecIT/lovelace-lawn-mower-card?style=for-the-badge)](https://github.com/EvotecIT/lovelace-lawn-mower-card/stargazers)
 
 ## Overview
 
@@ -58,6 +59,7 @@ Other integrations and dashboards we maintain:
 - [Devialet](https://github.com/EvotecIT/homeassistant-devialet) — Local speaker control, with Dione support.
 - [Siegenia](https://github.com/EvotecIT/homeassistant-siegenia) — Local control for supported window controllers.
 - [EasyControlX](https://github.com/EvotecIT/homeassistant-easycontrolx) — Connect supported Windows and macOS hosts.
+- [Waste Pickup Planner](https://github.com/EvotecIT/lovelace-waste-pickup-planner) — Waste collection dates, bin overviews, cards, and badges.
 
 For a native app connected to the same Home Assistant setup:
 
@@ -70,7 +72,26 @@ Neither app is required to use this project.
 
 ## Installation
 
-### HACS
+### Home Assistant 2026.11 and newer
+
+[![Open this repository in the Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=EvotecIT&repository=lovelace-lawn-mower-card&category=plugin)
+
+1. Open **Settings → Marketplace** and search for **Lawn Mower Card**.
+2. Open the project and select **Install**.
+3. Reload your browser, then add **Lawn Mower Card** to your dashboard.
+
+If the project is missing from your catalog, choose **Add from link** and enter
+`https://github.com/EvotecIT/lovelace-lawn-mower-card`. Adding a custom repository
+requires a GitHub connection.
+
+The Marketplace registers the dashboard resource automatically. If you manage
+resources manually, use `/local/community/lovelace-lawn-mower-card/lawn-mower-card.js`
+as a JavaScript module. Existing `/hacsfiles/` URLs continue to work.
+
+Existing HACS installations migrate automatically when Home Assistant upgrades
+to 2026.11. The repository metadata remains in `hacs.json`.
+
+### Home Assistant 2026.10 and older: HACS
 
 1. Open HACS and search for **Lawn Mower Card** in the dashboard catalog.
 2. If it is not listed, add
