@@ -151,7 +151,9 @@ export function historyDays(tasks: readonly HistoryTask[], now: Date): HistoryDa
     }
     day.tasks.push(task);
   }
-  // Undated tasks go last, as their own group.
+  // Newest first inside each day too, whatever order the integration sent; undated tasks go last.
+  const epoch = (task: HistoryTask) => task.started_at ?? task.reported_at ?? 0;
+  for (const day of days.values()) day.tasks.sort((left, right) => epoch(right) - epoch(left));
   return [...days.values()].sort((left, right) => left.offset - right.offset);
 }
 

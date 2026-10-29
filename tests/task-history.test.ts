@@ -102,7 +102,7 @@ test("tasks are grouped under their local day, newest first, with totals for the
   const at = (day: number, hour: number) => new Date(2026, 9, day, hour).getTime() / 1000;
   const row = (id: string, started: number | null, area: number, minutes: number) =>
     ({ ...task, id, started_at: started, reported_at: started, area_sqm: area, duration_minutes: minutes });
-  const tasks = [row("a", at(29, 7), 100, 30), row("b", at(28, 18), 50, 10), row("c", at(28, 11), 80, 20),
+  const tasks = [row("a", at(29, 7), 100, 30), row("c", at(28, 11), 80, 20), row("b", at(28, 18), 50, 10),
     row("d", at(20, 11), 300, 90), row("e", null, 10, 5)];
   const days = historyDays(tasks, now);
   assert.deepEqual(days.map((day) => [day.date, day.offset, day.tasks.map((item) => item.id).join("")]),
