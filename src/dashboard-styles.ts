@@ -110,7 +110,9 @@ export const dashboardStyles = css`
     .dashboard-title h2 { font-size:13px; margin-bottom:4px; }
     .dashboard-state { font-size:19px; gap:5px; }
     .dashboard-state ha-icon { --mdc-icon-size:19px; }
-    .dashboard-battery { padding:8px 10px; gap:5px; }
+    /* The battery keeps its size; a long state name wraps beside it instead of squeezing it. */
+    .dashboard-battery { padding:8px 10px; gap:5px; flex-shrink:0; max-width:none; }
+    .dashboard-battery strong { white-space:nowrap; }
     .dashboard-battery-icon { width:30px; height:24px; }
     .dashboard-battery strong { font-size:20px; }
     .dashboard-battery span { font-size:10px; }
@@ -143,4 +145,10 @@ export const dashboardStyles = css`
     .dashboard-card .hero-tabs.many-views .hero-tab { padding:6px 1px; font-size:10px; letter-spacing:-.01em; }
   }
 
+  /* fitLabelRows: measured with unbreakable words, then loosened when a label would not fit. */
+  .hero-tabs[data-fit="measure"] .hero-tab span, .hero-actions[data-fit="measure"] .hero-action span { overflow-wrap:normal !important; hyphens:manual !important; }
+  .hero-tabs[data-fit="loose"] { grid-auto-flow:row !important; grid-template-columns:repeat(var(--tab-columns-loose,2),minmax(0,1fr)) !important; }
+  .dashboard-card .hero-actions[data-fit="loose"] { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  .dashboard-card .hero-actions[data-fit="loose"] > .hero-action { grid-column:auto !important; }
+  .dashboard-card .hero-actions[data-fit="loose"] > .hero-action:last-of-type:nth-child(odd):not(:first-child) { grid-column:1/-1 !important; }
 `;

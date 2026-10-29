@@ -2,6 +2,7 @@ import type { CommandPlan } from "./command-plan";
 import type { DisplayTile, DisplayAction, HeroSection } from "./card-customization";
 import type { CardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
+import { looseTabColumns } from "./label-fit";
 import { renderSummary, renderTiles, renderCustomActions } from "./customization-view";
 import { html, nothing, type TemplateResult } from "lit";
 import {
@@ -216,7 +217,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
     ? html`
         <nav
           class=${`hero-tabs${model.availableViews.length > 3 ? " many-views" : ""}`}
-          style=${`--tab-columns:${tabColumns(model.availableViews.length)}`}
+          style=${`--tab-columns:${tabColumns(model.availableViews.length)};--tab-columns-loose:${looseTabColumns(model.availableViews.length)}`}
           role="tablist"
           aria-label=${model.t("hero.viewLabel")}
         >

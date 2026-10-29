@@ -1,5 +1,6 @@
 import { clockOptions, formatNextRun, nextScheduledRun } from "./next-run";
 import { actionRowCapacity } from "./hero-actions";
+import { fitLabelRows, textOverflow } from "./label-fit";
 import { renderMediaSwitch, resolveStandardMedia, standardMediaViews, type StandardMediaView } from "./media-switch";
 import { cardGridOptions, renderTile, tileSecondary, type GridOptions } from "./tile-layout";
 import { maintenanceParts, renderMaintenancePanel, type MaintenancePartKey } from "./maintenance";
@@ -444,6 +445,7 @@ export class LawnMowerCard extends LitElement {
       : new ResizeObserver(([entry]) => {
         const capacity = actionRowCapacity(entry.contentRect.width);
         if (capacity !== this._actionRowCapacity) this._actionRowCapacity = capacity;
+        else this._fitLabels();
       });
     this._widthObserver?.observe(this);
     // Re-added to the page: subscribe again, and keep the week current across midnight.
@@ -537,7 +539,14 @@ export class LawnMowerCard extends LitElement {
     }
   }
 
+  /** Tabs and Dashboard commands get fewer, wider columns when a label would not fit whole. */
+  private _fitLabels(): void {
+    const root = this.renderRoot;
+    if (root) fitLabelRows(root.querySelectorAll<HTMLElement>(".hero-tabs, .dashboard-card .hero-actions"), textOverflow);
+  }
+
   protected updated(): void {
+    this._fitLabels();
     const scheduleDialog = this.renderRoot?.querySelector<HTMLDialogElement>("dialog.mowing-automation-dialog");
     // The sheet opens first so the automation dialog, opened from inside it, stacks on top.
     for (const dialog of [
