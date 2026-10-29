@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { historyDirection, historyPreferenceRows, historyMapBounds, historyPath, readHistoryDetail, readHistoryList } from "../src/task-history-logic.ts";
+import { historyDays, historySummary, historyDirection, historyPreferenceRows, historyMapBounds, historyPath, readHistoryDetail, readHistoryList } from "../src/task-history-logic.ts";
 import { availableHeroViews, resolveHeroView } from "../src/hero-views.ts";
 import { fetchPrivateApi } from "../src/private-api.ts";
 
@@ -95,4 +95,18 @@ test("global history preferences do not present inactive stored zone overrides",
   const parsed=readHistoryDetail({...detail(),battery:{source:"observed",samples:[],settings:{map_index:0,mode:0,zones}}},path,id).battery!;
   assert.equal(parsed.settings.mode,0);
   assert.deepEqual(historyPreferenceRows(parsed.settings),[zones[0]]);
+});
+
+test("tasks are grouped under their local day, newest first, with totals for the last week", () => {
+  const now = new Date(2026, 9, 29, 9, 0);
+  const at = (day: number, hour: number) => new Date(2026, 9, day, hour).getTime() / 1000;
+  const row = (id: string, started: number | null, area: number, minutes: number) =>
+    ({ ...task, id, started_at: started, reported_at: started, area_sqm: area, duration_minutes: minutes });
+  const tasks = [row("a", at(29, 7), 100, 30), row("b", at(28, 18), 50, 10), row("c", at(28, 11), 80, 20),
+    row("d", at(20, 11), 300, 90), row("e", null, 10, 5)];
+  const days = historyDays(tasks, now);
+  assert.deepEqual(days.map((day) => [day.date, day.offset, day.tasks.map((item) => item.id).join("")]),
+    [["2026-10-29", 0, "a"], ["2026-10-28", 1, "bc"], ["2026-10-20", 9, "d"], ["", Number.POSITIVE_INFINITY, "e"]]);
+  assert.deepEqual(historySummary(tasks, now), { runs: 3, area: 230, minutes: 60 });
+  assert.deepEqual(historySummary([], now), { runs: 0, area: 0, minutes: 0 });
 });

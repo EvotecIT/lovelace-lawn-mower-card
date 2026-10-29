@@ -2,12 +2,17 @@ import type { TranslationCatalog } from "./en.ts";
 
 export const fr = {
   "history.global": "Réglages globaux",
-  "history.percentagePoints": "pt signifie points de pourcentage, pas Wh.",
+  "history.lastWeek": "7 derniers jours",
+  "history.runs": {
+    one: "{count} tonte",
+    other: "{count} tontes",
+  },
+  "history.batteryUsed": "{value} utilisés",
+  "history.perHundred": "{value} pour 100 m²",
   "history.zoneOverrides": "Les réglages par zone peuvent différer des valeurs par défaut de la tâche.",
   "history.cached": "Historique en cache · actualisation du cloud indisponible",
   "history.rush": "Rapide",
   "history.title": "Historique",
-  "history.back": "Toutes les tâches · 30 dernières",
   "history.latest": "Les 30 dernières tâches signalées",
   "history.loading": "Chargement de l’historique…",
   "history.error": "Impossible de charger l’historique des tâches.",
@@ -18,7 +23,6 @@ export const fr = {
   "history.recordedMap": "Carte enregistrée pour cette tâche",
   "history.noMap": "Aucune carte enregistrée pour cette tâche.",
   "history.batteryUse": "Consommation de batterie observée",
-  "history.pp": "pt",
   "history.recorder": "Historique Home Assistant",
   "history.observed": "Observations de l’intégration",
   "history.partial": "Couverture partielle",

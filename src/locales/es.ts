@@ -2,12 +2,17 @@ import type { TranslationCatalog } from "./en.ts";
 
 export const es = {
   "history.global": "Ajustes globales",
-  "history.percentagePoints": "p.p. indica puntos porcentuales, no Wh.",
+  "history.lastWeek": "Últimos 7 días",
+  "history.runs": {
+    one: "{count} corte",
+    other: "{count} cortes",
+  },
+  "history.batteryUsed": "{value} usado",
+  "history.perHundred": "{value} por 100 m²",
   "history.zoneOverrides": "Los ajustes de cada zona pueden diferir de los valores predeterminados de la tarea.",
   "history.cached": "Historial en caché · actualización de la nube no disponible",
   "history.rush": "Rápida",
   "history.title": "Historial",
-  "history.back": "Todas las tareas · últimas 30",
   "history.latest": "Las 30 tareas notificadas más recientes",
   "history.loading": "Cargando el historial…",
   "history.error": "No se pudo cargar el historial de tareas.",
@@ -18,7 +23,6 @@ export const es = {
   "history.recordedMap": "Mapa registrado para esta tarea",
   "history.noMap": "Esta tarea no tiene un mapa registrado.",
   "history.batteryUse": "Consumo de batería observado",
-  "history.pp": "p.p.",
   "history.recorder": "Registrador de Home Assistant",
   "history.observed": "Observaciones de la integración",
   "history.partial": "Cobertura parcial",

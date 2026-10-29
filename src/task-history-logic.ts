@@ -129,3 +129,35 @@ export function historyMapBounds(features: HistoryFeature[]): [number, number, n
   const padding = Math.max(50, Math.max(maxX - minX, maxY - minY) * .06);
   return [minX - padding, minY - padding, Math.max(100, maxX - minX) + padding * 2, Math.max(100, maxY - minY) + padding * 2];
 }
+
+const localDay = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+export type HistoryDay = { date: string; offset: number; tasks: HistoryTask[] };
+
+/** Tasks under their local calendar day, newest first; `offset` is days before today. */
+export function historyDays(tasks: readonly HistoryTask[], now: Date): HistoryDay[] {
+  const today = new Date(now); today.setHours(0, 0, 0, 0);
+  const days = new Map<string, HistoryDay>();
+  for (const task of tasks) {
+    const epoch = task.started_at ?? task.reported_at;
+    const at = epoch ? new Date(epoch * 1000) : undefined;
+    const date = at ? localDay(at) : "";
+    let day = days.get(date);
+    if (!day) {
+      const midnight = at ? new Date(at) : undefined; midnight?.setHours(0, 0, 0, 0);
+      day = { date, offset: midnight ? Math.round((today.getTime() - midnight.getTime()) / 86_400_000) : Number.POSITIVE_INFINITY, tasks: [] };
+      days.set(date, day);
+    }
+    day.tasks.push(task);
+  }
+  // Undated tasks go last, as their own group.
+  return [...days.values()].sort((left, right) => left.offset - right.offset);
+}
+
+/** Totals for the tasks started in the last `days` days, including today. */
+export function historySummary(tasks: readonly HistoryTask[], now: Date, days = 7): { runs: number; area: number; minutes: number } {
+  return historyDays(tasks, now).filter((day) => day.offset >= 0 && day.offset < days).flatMap((day) => day.tasks)
+    .reduce((total, task) => ({ runs: total.runs + 1, area: total.area + (task.area_sqm ?? 0), minutes: total.minutes + (task.duration_minutes ?? 0) }),
+      { runs: 0, area: 0, minutes: 0 });
+}
