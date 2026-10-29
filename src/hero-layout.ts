@@ -51,6 +51,7 @@ export type HeroLayoutModel = {
   worldTiles?: WorldTileConfig;
   /** Real mower footprint in mm for the map marker; null keeps the fixed icon. */
   mowerSize?: MowerSize | null;
+  markerImage?: string;
   worldDim?: number;
   /** Mower entity whose saved photos the Photos view lists. */
   photoEntityId?: string;

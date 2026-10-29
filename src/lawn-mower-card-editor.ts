@@ -373,6 +373,12 @@ export class LawnMowerCardEditor extends LitElement {
         </select>
         <span class="hint">${this._t("editor.mowerMarkerHint")}</span>
       </label>
+      <label>
+        <span>${this._t("editor.mowerMarkerImage")}</span>
+        <input type="text" data-key="mower_marker_image" placeholder="/local/mower/marker.png" spellcheck="false"
+          .value=${config.mower_marker_image ?? ""} @change=${this._valueChanged} />
+        <span class="hint">${this._t("editor.mowerMarkerImageHint")}</span>
+      </label>
       ${fixed ? nothing : html`
         ${size("mower_length", this._t("editor.mowerLength"), "65.9")}
         ${size("mower_width", this._t("editor.mowerWidth"), "43.9")}`}

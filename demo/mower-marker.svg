@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120">
+  <!-- Demo custom marker: a top-down mower with its nose pointing up. -->
+  <rect x="4" y="66" width="16" height="44" rx="6" fill="#1b1f1d"/>
+  <rect x="80" y="66" width="16" height="44" rx="6" fill="#1b1f1d"/>
+  <path d="M18 34 Q18 6 50 4 Q82 6 82 34 V100 Q50 118 18 100 Z" fill="#f2b632" stroke="#5a3d06" stroke-width="3"/>
+  <path d="M28 40 Q28 18 50 16 Q72 18 72 40 V90 Q50 102 28 90 Z" fill="#2c2f2d"/>
+  <circle cx="50" cy="46" r="10" fill="#f2b632"/>
+  <path d="M36 10 Q50 2 64 10" fill="none" stroke="#fff6d8" stroke-width="4" stroke-linecap="round"/>
+</svg>

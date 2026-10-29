@@ -597,6 +597,8 @@ export const en = {
   "editor.mowerMarkerRealSize": "Real size when the map scale is known",
   "editor.mowerMarkerFixed": "Fixed size",
   "editor.mowerMarkerHint": "Real size grows and shrinks with zoom; far out it keeps the fixed icon so it stays visible. Default size: 65.9 × 43.9 cm.",
+  "editor.mowerMarkerImage": "Mower picture on the map",
+  "editor.mowerMarkerImageHint": "Optional. A top-down picture with the mower's nose pointing up, in Home Assistant's www folder, for example /local/mower/marker.png. It turns with the mower's heading.",
   "editor.mowerLength": "Mower length (cm)",
   "editor.mowerWidth": "Mower width (cm)",
   "editor.worldBackgroundDim": "Soften street map and satellite (0–100)",

@@ -57,6 +57,10 @@ export class LawnMowerMowingMap extends LitElement {
   @property({ attribute: false }) public tiles?: WorldTileConfig;
   /** Real mower footprint in mm, or null for the fixed-size icon. */
   @property({ attribute: false }) public mowerSize: MowerSize | null = DEFAULT_MOWER_SIZE;
+  /** Custom mower picture from the card; otherwise the integration's, if it sends one. */
+  @property({ attribute: false }) public markerImage?: string;
+  /** A picture that failed to load falls back to the built-in artwork. */
+  @state() private _markerImageFailed?: string;
   /** world_background_dim (0–100): how much geographic tiles are softened. */
   @property({ attribute: false }) public worldDim?: unknown;
   /** Stable parent configuration identity; changes can alter inherited colours. */
@@ -920,6 +924,21 @@ export class LawnMowerMowingMap extends LitElement {
       </g>`;
   }
 
+  private _markerImage(scene: MowingMapScene): string | undefined {
+    const image = this.markerImage ?? scene.marker_image_path ?? undefined;
+    if (!image || image === this._markerImageFailed) return undefined;
+    // SVG <image> has no error event in every browser, so the picture is probed once.
+    if (image !== this._markerProbe) {
+      this._markerProbe = image;
+      const probe = new Image();
+      probe.onerror = () => { if (this._markerProbe === image) this._markerImageFailed = image; };
+      probe.src = image;
+    }
+    return image;
+  }
+
+  private _markerProbe?: string;
+
   protected render() {
     const scene = this._scene;
     const fresh = Boolean(scene && this.active && !this._error && overlayIsFresh(scene));
@@ -1000,7 +1019,7 @@ export class LawnMowerMowingMap extends LitElement {
                 data-mower-position=${scene.overlay.position_status}
                 data-marker-size=${marker.realSize ? "real" : "fixed"}
                 opacity=${scene.overlay.position_status === "last_known" ? "0.55" : "1"}>
-                ${mowerMapMarker(position.heading, marker)}
+                ${mowerMapMarker(position.heading, marker, this._markerImage(scene))}
               </g>` : nothing}
             </g>
             ${align ? this._renderHandles(scene, align, unitsPerScreenPixel) : nothing}
