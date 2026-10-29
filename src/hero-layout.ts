@@ -44,6 +44,7 @@ export type HeroLayoutModel = {
   coverageLabel?: string;
   area?: MowingAreaProgress;
   mowingMapPath?: string;
+  taskHistoryPath?: string;
   mapBackground?: string;
   /** Mower entity for map services such as set_georeference. */
   mowerEntityId?: string;
@@ -194,6 +195,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
       icon: "mdi:video-wireless-outline",
     },
     { view: "photos", label: model.t("hero.photos"), icon: "mdi:image-multiple-outline" },
+    { view: "history", label: model.t("history.title"), icon: "mdi:history" },
   ];
   // Stats without a value are left out; an idle mower shows its next run in place of mission progress.
   const metrics = [
@@ -216,7 +218,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
         ${model.dashboard ? html`${renderDashboardHeader(model)}
           <div class="dashboard-command-panel">${model.alerts || nothing}${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>` : nothing}
         <section class=${`hero-stage view-${mainView}${model.mowingMapPath ? " interactive-map" : ""}`}>
-          ${renderHeroMedia(mainModel, model.dashboard && cameraAside ? ["overview", "map", "point-cloud", "photos"] : undefined)}
+          ${renderHeroMedia(mainModel, model.dashboard && cameraAside ? ["overview", "map", "point-cloud", "photos", "history"] : undefined)}
           ${mainView === "map" && !model.mowingMapPath ? model.mapStatus : nothing}
           <div class="hero-scrim" aria-hidden="true"></div>
 
@@ -247,7 +249,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
         ${showHeroViewTabs(model.availableViews)
           ? html`
               <nav
-                class="hero-tabs"
+                class=${`hero-tabs${model.availableViews.length > 3 ? " many-views" : ""}`}
                 role="tablist"
                 aria-label=${model.t("hero.viewLabel")}
               >

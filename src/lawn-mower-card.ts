@@ -80,6 +80,7 @@ import { renderDeviceSettingsPanel } from "./device-settings-panel";
 import { renderHeroLayout, type HeroView } from "./hero-layout";
 import { resolveHeroLabel } from "./hero-label";
 import { availableHeroViews, initialHeroView, resolveHeroView } from "./hero-views";
+import { historyPath } from "./task-history-logic";
 import { lawnMowerCardStyles } from "./lawn-mower-card-styles";
 import {
   normalizeHeroImage,
@@ -955,6 +956,7 @@ export class LawnMowerCard extends LitElement {
       map: Boolean(mapUrl || scenePath),
       pointCloud: Boolean(pointCloudPath),
       camera: Boolean(cameraEntity),
+      history: Boolean(historyPath(mower.attributes.task_history_api_path)),
       photos: (this._config.show_photos ?? true) &&
         photoAlbumAvailable(this._config.entity, this.hass.entities, this.hass.services),
     });
@@ -994,6 +996,7 @@ export class LawnMowerCard extends LitElement {
       nextRun,
       area: coverage.area,
       mowingMapPath: scenePath,
+      taskHistoryPath: historyPath(mower.attributes.task_history_api_path),
       mapBackground: this._config.map_background,
       mowerEntityId: this._config.entity,
       worldTiles: worldTileConfig(this._config),

@@ -2,7 +2,7 @@ import { LitElement, html, nothing, svg, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { createTranslator, type SupportedLocale, type TranslationKey } from "./localization";
-import { signedPathFromResponse } from "./point-cloud-logic";
+import { abortable, fetchPrivateApi } from "./private-api";
 import type { HomeAssistant } from "./card-config";
 import { actionErrorDetail } from "./action-error";
 import { DREAME_LAWN_MOWER_SERVICE_DOMAIN } from "./card-logic";
@@ -10,7 +10,7 @@ import { mapControlIcon, mowerMapMarker, mowingMapStyles } from "./mowing-map-pr
 import {
   availableMapBackgrounds, constrainViewport, DEFAULT_MOWER_SIZE, gardenEmphasis, mowerMarkerTransform, worldDim, effectiveMapBackground, fitMap, isWorldBackground,
   mowingMapPath, viewLimits, normalizeMapBackground, overlayIsFresh, positionStatusKey,
-  readMowingMapScene, zoomMap, nextRefreshDelay, SCENE_TIMEOUT_MS, backgroundRequestPath, cardDrawsZoneLabels, signedPathMatches,
+  readMowingMapScene, zoomMap, nextRefreshDelay, SCENE_TIMEOUT_MS, backgroundRequestPath, cardDrawsZoneLabels,
   type MapBackground, type MapPoint, type MapViewport, type MowerSize, type MowingMapScene,
 } from "./mowing-map-logic";
 import {
@@ -40,18 +40,6 @@ const SCALE_STEP = 1.005;
 const SAVED_GRACE_MS = 60_000;
 /** Zone names keep this on-screen size whatever the zoom. */
 const ZONE_LABEL_PX = 14;
-
-/** Abort waiting on non-cancellable HA signing and browser decoding promises. */
-async function abortable<T>(pending: Promise<T>, signal: AbortSignal): Promise<T> {
-  signal.throwIfAborted();
-  let cancel!: () => void;
-  const aborted = new Promise<never>((_resolve, reject) => {
-    cancel = () => reject(new DOMException("Aborted", "AbortError"));
-    signal.addEventListener("abort", cancel, { once: true });
-  });
-  try { return await Promise.race([pending, aborted]); }
-  finally { signal.removeEventListener("abort", cancel); }
-}
 
 /** Interactive 2D viewport. Only map delivery is polled; no mower commands. */
 @customElement("lawn-mower-mowing-map")
@@ -520,18 +508,7 @@ export class LawnMowerMowingMap extends LitElement {
   private async _fetch(path: string, signal: AbortSignal): Promise<Response> {
     const hass = this.hass;
     if (!hass) throw new Error("Home Assistant is unavailable");
-    const signed = signedPathFromResponse(await abortable(hass.callWS<unknown>({
-      type: "auth/sign_path", path, expires: 60,
-    }), signal));
-    signal.throwIfAborted();
-    // Signed URLs are credentials. Accept only the exact local requested route,
-    // never render/log them, and fetch the image into a private object URL.
-    if (!signed || !signedPathMatches(path, signed)) throw new Error("Invalid signed path");
-    const response = await fetch(hass.hassUrl(signed), {
-      credentials: "same-origin", signal, cache: "no-store",
-    });
-    if (!response.ok) throw new Error(`Map request failed (${response.status})`);
-    return response;
+    return fetchPrivateApi(hass, path, signal);
   }
 
   private async _refresh(): Promise<void> {
