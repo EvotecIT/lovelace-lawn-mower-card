@@ -15,7 +15,7 @@ export function nextScheduledRun(
   const candidates: Date[] = [];
   for (const control of controls) {
     if (!control.enabled || !control.available) continue;
-    // Only times that can be placed on a day; the integration flattens days and times.
+    // Use the same exact task pairs or legacy placement as the week view.
     for (const [weekday, times] of planStarts(control)) {
       const day = WEEKDAYS.indexOf(weekday);
       for (const time of times) {

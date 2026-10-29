@@ -56,12 +56,21 @@ const hhmm = (value: string): string | undefined => {
 };
 
 /**
- * Which start times belong to which weekday. The integration flattens a plan into the
- * days that have tasks and all start times, so a time can only be placed when that is
- * unambiguous: one time per day (in order) or one time for every day. Otherwise the day
- * is known but its times are not, and the plan says so rather than inventing them.
+ * Which start times belong to which weekday. Newer integration switches supply exact
+ * task pairs. Older switches only supply flattened days and times, which can be placed
+ * when the relationship is unambiguous; otherwise the day has no known time.
  */
-export function planStarts(control: Pick<ScheduleControl, "weekdays" | "startTimes">): Map<string, Array<string | undefined>> {
+export function planStarts(control: Pick<ScheduleControl, "weekdays" | "startTimes" | "tasks">): Map<string, Array<string | undefined>> {
+  if (control.tasks !== undefined) {
+    const starts = new Map<string, Array<string | undefined>>();
+    for (const task of control.tasks) {
+      const day = weekdayKey(task.weekday);
+      const time = hhmm(task.startTime);
+      if (!WEEKDAYS.includes(day) || !time) continue;
+      starts.set(day, [...(starts.get(day) ?? []), time]);
+    }
+    return starts;
+  }
   const days = control.weekdays.map(weekdayKey).filter(day => WEEKDAYS.includes(day));
   const times = control.startTimes.map(hhmm).filter((time): time is string => Boolean(time));
   const starts = new Map<string, Array<string | undefined>>();

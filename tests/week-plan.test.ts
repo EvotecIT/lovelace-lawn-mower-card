@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { forecastByDay, planStarts, rainLikely, weekPlan, ForecastSubscription } from "../src/week-plan.ts";
-import type { ScheduleControl } from "../src/schedule-controls.ts";
+import { discoverScheduleControls, type ScheduleControl } from "../src/schedule-controls.ts";
 import { nextScheduledRun } from "../src/next-run.ts";
 
 // Tuesday 27 October 2026, 09:00 local time.
@@ -40,6 +40,50 @@ test("Next run uses the same placement, so it never invents a start", () => {
   assert.deepEqual(next, new Date(2026, 9, 27, 17, 0));
   // Ambiguous times give no next run rather than a made-up one.
   assert.equal(nextScheduledRun([plan({ weekdays: ["mon", "wed"], startTimes: ["08:00", "12:00", "17:00"] })], now), undefined);
+});
+
+test("exact switch tasks drive both the week view and Next run", () => {
+  const controls = discoverScheduleControls({
+    "lawn_mower.mower": { state: "docked" },
+    "switch.mower_schedule": { state: "on", attributes: {
+      schedule_control: true, name: "Split",
+      // Older attributes cannot associate these five times with three days.
+      weekdays: ["tue", "wed", "fri"],
+      start_times: ["08:00", "17:30", "08:00", "12:30", "17:00"],
+      tasks: [
+        { weekday: "tue", start_time: "08:00" },
+        { weekday: "tue", start_time: "17:30" },
+        { weekday: "wed", start_time: "08:00", end_time: "09:00" },
+        { weekday: "wed", start_time: "12:30", task_id: 7 },
+        { weekday: "fri", start_time: "17:00" },
+      ],
+    } },
+  }, "lawn_mower.mower");
+  assert.deepEqual(Object.fromEntries(planStarts(controls[0])), {
+    tue: ["08:00", "17:30"], wed: ["08:00", "12:30"], fri: ["17:00"],
+  });
+  const days = weekPlan(controls, now);
+  assert.deepEqual(days.map(day => day.runs.map(run => run.time)), [
+    ["17:30"], ["08:00", "12:30"], [], ["17:00"], [], [], [],
+  ]);
+  assert.deepEqual(nextScheduledRun(controls, now), new Date(2026, 9, 27, 17, 30));
+  assert.equal(days[0].runs[0].time, "17:30");
+});
+
+test("an empty task list overrides stale summaries; disabled plans remain hidden", () => {
+  const empty = discoverScheduleControls({
+    "lawn_mower.mower": { state: "docked" },
+    "switch.mower_schedule": { state: "on", attributes: {
+      schedule_control: true, weekdays: ["wed"], start_times: ["08:00"], tasks: [],
+    } },
+  }, "lawn_mower.mower")[0];
+  assert.deepEqual([...planStarts(empty)], []);
+  assert.equal(weekPlan([empty], now).some(day => day.runs.length), false);
+  assert.equal(nextScheduledRun([empty], now), undefined);
+
+  const disabled = plan({ enabled: false, tasks: [{ weekday: "wed", startTime: "08:00" }] });
+  assert.equal(weekPlan([disabled], now).some(day => day.runs.length), false);
+  assert.equal(nextScheduledRun([disabled], now), undefined);
 });
 
 test("a day whose time can't be placed still shows the plan, after timed runs", () => {

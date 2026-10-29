@@ -194,7 +194,11 @@ window.addEventListener("load", async () => {
   // ?open=week opens the week plan from the Hero's Next run.
   if (params.get("open") === "week") {
     await new Promise(resolve => setTimeout(resolve, 300));
-    card.shadowRoot?.querySelector(".hero-metric.next-run")?.click();
+    const nextRun = card.shadowRoot?.querySelector(".hero-metric.next-run");
+    if (nextRun) nextRun.click();
+    else card.shadowRoot?.querySelector(".settings-entry")?.click();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    card.shadowRoot?.querySelector("#week-plan")?.scrollIntoView({ block: "nearest" });
   }
   // ?open=more opens the Hero's More menu.
   if (params.get("open") === "more") {
