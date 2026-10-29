@@ -11,6 +11,9 @@ The banner is illustrative. The card previews below show the current UI.
 
 ## Overview
 
+Requires **Home Assistant 2025.1.0 or newer**. See the
+[tested host versions and compatibility scope](docs/integration-compatibility.md#home-assistant-versions).
+
 A dashboard card for Home Assistant `lawn_mower` entities, with mower state,
 battery, and supported Start, Pause, and Dock controls.
 
