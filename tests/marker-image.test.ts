@@ -25,6 +25,12 @@ test("encoded traversal, separators and controls never pass as a marker path", (
   }
   assert.equal(markerImageUrl("/local/my%20mower.png"), "/local/my%20mower.png");
   assert.equal(markerImageUrl("/local/my mower.png"), "/local/my mower.png");
+  for (const unicode of ["/local/mäher.png", "/local/kosiarka-żółta.png", "/local/机器人.png", "/local/m%C3%A4her.png"]) {
+    assert.equal(markerImageUrl(unicode), unicode, unicode);
+    assert.equal(readMowingMapScene({ schema_version: 1, revision: "a".repeat(64), map_index: 0, map_id: 7, name: "G", width: 10, height: 10,
+      background_path: `/api/dreame_lawn_mower/mowing-map/entry/background/${"a".repeat(64)}`,
+      overlay: { trail: [], position_status: "unavailable" }, marker_image_path: unicode }, "/api/dreame_lawn_mower/mowing-map/entry").marker_image_path, unicode);
+  }
 });
 
 test("a picture that failed comes back after it is cleared and set again, or after a retry", () => {

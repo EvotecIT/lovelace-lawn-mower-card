@@ -282,7 +282,10 @@ export function markerImageUrl(value: unknown): string | undefined {
   if (decoded.split("/").some((part) => part === ".." || part === ".")) return undefined;
   const base = "https://home-assistant.invalid";
   const resolved = new URL(path, base);
-  return resolved.origin === base && resolved.pathname === path.replace(/ /g, "%20") ? path : undefined;
+  let canonical: string;
+  try { canonical = decodeURIComponent(resolved.pathname); } catch { return undefined; }
+  // The browser's own reading of the path must be the one checked above.
+  return resolved.origin === base && canonical === decoded ? path : undefined;
 }
 
 /** Real mower footprint in millimetres. */
