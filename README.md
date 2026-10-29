@@ -9,10 +9,10 @@ The banner is illustrative. The card previews below show the current UI.
 [![License](https://img.shields.io/github/license/EvotecIT/lovelace-lawn-mower-card?style=for-the-badge)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/EvotecIT/lovelace-lawn-mower-card?style=for-the-badge)](https://github.com/EvotecIT/lovelace-lawn-mower-card/stargazers)
 
-## Overview
-
 Requires **Home Assistant 2025.1.0 or newer**. See the
 [tested host versions and compatibility scope](docs/integration-compatibility.md#home-assistant-versions).
+
+## Overview
 
 A dashboard card for Home Assistant `lawn_mower` entities, with mower state,
 battery, and supported Start, Pause, and Dock controls.
@@ -180,6 +180,23 @@ by the integration; the card does not edit garden geometry or no-go areas.
 These captures use a docked mower. The Hero background is customizable; maps,
 3D, and optional controls depend on the integration. See the
 [gallery](docs/gallery.md) for mobile screenshots and matching YAML.
+
+## Removal
+
+To try another card without deleting your saved card configuration, follow the
+[reversible card-switch procedure](docs/troubleshooting.md#can-i-try-this-card-and-then-go-back).
+
+1. For permanent removal, remove the card from each dashboard that uses it.
+2. Uninstall **Lawn Mower Card** through **Settings → Marketplace** on HA 2026.11
+   or newer, or through HACS on older HA versions. For a manual installation,
+   remove its resource declaration and `config/www/lawn-mower-card.js`.
+3. Check **Edit dashboard → Manage resources** for an obsolete resource entry.
+   YAML-mode resources must be removed where they were declared. Close and
+   reopen Home Assistant browser tabs and app windows to unload the module.
+
+Removing this dashboard resource leaves the mower integration and its entities
+in place. Saved dashboard cards remain until you delete them; they show a
+missing custom element while the resource is absent.
 
 ## Support
 
