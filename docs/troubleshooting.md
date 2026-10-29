@@ -17,9 +17,9 @@ and this project. They register the same `lawn-mower-card` browser element. A
 browser page can register that name only once, so the resources must not be
 loaded together.
 
-Changing an npm `package.json` name or the name shown by HACS does not resolve
-the conflict. The browser element and `custom:lawn-mower-card` type are the
-runtime identity.
+Changing an npm `package.json` name or the name shown by Marketplace or HACS
+does not resolve the conflict. The browser element and `custom:lawn-mower-card`
+type are the runtime identity.
 
 ## Can I try this card and then go back?
 
@@ -49,13 +49,20 @@ Use this procedure for a reversible test:
    will need that repository, not merely its shared **Lawn Mower Card** name, if
    you decide to reinstall it.
 2. Do not delete the existing mower cards from any dashboard.
-3. Uninstall the old card in HACS. Open **Edit dashboard → Manage resources** and
-   verify that its JavaScript resource is gone.
+3. Uninstall the old card through Marketplace or HACS, matching its installation.
+   For a manual installation, remove the old card's resource declaration and
+   the JavaScript file served at that URL. Open **Edit dashboard → Manage resources**
+   and verify that its JavaScript resource is gone; remove YAML-mode resource
+   declarations where they were originally added.
 4. Close every Home Assistant browser tab and app window, then reopen Home
    Assistant. The existing cards may temporarily show **Custom element doesn't
    exist**; this is expected while no card resource is installed.
-5. Install this project and verify that only its resource is present. Its normal
-   HACS URL contains `/hacsfiles/lovelace-lawn-mower-card/`.
+5. Install this project and verify that only its resource is present. Marketplace
+   uses `/local/community/lovelace-lawn-mower-card/lawn-mower-card.js`; older HACS
+   installations use `/hacsfiles/lovelace-lawn-mower-card/lawn-mower-card.js`.
+   Existing `/hacsfiles/` URLs remain compatible after migration.
+   For a [manual installation](../README.md#manual), register
+   `/local/lawn-mower-card.js` as a JavaScript module.
 6. Close every Home Assistant browser tab and app window, then reopen Home
    Assistant. This starts a new browser page without the old element
    registration.

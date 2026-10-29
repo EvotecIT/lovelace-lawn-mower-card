@@ -143,10 +143,10 @@ For an image stored on your Home Assistant instance:
 3. Choose **Center**, **Left**, **Right**, **Top**, or **Bottom** under
    **Image focus**.
 
-Do not put personal images inside the HACS card directory: HACS owns that folder
-and can replace it during an update. Clear **Background image** to restore the
-built-in artwork. If a custom image cannot be loaded, the card also falls back
-to the built-in artwork automatically.
+Store personal images outside the installed card directory: Marketplace or
+HACS manages that folder and can replace it during an update. Clear
+**Background image** to restore the built-in artwork. If a custom image cannot
+be loaded, the card also falls back to the built-in artwork automatically.
 
 The equivalent optional YAML is:
 
