@@ -40,6 +40,11 @@ its heading, on every background. It grows with the zoom, which can then go up
 to 32×; further out it keeps the fixed icon so it stays visible.
 `mower_marker: fixed` always uses the fixed icon.
 
+To show your own mower, put a top-down picture with the nose pointing up in
+Home Assistant's `www` folder and set `mower_marker_image: /local/mower/marker.png`.
+It takes the place of the built-in mower at the same size and turns with the
+heading; if it can't be loaded, the built-in mower is shown.
+
 When the integration lists its zones with label points, the card asks for the
 background without names (`labels=0`) and writes the zone names itself: bold,
 with a dark halo, at a constant size on every background. A name that would
