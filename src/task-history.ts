@@ -194,8 +194,8 @@ export class LawnMowerTaskHistory extends LitElement {
     return html`${summary.runs ? html`<div class="week-summary" aria-label=${this._t("history.lastWeek")}>
         <span class="summary-label">${this._t("history.lastWeek")}</span>
         <span><strong>${this._t("history.runs", { count: summary.runs })}</strong></span>
-        <span>${this._number(summary.area, "m²", 0)}</span>
-        <span>${this._minutes(summary.minutes)}</span>
+        ${summary.area ? html`<span>${summary.area.partial ? "≥ " : ""}${this._number(summary.area.value, "m²", 0)}</span>` : nothing}
+        ${summary.minutes ? html`<span>${summary.minutes.partial ? "≥ " : ""}${this._minutes(summary.minutes.value)}</span>` : nothing}
       </div>` : nothing}
       ${historyDays(this._tasks, now).map((day) => html`<section class="day">
         <h4 class="day-label">${this._dayLabel(day)}</h4>

@@ -443,9 +443,13 @@ export class LawnMowerCard extends LitElement {
     // The Hero action row holds as many readable buttons as the card's width allows.
     this._widthObserver ??= typeof ResizeObserver === "undefined" ? undefined
       : new ResizeObserver(([entry]) => {
-        const capacity = actionRowCapacity(entry.contentRect.width);
+        const width = entry.contentRect.width;
+        const capacity = actionRowCapacity(width);
+        // Only a width change can change which labels fit; height changes are the fitting's own.
+        // Fitting waits until this delivery is over, including the render a capacity change starts.
+        if (width !== this._fittedWidth) this._scheduleLabelFit();
+        this._fittedWidth = width;
         if (capacity !== this._actionRowCapacity) this._actionRowCapacity = capacity;
-        else this._fitLabels();
       });
     this._widthObserver?.observe(this);
     // Re-added to the page: subscribe again, and keep the week current across midnight.
@@ -472,6 +476,8 @@ export class LawnMowerCard extends LitElement {
 
   public disconnectedCallback(): void {
     this._widthObserver?.disconnect();
+    window.clearTimeout(this._labelFitFrame);
+    this._labelFitFrame = undefined;
     this._forecastSubscription.close();
     window.clearTimeout(this._midnightTimer);
     this._midnightTimer = undefined;
@@ -539,14 +545,24 @@ export class LawnMowerCard extends LitElement {
     }
   }
 
+  private _fittedWidth?: number;
+  private _labelFitFrame?: number;
+
   /** Tabs and Dashboard commands get fewer, wider columns when a label would not fit whole. */
   private _fitLabels(): void {
     const root = this.renderRoot;
     if (root) fitLabelRows(root.querySelectorAll<HTMLElement>(".hero-tabs, .dashboard-card .hero-actions"), textOverflow);
   }
 
+  /** One fit per task, after ResizeObserver delivery, so a row's new height can't re-enter it. */
+  private _scheduleLabelFit(): void {
+    if (this._labelFitFrame !== undefined) return;
+    this._labelFitFrame = window.setTimeout(() => { this._labelFitFrame = undefined; this._fitLabels(); }, 0);
+  }
+
   protected updated(): void {
-    this._fitLabels();
+    // A render started by a resize is fitted by the scheduled pass, outside observer delivery.
+    if (this._labelFitFrame === undefined) this._fitLabels();
     const scheduleDialog = this.renderRoot?.querySelector<HTMLDialogElement>("dialog.mowing-automation-dialog");
     // The sheet opens first so the automation dialog, opened from inside it, stacks on top.
     for (const dialog of [

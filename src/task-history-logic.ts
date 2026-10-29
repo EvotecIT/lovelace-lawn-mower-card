@@ -155,9 +155,15 @@ export function historyDays(tasks: readonly HistoryTask[], now: Date): HistoryDa
   return [...days.values()].sort((left, right) => left.offset - right.offset);
 }
 
+/** A total over tasks that may lack the measurement: null when none report it, partial when some don't. */
+export type HistoryTotal = { value: number; partial: boolean } | null;
+
 /** Totals for the tasks started in the last `days` days, including today. */
-export function historySummary(tasks: readonly HistoryTask[], now: Date, days = 7): { runs: number; area: number; minutes: number } {
-  return historyDays(tasks, now).filter((day) => day.offset >= 0 && day.offset < days).flatMap((day) => day.tasks)
-    .reduce((total, task) => ({ runs: total.runs + 1, area: total.area + (task.area_sqm ?? 0), minutes: total.minutes + (task.duration_minutes ?? 0) }),
-      { runs: 0, area: 0, minutes: 0 });
+export function historySummary(tasks: readonly HistoryTask[], now: Date, days = 7): { runs: number; area: HistoryTotal; minutes: HistoryTotal } {
+  const recent = historyDays(tasks, now).filter((day) => day.offset >= 0 && day.offset < days).flatMap((day) => day.tasks);
+  const total = (values: Array<number | null>): HistoryTotal => {
+    const known = values.filter((value): value is number => value !== null);
+    return known.length ? { value: known.reduce((sum, value) => sum + value, 0), partial: known.length < values.length } : null;
+  };
+  return { runs: recent.length, area: total(recent.map((task) => task.area_sqm)), minutes: total(recent.map((task) => task.duration_minutes)) };
 }

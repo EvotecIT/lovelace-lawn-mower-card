@@ -107,8 +107,13 @@ test("tasks are grouped under their local day, newest first, with totals for the
   const days = historyDays(tasks, now);
   assert.deepEqual(days.map((day) => [day.date, day.offset, day.tasks.map((item) => item.id).join("")]),
     [["2026-10-29", 0, "a"], ["2026-10-28", 1, "bc"], ["2026-10-20", 9, "d"], ["", Number.POSITIVE_INFINITY, "e"]]);
-  assert.deepEqual(historySummary(tasks, now), { runs: 3, area: 230, minutes: 60 });
-  assert.deepEqual(historySummary([], now), { runs: 0, area: 0, minutes: 0 });
+  assert.deepEqual(historySummary(tasks, now), { runs: 3, area: { value: 230, partial: false }, minutes: { value: 60, partial: false } });
+  assert.deepEqual(historySummary([], now), { runs: 0, area: null, minutes: null });
+  // Unreported measurements are unknown, not zero; a measured zero stays a zero.
+  const unknown = { ...row("u", at(29, 8), 0, 0), area_sqm: null, duration_minutes: null };
+  assert.deepEqual(historySummary([unknown], now), { runs: 1, area: null, minutes: null });
+  assert.deepEqual(historySummary([unknown, row("z", at(29, 6), 0, 0)], now),
+    { runs: 2, area: { value: 0, partial: true }, minutes: { value: 0, partial: true } });
 });
 
 test("view tabs keep five views in one row and split six evenly", () => {
