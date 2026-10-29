@@ -201,6 +201,8 @@ export const uk = {
   "editor.mowerMarkerRealSize": "Реальний розмір, якщо відомий масштаб карти",
   "editor.mowerMarkerFixed": "Фіксований розмір",
   "editor.mowerMarkerHint": "У реальному розмірі значок слідує за масштабом; здалеку він зберігає фіксований розмір, щоб лишатися видимим. Розмір за замовчуванням: 65,9 × 43,9 см.",
+  "editor.mowerMarkerImage": "Зображення косарки на мапі",
+  "editor.mowerMarkerImageHint": "Необов'язково. Вигляд згори, носом косарки догори, у теці www Home Assistant, наприклад /local/mower/marker.png. Обертається за напрямком руху косарки.",
   "editor.mowerLength": "Довжина косарки (см)",
   "editor.mowerWidth": "Ширина косарки (см)",
   "editor.worldBackgroundDim": "Приглушити карту вулиць і супутник (0–100)",

@@ -4,12 +4,23 @@ import { css, svg } from "lit";
  * Top-down mower silhouette; rotation is supplied only by validated telemetry.
  * `stretch` sizes the body along the mower's width (x) and length (y).
  */
-export function mowerMapMarker(heading: number | null, stretch = { x: 1, y: 1 }) {
+/**
+ * The mower on the map, turned to its heading. A custom picture (nose up) takes the
+ * place of the built-in artwork in the same footprint; without a heading it stays upright.
+ */
+export function mowerMapMarker(heading: number | null, stretch = { x: 1, y: 1 }, image?: string) {
   return svg`
     <circle class="position-halo" r=${1.13 * Math.max(stretch.x, stretch.y)} />
     <g transform=${`rotate(${heading ?? 0}) scale(${stretch.x} ${stretch.y})`}>
       ${heading === null ? svg`` : svg`
         <path class="heading-cone" d="M -.62 -1.05 L 0 -1.65 L .62 -1.05 Z" />`}
+      ${image ? svg`<image class="custom-marker" href=${image} x="-.83" y="-.95" width="1.66" height="1.89"
+        preserveAspectRatio="xMidYMid meet" />` : mowerArtwork()}
+    </g>`;
+}
+
+function mowerArtwork() {
+  return svg`
       <rect x="-.83" y="-.39" width=".3" height="1.05" rx=".12" fill="#111917" stroke="#85968d" stroke-width=".05" />
       <rect x=".53" y="-.39" width=".3" height="1.05" rx=".12" fill="#111917" stroke="#85968d" stroke-width=".05" />
       <path d="M -.62 .62 L -.68 -.35 Q -.68 -.87 0 -.92 Q .68 -.87 .68 -.35 L .62 .62 Q 0 .97 -.62 .62 Z"
@@ -20,8 +31,7 @@ export function mowerMapMarker(heading: number | null, stretch = { x: 1, y: 1 })
       <circle cy="-.3" r=".23" fill="#121b17" stroke="#839a8c" stroke-width=".06" />
       <circle cy="-.3" r=".08" fill="#819887" />
       <rect x="-.18" y=".2" width=".36" height=".14" rx=".04" fill="#da735e" />
-      <path d="M -.25 .5 H .25" stroke="#a7b5ad" stroke-width=".06" stroke-linecap="round" />
-    </g>`;
+      <path d="M -.25 .5 H .25" stroke="#a7b5ad" stroke-width=".06" stroke-linecap="round" />`;
 }
 
 export type MapControlIcon =

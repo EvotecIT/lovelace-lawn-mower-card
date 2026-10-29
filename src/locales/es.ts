@@ -538,6 +538,8 @@ export const es = {
   "editor.mowerMarkerRealSize": "Tamaño real si se conoce la escala del mapa",
   "editor.mowerMarkerFixed": "Tamaño fijo",
   "editor.mowerMarkerHint": "A tamaño real, el icono sigue el zoom; de lejos mantiene el tamaño fijo para seguir visible. Tamaño predeterminado: 65,9 × 43,9 cm.",
+  "editor.mowerMarkerImage": "Imagen del robot en el mapa",
+  "editor.mowerMarkerImageHint": "Opcional. Una imagen cenital con la parte delantera del robot hacia arriba, en la carpeta www de Home Assistant, por ejemplo /local/mower/marker.png. Gira según la orientación del robot.",
   "editor.mowerLength": "Longitud del cortacésped (cm)",
   "editor.mowerWidth": "Anchura del cortacésped (cm)",
   "editor.worldBackgroundDim": "Atenuar mapa de calles y satélite (0–100)",

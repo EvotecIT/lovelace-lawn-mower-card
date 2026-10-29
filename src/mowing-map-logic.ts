@@ -17,6 +17,8 @@ export type MowingMapScene = {
   background_path: string;
   /** Optional vendor photo layer drawn in the same canvas as the background. */
   real_scene_path: string | null;
+  /** The integration's custom mower picture, when it publishes one. */
+  marker_image_path: string | null;
   /** Native-to-pixel projection; null with integrations that do not send it. */
   projection: MapProjection | null;
   /** Saved GPS alignment; null until one is saved. */
@@ -93,6 +95,7 @@ export function readMowingMapScene(value: unknown, path: string): MowingMapScene
     real_scene_path: typeof data.real_scene_path === "string" &&
       new RegExp(`^${path}/real-scene/${data.revision}/[a-f0-9]{64}$`).test(data.real_scene_path)
       ? data.real_scene_path : null,
+    marker_image_path: markerImageUrl(data.marker_image_path) ?? null,
     projection: readMapProjection(data.projection),
     georeference: readMapGeoreference(data.georeference),
     zones: readZones(data.zones),
@@ -261,6 +264,28 @@ export function zoomMap(
     y: anchor.y - (anchor.y - view.y) * ratio,
     width: nextWidth, height: height * nextWidth / width,
   }, width, height, limits);
+}
+
+/**
+ * A custom mower picture: a same-origin image path such as /local/mower/marker.png.
+ * Other origins, parent segments and non-image files are ignored.
+ */
+export function markerImageUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const path = value.trim();
+  if (!/^\/(?!\/)[^?#\\\u0000-\u001f\u007f]*\.(png|jpe?g|webp|svg)$/i.test(path)) return undefined;
+  // Judge the path as the browser will see it: encoded dots, slashes, backslashes and
+  // controls are decoded first, and malformed encoding is refused.
+  let decoded: string;
+  try { decoded = decodeURIComponent(path); } catch { return undefined; }
+  if (/[\\\u0000-\u001f\u007f]/.test(decoded)) return undefined;
+  if (decoded.split("/").some((part) => part === ".." || part === ".")) return undefined;
+  const base = "https://home-assistant.invalid";
+  const resolved = new URL(path, base);
+  let canonical: string;
+  try { canonical = decodeURIComponent(resolved.pathname); } catch { return undefined; }
+  // The browser's own reading of the path must be the one checked above.
+  return resolved.origin === base && canonical === decoded ? path : undefined;
 }
 
 /** Real mower footprint in millimetres. */

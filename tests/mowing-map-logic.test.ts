@@ -3,8 +3,9 @@ import test from "node:test";
 import {
   availableMapBackgrounds, backgroundRequestPath, nextRefreshDelay, SCENE_TIMEOUT_MS, constrainViewport, signedPathMatches, effectiveMapBackground, fitMap, mowingMapPath,
   DEFAULT_MOWER_SIZE, DEFAULT_WORLD_DIM, gardenEmphasis, MARKER_BODY, mowerMarkerSize, mowerMarkerTransform, worldDim,
-  normalizeMapBackground, viewLimits, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
+  markerImageUrl, normalizeMapBackground, viewLimits, WORLD_VIEW_LIMITS, overlayIsFresh, positionStatusKey, readMowingMapScene, zoomMap,
 } from "../src/mowing-map-logic.ts";
+import { mowerMapMarker } from "../src/mowing-map-presentation.ts";
 
 const path = "/api/dreame_lawn_mower/mowing-map/entry";
 function payload() {
@@ -232,4 +233,27 @@ test("a map that has not loaded yet retries quickly after a stalled request", ()
   assert.equal(nextRefreshDelay(false, 0), 5000);
   assert.deepEqual([1, 2, 3, 4, 9].map((n) => nextRefreshDelay(false, n)), [2000, 4000, 8000, 8000, 8000]);
   assert.equal(nextRefreshDelay(true, 1), 15_000);
+});
+
+test("a custom mower picture must be a same-origin image path", () => {
+  for (const ok of ["/local/mower/marker.png", "/local/a b.JPG", "/hacsfiles/x/top.webp", "/local/m.svg"]) {
+    assert.equal(markerImageUrl(` ${ok} `), ok.trim());
+  }
+  for (const bad of ["https://example.com/m.png", "//example.com/m.png", "local/m.png", "/local/../secrets/m.png",
+    "/local/./m.png", "/local/m.png?x=1", "/local/m.gif", "/local/m", "javascript:alert(1)", 7, undefined]) {
+    assert.equal(markerImageUrl(bad), undefined, String(bad));
+  }
+  assert.equal(readMowingMapScene({ ...payload(), marker_image_path: "/local/mower/marker.png" }, path).marker_image_path, "/local/mower/marker.png");
+  assert.equal(readMowingMapScene({ ...payload(), marker_image_path: "https://example.com/m.png" }, path).marker_image_path, null);
+  assert.equal(readMowingMapScene(payload(), path).marker_image_path, null);
+});
+
+test("the custom picture replaces the built-in artwork inside the heading rotation", () => {
+  const inner = (result: { values: unknown[] }) => result.values.at(-1) as { strings: readonly string[]; values: unknown[] };
+  const custom = mowerMapMarker(135, { x: 1, y: 1 }, "/local/mower/marker.png");
+  assert.equal(custom.values[1], "rotate(135) scale(1 1)");
+  assert.ok(inner(custom).values.includes("/local/mower/marker.png"));
+  assert.match(inner(custom).strings.join(""), /preserveAspectRatio="xMidYMid meet"/);
+  assert.match(inner(mowerMapMarker(null)).strings.join(""), /#dce5df/, "no picture keeps the built-in mower");
+  assert.equal(mowerMapMarker(null, { x: 1, y: 1 }, "/local/m.png").values[1], "rotate(0) scale(1 1)", "unknown heading stays upright");
 });

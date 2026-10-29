@@ -65,6 +65,10 @@
   using the configured footprint when the integration provides the map projection, oriented
   by its heading; far out, the fixed icon is kept so it stays visible. `fixed`
   always uses the fixed icon.
+- `mower_marker_image`: a top-down picture of your mower, nose up, from Home
+  Assistant's `www` folder (for example `/local/mower/marker.png`; PNG, JPEG,
+  WebP or SVG). It replaces the built-in mower on the interactive map and turns
+  with the heading. Only paths on your Home Assistant are accepted.
 - `mower_length` / `mower_width`: real-size footprint in centimetres (10–300).
   Defaults: 65.9 × 43.9 cm (MOVA LiDAX Ultra 1000; the AWD variant is 74 × 53.2 cm).
   Set these for your mower's dimensions; the card does not infer them from the model.
