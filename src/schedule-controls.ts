@@ -14,6 +14,8 @@ export type ScheduleControl = {
   available: boolean;
   weekdays: string[];
   startTimes: string[];
+  /** Exact weekday/start pairs supplied by newer integration schedule switches. */
+  tasks?: Array<{ weekday: string; startTime: string }>;
   taskCount?: number;
 };
 
@@ -66,6 +68,7 @@ function scheduleControl(
 ): ScheduleControl {
   const attributes = entity.attributes || {};
   const state = entity.state.trim().toLowerCase();
+  const tasks = scheduleTasks(attributes.tasks);
   return {
     entityId,
     // A plan name is the user's own; only the entity name carries the device prefix.
@@ -76,8 +79,20 @@ function scheduleControl(
     available: !["unavailable", "unknown", ""].includes(state),
     weekdays: textArray(attributes.weekdays),
     startTimes: textArray(attributes.start_times),
+    ...(tasks !== undefined ? { tasks } : {}),
     taskCount: finiteNumber(attributes.task_count),
   };
+}
+
+function scheduleTasks(value: unknown): ScheduleControl["tasks"] {
+  if (!Array.isArray(value)) return undefined;
+  return value.flatMap((item): NonNullable<ScheduleControl["tasks"]> => {
+    if (!item || typeof item !== "object") return [];
+    const task = item as Record<string, unknown>;
+    const weekday = text(task.weekday);
+    const startTime = text(task.start_time);
+    return weekday && startTime ? [{ weekday, startTime }] : [];
+  });
 }
 
 function text(value: unknown): string | undefined {

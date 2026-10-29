@@ -1136,8 +1136,14 @@
             name: "Morning",
             map_label: "Back garden",
             weekdays: ["mon", "wed", "fri"],
-            start_times: ["08:15"],
-            task_count: 3,
+            start_times: ["08:15", "12:30", "09:45", "17:00"],
+            tasks: [
+              { weekday: "mon", start_time: "08:15" },
+              { weekday: "mon", start_time: "12:30" },
+              { weekday: "wed", start_time: "09:45" },
+              { weekday: "fri", start_time: "17:00" },
+            ],
+            task_count: 4,
           },
         },
         "switch.backyard_mower_map_1_weekend": {
@@ -1181,6 +1187,10 @@
       };
 
       const previewParameters = new URLSearchParams(window.location.search);
+      // Compare a switch from an older integration release against exact task pairs.
+      if (previewParameters.get("legacy_schedule") === "1") {
+        delete stateStore["switch.backyard_mower_map_1_morning"].attributes.tasks;
+      }
       const automationScenario = previewParameters.get("automation");
       if (automationScenario) {
         const enableId = "switch.backyard_mower_mowing_automation";
