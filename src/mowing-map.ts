@@ -1,5 +1,6 @@
 import { LitElement, html, nothing, svg, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { MarkerImageCheck } from "./marker-image";
 import { repeat } from "lit/directives/repeat.js";
 import { createTranslator, type SupportedLocale, type TranslationKey } from "./localization";
 import { abortable, fetchPrivateApi } from "./private-api";
@@ -59,8 +60,8 @@ export class LawnMowerMowingMap extends LitElement {
   @property({ attribute: false }) public mowerSize: MowerSize | null = DEFAULT_MOWER_SIZE;
   /** Custom mower picture from the card; otherwise the integration's, if it sends one. */
   @property({ attribute: false }) public markerImage?: string;
-  /** A picture that failed to load falls back to the built-in artwork. */
-  @state() private _markerImageFailed?: string;
+  /** Whether the custom picture loads; a failed one shows the built-in mower. */
+  private readonly _markerCheck = new MarkerImageCheck(() => this.requestUpdate());
   /** world_background_dim (0–100): how much geographic tiles are softened. */
   @property({ attribute: false }) public worldDim?: unknown;
   /** Stable parent configuration identity; changes can alter inherited colours. */
@@ -123,6 +124,7 @@ export class LawnMowerMowingMap extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (!this.isConnected) return;
+    this._markerCheck.sync(this._wantedMarker());
     // Parent summaries/headings can move the canvas without changing its size.
     if (changed.has("hass") || changed.has("appearanceContext") || changed.has("layoutContext")) this._invalidateCanvasRect();
     if (changed.has("fallbackUrl")) this._fallbackFailed = false;
@@ -205,6 +207,7 @@ export class LawnMowerMowingMap extends LitElement {
     this._observed = undefined;
     this._releaseImage();
     this._releasePhoto();
+    this._markerCheck.reset();
     this._scene = undefined;
     this._align = undefined;
     this._saved = undefined;
@@ -924,20 +927,10 @@ export class LawnMowerMowingMap extends LitElement {
       </g>`;
   }
 
-  private _markerImage(scene: MowingMapScene): string | undefined {
-    const image = this.markerImage ?? scene.marker_image_path ?? undefined;
-    if (!image || image === this._markerImageFailed) return undefined;
-    // SVG <image> has no error event in every browser, so the picture is probed once.
-    if (image !== this._markerProbe) {
-      this._markerProbe = image;
-      const probe = new Image();
-      probe.onerror = () => { if (this._markerProbe === image) this._markerImageFailed = image; };
-      probe.src = image;
-    }
-    return image;
+  private _wantedMarker(): string | undefined {
+    return this.markerImage ?? this._scene?.marker_image_path ?? undefined;
   }
 
-  private _markerProbe?: string;
 
   protected render() {
     const scene = this._scene;
@@ -1019,7 +1012,7 @@ export class LawnMowerMowingMap extends LitElement {
                 data-mower-position=${scene.overlay.position_status}
                 data-marker-size=${marker.realSize ? "real" : "fixed"}
                 opacity=${scene.overlay.position_status === "last_known" ? "0.55" : "1"}>
-                ${mowerMapMarker(position.heading, marker, this._markerImage(scene))}
+                ${mowerMapMarker(position.heading, marker, this._markerCheck.usable(this._wantedMarker()))}
               </g>` : nothing}
             </g>
             ${align ? this._renderHandles(scene, align, unitsPerScreenPixel) : nothing}

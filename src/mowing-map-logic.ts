@@ -273,8 +273,16 @@ export function zoomMap(
 export function markerImageUrl(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const path = value.trim();
-  if (!/^\/(?!\/)[^?#\\\u0000-\u001f]*\.(png|jpe?g|webp|svg)$/i.test(path)) return undefined;
-  return path.split("/").some((part) => part === ".." || part === ".") ? undefined : path;
+  if (!/^\/(?!\/)[^?#\\\u0000-\u001f\u007f]*\.(png|jpe?g|webp|svg)$/i.test(path)) return undefined;
+  // Judge the path as the browser will see it: encoded dots, slashes, backslashes and
+  // controls are decoded first, and malformed encoding is refused.
+  let decoded: string;
+  try { decoded = decodeURIComponent(path); } catch { return undefined; }
+  if (/[\\\u0000-\u001f\u007f]/.test(decoded)) return undefined;
+  if (decoded.split("/").some((part) => part === ".." || part === ".")) return undefined;
+  const base = "https://home-assistant.invalid";
+  const resolved = new URL(path, base);
+  return resolved.origin === base && resolved.pathname === path.replace(/ /g, "%20") ? path : undefined;
 }
 
 /** Real mower footprint in millimetres. */
