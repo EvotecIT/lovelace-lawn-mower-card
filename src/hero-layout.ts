@@ -2,6 +2,7 @@ import type { CommandPlan } from "./command-plan";
 import type { DisplayTile, DisplayAction, HeroSection } from "./card-customization";
 import type { CardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
+import { looseTabColumns } from "./label-fit";
 import { renderSummary, renderTiles, renderCustomActions } from "./customization-view";
 import { html, nothing, type TemplateResult } from "lit";
 import {
@@ -21,6 +22,7 @@ export { heroLayoutStyles } from "./hero-layout-styles";
 import type { SupportedLocale, Translator } from "./localization";
 import {
   showHeroViewTabs,
+  tabColumns,
   type HeroView,
 } from "./hero-views";
 
@@ -212,12 +214,29 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
   const showControls = !model.customSectionOrder && Boolean(model.controls);
   const controlsAfterActions = showControls && model.settingsSheet && !model.dashboard;
   const controlsBeforeActions = showControls && !controlsAfterActions;
+  const tabBar = showHeroViewTabs(model.availableViews)
+    ? html`
+        <nav
+          class=${`hero-tabs${model.availableViews.length > 3 ? " many-views" : ""}`}
+          style=${`--tab-columns:${tabColumns(model.availableViews.length)};--tab-columns-loose:${looseTabColumns(model.availableViews.length)}`}
+          role="tablist"
+          aria-label=${model.t("hero.viewLabel")}
+        >
+          ${tabs
+            .filter(({ view }) => model.availableViews.includes(view))
+            .map(({ view, label, icon }) =>
+              renderTab(model, view, label, icon),
+            )}
+        </nav>
+      `
+    : nothing;
   const selectors = html`<div class=${`hero-selectors${controlsAfterActions ? " after-actions" : ""}`} aria-label=${model.t("hero.selectionsLabel")}>${model.controls}</div>`;
   return html`
     <ha-card class=${`hero-card${model.dashboard ? " dashboard-card" : ""}${model.dashboard && !hasAside ? " dashboard-no-aside" : ""}${model.density === "compact" ? " density-compact" : ""}${model.theme === "auto" ? " theme-auto" : ""}${model.appearance.classes}`} style=${styleMap(model.appearance.styles)} lang=${model.locale}>
       <div class="hero-shell">
         ${model.dashboard ? html`${renderDashboardHeader(model)}
-          <div class="dashboard-command-panel">${model.alerts || nothing}${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>` : nothing}
+          <div class="dashboard-command-panel">${model.alerts || nothing}${renderHeroActions(model)}${renderHeroActionFeedback(model)}</div>
+          ${tabBar}` : nothing}
         <section class=${`hero-stage view-${mainView}${model.mowingMapPath ? " interactive-map" : ""}`}>
           ${renderHeroMedia(mainModel, model.dashboard && cameraAside ? ["overview", "map", "point-cloud", "photos", "history"] : undefined)}
           ${mainView === "map" && !model.mowingMapPath ? model.mapStatus : nothing}
@@ -247,21 +266,7 @@ export function renderHeroLayout(model: HeroLayoutModel): TemplateResult {
         ${model.dashboard ? renderDashboardAside(model)
           : model.activeView === "map" && !missionInStage ? renderMowingMission(model) : nothing}
 
-        ${showHeroViewTabs(model.availableViews)
-          ? html`
-              <nav
-                class=${`hero-tabs${model.availableViews.length > 3 ? " many-views" : ""}`}
-                role="tablist"
-                aria-label=${model.t("hero.viewLabel")}
-              >
-                ${tabs
-                  .filter(({ view }) => model.availableViews.includes(view))
-                  .map(({ view, label, icon }) =>
-                    renderTab(model, view, label, icon),
-                  )}
-              </nav>
-            `
-          : nothing}
+        ${!model.dashboard ? tabBar : nothing}
 
         ${!model.dashboard ? model.alerts || nothing : nothing}
         ${controlsBeforeActions ? selectors : nothing}

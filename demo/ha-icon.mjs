@@ -1,6 +1,15 @@
 // Local fixture stand-in for Home Assistant's icon host. Production uses ha-icon.
 // Authored SVG geometry keeps the preview legible without downloading an icon font.
 const shapes = {
+  "mdi:rotate-3d-variant": '<path d="M12 3 4 7.5v9L12 21l8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>',
+  "mdi:image-multiple-outline": '<rect x="6" y="3" width="15" height="13" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h12M6 13l4-4 4 4 2-2 5 5"/>',
+  "mdi:history": '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+  "mdi:refresh": '<path d="M20 12a8 8 0 1 1-2.3-5.7L20 8.6"/><path d="M20 3v5.6h-5.6"/>',
+  "mdi:chevron-right": '<path d="m9 5 7 7-7 7"/>',
+  "mdi:arrow-left": '<path d="M20 12H4m6-7-7 7 7 7"/>',
+  "mdi:border-outside": '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M8 12h8M12 8v8" stroke-dasharray="2 2"/>',
+  "mdi:texture-box": '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15 15 3M9 21 21 9"/>',
+  "mdi:target": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
   "mdi:thermometer": '<path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0Z"/><path d="M12 8v10"/>',
   "mdi:calendar-clock": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6m10-6v6M3 10h18m-9 3v4l3 1"/>',
   "mdi:content-cut": '<circle cx="5" cy="6" r="3"/><circle cx="5" cy="18" r="3"/><path d="m7 8 14 13M7 16 21 3"/>',

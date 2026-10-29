@@ -2,12 +2,17 @@ import type { TranslationCatalog } from "./en.ts";
 
 export const it = {
   "history.global": "Preferenze globali",
-  "history.percentagePoints": "p.p. indica punti percentuali, non Wh.",
+  "history.lastWeek": "Ultimi 7 giorni",
+  "history.runs": {
+    one: "{count} taglio",
+    other: "{count} tagli",
+  },
+  "history.batteryUsed": "{value} usato",
+  "history.perHundred": "{value} ogni 100 m²",
   "history.zoneOverrides": "Le preferenze delle zone possono differire dai valori predefiniti dell’attività.",
   "history.cached": "Cronologia in cache · aggiornamento cloud non disponibile",
   "history.rush": "Rapida",
   "history.title": "Cronologia",
-  "history.back": "Tutte le attività · ultime 30",
   "history.latest": "Le 30 attività segnalate più recenti",
   "history.loading": "Caricamento della cronologia…",
   "history.error": "Impossibile caricare la cronologia delle attività.",
@@ -18,7 +23,6 @@ export const it = {
   "history.recordedMap": "Mappa registrata per questa attività",
   "history.noMap": "Questa attività non ha una mappa registrata.",
   "history.batteryUse": "Consumo batteria osservato",
-  "history.pp": "p.p.",
   "history.recorder": "Registratore Home Assistant",
   "history.observed": "Osservazioni dell’integrazione",
   "history.partial": "Copertura parziale",

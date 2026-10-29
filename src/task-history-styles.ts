@@ -19,19 +19,35 @@ export const taskHistoryStyles = css`
   .message { padding:32px 12px; text-align:center; }
   .message button { margin-top:12px; }
   .cache-note { padding:0 0 12px; }
-  .task-list { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
-  .task-list button { display:flex; align-items:center; gap:12px; width:100%; text-align:start; padding:14px 12px; }
-  .task-icon { color:var(--mower-accent,var(--primary-color)); }
-  .task-copy { display:grid; gap:5px; flex:1; min-width:0; }
+  .week-summary { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 16px; margin-bottom:14px; padding:12px 14px; border-radius:12px; background:var(--mower-fill-accent,color-mix(in srgb,var(--mower-accent,var(--primary-color)) 12%,transparent)); font-size:13px; font-variant-numeric:tabular-nums; }
+  .week-summary strong { font-size:15px; }
+  .summary-label { flex-basis:100%; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--mower-muted,var(--secondary-text-color)); }
+  .day + .day { margin-top:14px; }
+  .day-label { margin:0 2px 8px; font-size:12px; font-weight:600; color:var(--mower-muted,var(--secondary-text-color)); }
+  .task-list { list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+  .task-list button { display:flex; align-items:center; gap:12px; width:100%; text-align:start; padding:10px 10px 10px 12px; }
+  .task-icon { display:grid; place-items:center; width:36px; height:36px; flex:none; border-radius:10px; color:var(--mower-accent,var(--primary-color)); background:var(--mower-fill-accent,color-mix(in srgb,var(--mower-accent,var(--primary-color)) 14%,transparent)); }
+  .task-copy { display:grid; gap:3px; flex:1; min-width:0; }
   .task-copy strong { font-size:14px; }
-  .task-copy > span { font-size:12px; color:var(--mower-muted,var(--secondary-text-color)); }
-  .outcome { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--mower-muted,var(--secondary-text-color)); }
-  .result-1 { color:var(--mower-success,#7bae73); }
+  .task-copy > span { font-size:12px; color:var(--mower-muted,var(--secondary-text-color)); font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chevron { color:var(--mower-muted,var(--secondary-text-color)); --mdc-icon-size:18px; }
+  .badge { --tone:var(--mower-muted,var(--secondary-text-color)); display:inline-flex; align-items:center; gap:6px; flex:none; padding:2px 9px 2px 7px; border:1px solid color-mix(in srgb,var(--tone) 45%,transparent); border-radius:999px; font-size:11px; font-weight:600; line-height:1.4; white-space:nowrap; color:var(--mower-text,var(--primary-text-color)); background:color-mix(in srgb,var(--tone) 12%,transparent); }
+  .badge::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--tone); }
+  .badge-done { --tone:var(--mower-success,#4f9b58); }
+  .badge-stopped { --tone:var(--mower-warning,#c08a2e); }
+  .badge-partial { --tone:var(--mower-info,#4b8fb0); }
   .detail { display:grid; gap:14px; }
-  .detail-title { display:flex; align-items:center; justify-content:space-between; gap:12px; border-radius:4px; }
+  .detail-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+  .detail-title { font-size:18px; border-radius:4px; }
+  .detail-when { flex-basis:100%; font-size:13px; }
+  .note { margin-top:10px; font-size:11px; }
   dl { margin:0; } dt { font-size:11px; color:var(--mower-muted,var(--secondary-text-color)); } dd { margin:4px 0 0; font-size:14px; }
-  .metrics,.settings-values { display:flex; gap:24px; flex-wrap:wrap; }
-  .metrics dd { font-size:20px; font-weight:600; }
+  .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(84px,1fr)); gap:8px; }
+  .metrics > div { padding:10px 12px; border-radius:10px; background:var(--mower-fill,color-mix(in srgb,currentColor 6%,transparent)); }
+  .metrics dd { font-size:clamp(16px,5cqi,20px); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .settings-values { display:flex; gap:8px; flex-wrap:wrap; }
+  .settings-values > div { padding:6px 10px; border-radius:8px; background:var(--mower-fill,color-mix(in srgb,currentColor 6%,transparent)); }
+  .settings-values dd { margin-top:2px; font-size:13px; font-weight:600; }
   .historical-map,.panel { border:1px solid var(--mower-border,var(--divider-color)); border-radius:12px; padding:14px; }
   figcaption { font-size:12px; color:var(--mower-muted,var(--secondary-text-color)); margin-bottom:8px; }
   .historical-map svg { width:100%; height:230px; display:block; background:var(--mower-map-ground,var(--mower-fill)); border-radius:8px; }
@@ -40,7 +56,8 @@ export const taskHistoryStyles = css`
   .track { fill:none; stroke:var(--mower-route,#71b9cf); stroke-width:1.5; vector-effect:non-scaling-stroke; }
   .battery-summary { display:flex; align-items:baseline; flex-wrap:wrap; gap:12px; }
   .battery-summary strong { font-size:21px; } .battery-summary span { font-size:12px; color:var(--mower-muted,var(--secondary-text-color)); }
-  .battery-plot { display:grid; grid-template-columns:32px minmax(0,1fr); height:140px; margin-top:12px; }
+  .battery-plot { display:grid; grid-template-columns:32px minmax(0,1fr); grid-template-rows:140px auto; margin-top:12px; }
+  .chart-times { grid-column:2; display:flex; justify-content:space-between; margin-top:4px; color:var(--mower-muted,var(--secondary-text-color)); font-size:10px; font-variant-numeric:tabular-nums; }
   .chart-scale { display:flex; flex-direction:column; justify-content:space-between; padding:12px 0; color:var(--mower-muted); font:10px system-ui; }
   .battery-chart { display:block; width:100%; height:140px; overflow:visible; }
   .chart-grid { stroke:var(--mower-border,var(--divider-color)); fill:none; }
@@ -48,10 +65,16 @@ export const taskHistoryStyles = css`
   .charge { stroke:var(--mower-state-returning,#d6aa55); stroke-width:2; stroke-dasharray:4 3; vector-effect:non-scaling-stroke; }
   circle { fill:var(--mower-accent,var(--primary-color)); }
   .settings-values { margin-top:10px; } .zone-settings { margin-top:12px; padding-top:10px; border-top:1px solid var(--mower-border,var(--divider-color)); font-size:12px; }
-  details { font-size:12px; border-bottom:1px solid var(--mower-border,var(--divider-color)); padding:8px 0 12px; }
-  summary { cursor:pointer; padding:4px 0; } li { line-height:1.6; }
+  details.panel { font-size:12px; padding:0; }
+  summary { display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; padding:12px 14px; font-size:14px; font-weight:600; list-style:none; border-radius:12px; }
+  summary::-webkit-details-marker { display:none; }
+  summary::after { content:""; width:7px; height:7px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(45deg); opacity:.6; transition:transform .15s; }
+  details[open] > summary::after { transform:rotate(-135deg); }
+  details ul { margin:0; padding:0 14px 12px 30px; } li { line-height:1.6; }
+  .zone-results { list-style:none; padding:0 14px 12px; display:grid; gap:6px; }
+  .zone-results li { display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .photo { display:grid; place-items:center; min-height:120px; margin-top:8px; }
   .photo img { width:100%; max-height:360px; object-fit:contain; border-radius:8px; }
   .photo-nav { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:10px; font-size:12px; }
-  @container (max-width:400px) { :host > section { padding:12px; } .task-icon { display:none; } .task-list button { gap:6px; } .outcome { max-width:85px; } .task-copy > span { font-size:11px; } }
+  @container (max-width:400px) { :host > section { padding:12px; } .task-icon { display:none; } .task-list button { gap:8px; } .task-copy > span { font-size:11px; } }
 `;

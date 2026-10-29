@@ -13,12 +13,17 @@ export type TranslationMessage = string | PluralMessage;
 
 export const en = {
   "history.global": "Global preferences",
-  "history.percentagePoints": "pp means percentage points, not Wh.",
+  "history.lastWeek": "Last 7 days",
+  "history.runs": {
+    "one": "{count} run",
+    "other": "{count} runs",
+  },
+  "history.batteryUsed": "{value} used",
+  "history.perHundred": "{value} per 100 m²",
   "history.zoneOverrides": "Per-zone preferences may differ from the task defaults.",
   "history.cached": "Cached history · cloud refresh unavailable",
   "history.rush": "Rush",
   "history.title": "History",
-  "history.back": "All tasks · latest 30",
   "history.latest": "The 30 most recent reported tasks",
   "history.loading": "Loading task history…",
   "history.error": "Task history could not be loaded.",
@@ -29,7 +34,6 @@ export const en = {
   "history.recordedMap": "Map recorded for this task",
   "history.noMap": "This task has no recorded map.",
   "history.batteryUse": "Observed battery use",
-  "history.pp": "pp",
   "history.recorder": "Home Assistant recorder",
   "history.observed": "Integration observations",
   "history.partial": "Partial coverage",

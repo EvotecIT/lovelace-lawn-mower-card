@@ -2,12 +2,17 @@ import type { TranslationCatalog } from "./en.ts";
 
 export const de = {
   "history.global": "Globale Einstellungen",
-  "history.percentagePoints": "Pp. bedeutet Prozentpunkte, nicht Wh.",
+  "history.lastWeek": "Letzte 7 Tage",
+  "history.runs": {
+    one: "{count} Mähvorgang",
+    other: "{count} Mähvorgänge",
+  },
+  "history.batteryUsed": "{value} verbraucht",
+  "history.perHundred": "{value} pro 100 m²",
   "history.zoneOverrides": "Zoneneinstellungen können von den Aufgabenstandards abweichen.",
   "history.cached": "Gespeicherter Verlauf · Cloud-Aktualisierung nicht verfügbar",
   "history.rush": "Schnell",
   "history.title": "Verlauf",
-  "history.back": "Alle Aufgaben · letzte 30",
   "history.latest": "Die 30 zuletzt gemeldeten Aufgaben",
   "history.loading": "Aufgabenverlauf wird geladen…",
   "history.error": "Der Aufgabenverlauf konnte nicht geladen werden.",
@@ -18,7 +23,6 @@ export const de = {
   "history.recordedMap": "Für diese Aufgabe gespeicherte Karte",
   "history.noMap": "Für diese Aufgabe ist keine Karte gespeichert.",
   "history.batteryUse": "Beobachteter Akkuverbrauch",
-  "history.pp": "Pp.",
   "history.recorder": "Home-Assistant-Rekorder",
   "history.observed": "Beobachtungen der Integration",
   "history.partial": "Teilweise erfasst",

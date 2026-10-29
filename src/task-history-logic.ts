@@ -129,3 +129,43 @@ export function historyMapBounds(features: HistoryFeature[]): [number, number, n
   const padding = Math.max(50, Math.max(maxX - minX, maxY - minY) * .06);
   return [minX - padding, minY - padding, Math.max(100, maxX - minX) + padding * 2, Math.max(100, maxY - minY) + padding * 2];
 }
+
+const localDay = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+export type HistoryDay = { date: string; offset: number; tasks: HistoryTask[] };
+
+/** Tasks under their local calendar day, newest first; `offset` is days before today. */
+export function historyDays(tasks: readonly HistoryTask[], now: Date): HistoryDay[] {
+  const today = new Date(now); today.setHours(0, 0, 0, 0);
+  const days = new Map<string, HistoryDay>();
+  for (const task of tasks) {
+    const epoch = task.started_at ?? task.reported_at;
+    const at = epoch ? new Date(epoch * 1000) : undefined;
+    const date = at ? localDay(at) : "";
+    let day = days.get(date);
+    if (!day) {
+      const midnight = at ? new Date(at) : undefined; midnight?.setHours(0, 0, 0, 0);
+      day = { date, offset: midnight ? Math.round((today.getTime() - midnight.getTime()) / 86_400_000) : Number.POSITIVE_INFINITY, tasks: [] };
+      days.set(date, day);
+    }
+    day.tasks.push(task);
+  }
+  // Newest first inside each day too, whatever order the integration sent; undated tasks go last.
+  const epoch = (task: HistoryTask) => task.started_at ?? task.reported_at ?? 0;
+  for (const day of days.values()) day.tasks.sort((left, right) => epoch(right) - epoch(left));
+  return [...days.values()].sort((left, right) => left.offset - right.offset);
+}
+
+/** A total over tasks that may lack the measurement: null when none report it, partial when some don't. */
+export type HistoryTotal = { value: number; partial: boolean } | null;
+
+/** Totals for the tasks started in the last `days` days, including today. */
+export function historySummary(tasks: readonly HistoryTask[], now: Date, days = 7): { runs: number; area: HistoryTotal; minutes: HistoryTotal } {
+  const recent = historyDays(tasks, now).filter((day) => day.offset >= 0 && day.offset < days).flatMap((day) => day.tasks);
+  const total = (values: Array<number | null>): HistoryTotal => {
+    const known = values.filter((value): value is number => value !== null);
+    return known.length ? { value: known.reduce((sum, value) => sum + value, 0), partial: known.length < values.length } : null;
+  };
+  return { runs: recent.length, area: total(recent.map((task) => task.area_sqm)), minutes: total(recent.map((task) => task.duration_minutes)) };
+}

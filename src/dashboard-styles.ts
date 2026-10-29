@@ -42,11 +42,13 @@ export const dashboardStyles = css`
   .dashboard-card .hero-stage .hero-scrim { display:none; }
   .dashboard-card .hero-map { padding:0; background:var(--mower-map-ground,#18291e); }
   .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-actions, .dashboard-card .hero-action-feedback, .dashboard-card .hero-menu { margin:0; }
-  .dashboard-card .hero-tabs { padding:5px; gap:5px; border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-chrome); }
-  .dashboard-card .hero-tab { min-height:42px; font-family:inherit; font-size:13px; font-weight:600; line-height:1.25; color:var(--mower-muted); cursor:pointer; }
+  .dashboard-card .hero-tabs { padding:5px; gap:5px; border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-chrome); container:dashboard-tabs / inline-size; }
+  /* Icon beside label while it fits; a longer label moves under the icon instead of past the edge. */
+  .dashboard-card .hero-tab { flex-wrap:wrap; justify-content:center; row-gap:3px; min-width:0; min-height:42px; font-family:inherit; font-size:13px; font-weight:600; line-height:1.25; color:var(--mower-muted); cursor:pointer; }
   .dashboard-card .hero-tab.selected { background:var(--mower-fill-accent); border-color:var(--mower-border-accent); color:var(--mower-text); box-shadow:none; }
   .dashboard-card:not(.theme-auto) .hero-tab.selected { background:#163c4c; border-color:#32708a; color:#b7edff; }
   .dashboard-card .hero-tab ha-icon { --mdc-icon-size:20px; }
+  .dashboard-card .hero-tab span { min-width:0; max-width:100%; overflow-wrap:break-word; text-align:center; }
   .dashboard-card .hero-selectors { border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-panel); }
   .dashboard-card .hero-actions { grid-template-columns:repeat(auto-fit,minmax(54px,1fr)); border:0; padding:0; gap:10px; align-content:start; background:transparent; }
   .dashboard-command-panel { display:grid; align-content:start; gap:10px; min-width:0; }
@@ -87,13 +89,15 @@ export const dashboardStyles = css`
   .dashboard-card .mowing-stat strong { font-size:22px; text-align:right; min-width:0; max-width:65%; }
   .dashboard-card .mowing-progress-label { font-size:11px; gap:8px; }
   .dashboard-card .mowing-mission progress { height:6px; }  @container (min-width:720px) {
-    .dashboard-card .hero-shell { grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr); grid-template-rows:auto max-content minmax(340px,1fr); padding:22px; gap:16px; }
+    .dashboard-card .hero-shell { grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr); grid-template-rows:auto max-content max-content minmax(340px,1fr); padding:22px; gap:16px; }
     .dashboard-header { grid-column:1/-1; grid-row:1; margin-bottom:2px; }
     .dashboard-command-panel { grid-column:1/-1; grid-row:2; }
-    .dashboard-card .hero-stage { grid-column:1; grid-row:3; align-self:stretch; }
-    .dashboard-aside { grid-column:2; grid-row:3; }
+    .dashboard-card .hero-tabs { grid-column:1; grid-row:3; }
+    .dashboard-card .hero-stage { grid-column:1; grid-row:4; align-self:stretch; }
+    .dashboard-aside { grid-column:2; grid-row:3 / span 2; }
+    .dashboard-card.dashboard-no-aside .hero-tabs { grid-column:1/-1; }
     .dashboard-card.dashboard-no-aside .hero-shell { grid-template-columns:minmax(0,1fr); }
-    .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-action-feedback { grid-column:1/-1; }
+    .dashboard-card .hero-selectors, .dashboard-card .hero-action-feedback { grid-column:1/-1; }
     .dashboard-card .hero-stage.interactive-map { height:auto; min-height:340px; }
     .dashboard-card .view-map.interactive-map .hero-mowing-map { height:340px; flex:1 1 340px; min-height:340px; }
   }
@@ -106,15 +110,45 @@ export const dashboardStyles = css`
     .dashboard-title h2 { font-size:13px; margin-bottom:4px; }
     .dashboard-state { font-size:19px; gap:5px; }
     .dashboard-state ha-icon { --mdc-icon-size:19px; }
-    .dashboard-battery { padding:8px 10px; gap:5px; }
+    /* The battery keeps its size; a long state name wraps beside it instead of squeezing it. */
+    .dashboard-battery { padding:8px 10px; gap:5px; flex-shrink:0; max-width:none; }
+    .dashboard-battery strong { white-space:nowrap; }
     .dashboard-battery-icon { width:30px; height:24px; }
     .dashboard-battery strong { font-size:20px; }
     .dashboard-battery span { font-size:10px; }
     .dashboard-card .hero-actions,
     .dashboard-card .hero-actions:has(.hero-action:nth-child(5)),
-    .dashboard-card .hero-actions:has(.hero-action:nth-child(7)) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-    .dashboard-card .hero-action { min-height:72px; padding:9px 5px; font-size:13px; }
-    .dashboard-card .hero-action ha-icon { --mdc-icon-size:25px; }
+    .dashboard-card .hero-actions:has(.hero-action:nth-child(7)) { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .dashboard-card .hero-actions:has(> .hero-action:nth-child(2):last-of-type),
+    .dashboard-card .hero-actions:has(> .hero-action:nth-child(4):last-of-type) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .dashboard-card .hero-actions > .hero-action:last-of-type:nth-child(3n+1):not(:first-child) { grid-column:1/-1; }
+    .dashboard-card .hero-actions:has(> .hero-action:nth-child(4):last-of-type) > .hero-action:last-of-type { grid-column:auto; }
+    .dashboard-card .hero-action { min-height:52px; flex-direction:row; flex-wrap:wrap; justify-content:center; gap:4px 7px; padding:8px 6px; font-size:13px; }
+    /* A label too long to sit beside its icon moves under it whole, rather than breaking mid-word. */
+    .dashboard-card .hero-action span { overflow-wrap:break-word; hyphens:manual; text-align:center; }
+    .dashboard-card .hero-action ha-icon { --mdc-icon-size:22px; }
     .dashboard-card .hero-tab { padding:8px 4px; gap:5px; font-size:12px; }
+    .dashboard-card .hero-tabs.many-views { padding:4px; gap:3px; }
+    .dashboard-card .hero-tabs.many-views .hero-tab { padding:7px 1px; font-size:11px; }
   }
+  /* The tab bar can be one column of a wide card: when narrow, or with many views, every tab
+     stacks icon over label together, so translated labels get the whole tab width. */
+  @container dashboard-tabs (max-width:760px) {
+    .dashboard-card .hero-tabs.many-views .hero-tab { flex-direction:column; flex-wrap:nowrap; gap:3px; padding:6px 2px; font-size:12px; min-width:0; }
+    .dashboard-card .hero-tabs.many-views .hero-tab span { max-width:100%; overflow-wrap:break-word; hyphens:auto; text-align:center; line-height:1.15; }
+  }
+  @container dashboard-tabs (max-width:560px) {
+    .dashboard-card .hero-tab { flex-direction:column; gap:3px; padding:6px 2px; font-size:11px; min-width:0; }
+    .dashboard-card .hero-tab span { max-width:100%; overflow-wrap:break-word; hyphens:auto; text-align:center; line-height:1.15; }
+  }  /* Very narrow bars with many views: a smaller label keeps whole words such as Cronologia or Historique. */
+  @container dashboard-tabs (max-width:420px) {
+    .dashboard-card .hero-tabs.many-views .hero-tab { padding:6px 1px; font-size:10px; letter-spacing:-.01em; }
+  }
+
+  /* fitLabelRows: measured with unbreakable words, then loosened when a label would not fit. */
+  .hero-tabs[data-fit="measure"] .hero-tab span, .hero-actions[data-fit="measure"] .hero-action span { overflow-wrap:normal !important; hyphens:manual !important; }
+  .hero-tabs[data-fit="loose"] { grid-auto-flow:row !important; grid-template-columns:repeat(var(--tab-columns-loose,2),minmax(0,1fr)) !important; }
+  .dashboard-card .hero-actions[data-fit="loose"] { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  .dashboard-card .hero-actions[data-fit="loose"] > .hero-action { grid-column:auto !important; }
+  .dashboard-card .hero-actions[data-fit="loose"] > .hero-action:last-of-type:nth-child(odd):not(:first-child) { grid-column:1/-1 !important; }
 `;

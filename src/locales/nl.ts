@@ -2,12 +2,17 @@ import type { TranslationCatalog } from "./en.ts";
 
 export const nl = {
   "history.global": "Algemene voorkeuren",
-  "history.percentagePoints": "pp betekent procentpunten, geen Wh.",
+  "history.lastWeek": "Afgelopen 7 dagen",
+  "history.runs": {
+    one: "{count} maaibeurt",
+    other: "{count} maaibeurten",
+  },
+  "history.batteryUsed": "{value} gebruikt",
+  "history.perHundred": "{value} per 100 m²",
   "history.zoneOverrides": "Zonevoorkeuren kunnen afwijken van de standaardinstellingen van de taak.",
   "history.cached": "Opgeslagen geschiedenis · cloudverversing niet beschikbaar",
   "history.rush": "Snel",
-  "history.title": "Geschiedenis",
-  "history.back": "Alle taken · laatste 30",
+  "history.title": "Historie",
   "history.latest": "De 30 laatst gemelde taken",
   "history.loading": "Taakgeschiedenis laden…",
   "history.error": "De taakgeschiedenis kon niet worden geladen.",
@@ -18,7 +23,6 @@ export const nl = {
   "history.recordedMap": "Kaart die voor deze taak is opgeslagen",
   "history.noMap": "Deze taak heeft geen opgeslagen kaart.",
   "history.batteryUse": "Waargenomen accuverbruik",
-  "history.pp": "pp",
   "history.recorder": "Home Assistant-recorder",
   "history.observed": "Waarnemingen van de integratie",
   "history.partial": "Gedeeltelijke dekking",

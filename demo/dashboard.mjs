@@ -4,6 +4,8 @@ import { taskHistoryFixture } from "./task-history.mjs";
 
 // Deliberately local fixture: no authentication, device connection or live video.
 const query = new URLSearchParams(location.search);
+// The History screenshot shortcuts need the task history fixture.
+if ((query.get("open") === "history" || query.get("task")) && !query.has("history")) query.set("history", "ready");
 if (query.get("theme")==="light") document.documentElement.classList.add("light");
 document.documentElement.style.setProperty("--preview-width", `${Math.max(280, Math.min(1200, Number(query.get("width")) || 1080))}px`);
 customElements.define("ha-card", class extends HTMLElement {
@@ -108,3 +110,20 @@ if (query.get("camera")==="none") {delete hass.states["camera.demo"];delete hass
 card.hass=hass;
 
 export { hass, entity, card };
+
+// Screenshot hooks: ?open=history shows the History tab (the last tab); &task=1 also opens the newest task.
+if (query.get("open") === "history" || query.get("task")) {
+  let tries = 0;
+  const later = (step) => { if (++tries < 60) setTimeout(step, 150); };
+  const openHistory = () => {
+    const tab = [...(card.shadowRoot?.querySelectorAll(".hero-tab") ?? [])].at(-1);
+    if (!tab) { later(openHistory); return; }
+    if (tab.getAttribute("aria-selected") !== "true") tab.click();
+    if (query.get("task")) openTask();
+  };
+  const openTask = () => {
+    const row = card.shadowRoot?.querySelector("lawn-mower-task-history")?.shadowRoot?.querySelector("[data-task]");
+    if (row) row.click(); else later(openTask);
+  };
+  setTimeout(openHistory, 300);
+}
