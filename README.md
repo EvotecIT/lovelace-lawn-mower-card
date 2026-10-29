@@ -1,77 +1,41 @@
 # Lawn Mower Card for Home Assistant
 
-![Illustrative Lawn Mower Card banner](assets/lawn-mower-card-social.png)
-
-The banner is illustrative. The card previews below show the current UI.
+![Lawn Mower Card for Home Assistant](assets/lawn-mower-card-social.png)
 
 [![Marketplace Catalog](https://img.shields.io/badge/Marketplace-Catalog-41BDF5.svg?style=for-the-badge)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=EvotecIT&repository=lovelace-lawn-mower-card&category=plugin)
 [![CI](https://img.shields.io/github/actions/workflow/status/EvotecIT/lovelace-lawn-mower-card/validate.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/EvotecIT/lovelace-lawn-mower-card/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/EvotecIT/lovelace-lawn-mower-card?style=for-the-badge)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/EvotecIT/lovelace-lawn-mower-card?style=for-the-badge)](https://github.com/EvotecIT/lovelace-lawn-mower-card/stargazers)
 
-Requires **Home Assistant 2025.1.0 or newer**. See the
-[tested host versions and compatibility scope](docs/integration-compatibility.md#home-assistant-versions).
+See your robotic mower at a glance and control it from one card: where it is on
+the map, what the camera sees, when it mows next, and how past runs went. Start,
+Pause, and Dock are always one tap away.
 
-## Overview
+![Lawn Mower Card Dashboard layout in a light Home Assistant theme](assets/lawn-mower-card-dashboard-preview-light.png)
 
-A dashboard card for Home Assistant `lawn_mower` entities, with mower state,
-battery, and supported Start, Pause, and Dock controls.
+*The real card, shown with sample mower data. The banner above is artwork. More
+layouts, including phone views, are in the [gallery](docs/gallery.md).*
 
-Choose an image-led **Hero** layout, its optional **Dashboard** composition, or
-the **Default**, **Compact**, and **Wide** layouts. Compatible integrations add
-maps, live video, 3D point clouds, schedules, and mowing preferences without
-requiring a separate card for every control.
+## What you get
 
-With the Dreame & MOVA integration's history API, Hero and Dashboard also offer
-**History**: browse recent tasks, open their recorded maps and photos, and inspect
-battery curves and captured settings. Historical data stays separate from the
-live map. Missing summaries and settings remain unavailable; cached history and
-partial battery coverage are labelled. Battery usage uses percentage points
-(**pp**), rather than energy in Wh. A drop from 80% to 70% is 10 pp.
+- **Works with any Home Assistant lawn mower.** Pick your mower entity and the card
+  shows its state, battery, and controls. It works best with the
+  [Dreame & MOVA integration](https://github.com/EvotecIT/homeassistant-dreamelawnmower),
+  which adds maps, camera, schedules, and history.
+- **Live map and camera** when your integration provides them, plus an
+  on-demand 3D view of your garden on supported mowers.
+- **Week plan and next run** from your mower's schedules, a calendar, or a mowing
+  automation.
+- **History** of recent runs, when your integration provides it: the map, time,
+  and area of each run, with photos and battery use where available.
+- **Layouts for every dashboard:** Hero (with an optional Dashboard composition),
+  Default, Compact, and Wide, with Native HA, Modern, or Minimal styling. [Add your own](docs/customization.md)
+  chips, tiles, and actions.
+- **Set up in the visual editor.** No YAML needed. Extra views appear on their
+  own when your integration provides them.
 
-Start with one mower entity. Optional views appear only when their companion
-entities are available. The card works with standard mower integrations; the
-[Dreame & MOVA integration](https://github.com/EvotecIT/homeassistant-dreamelawnmower)
-provides the most extensively exercised pairing. See
-[integration compatibility](docs/integration-compatibility.md) for details.
-
-![Current Dashboard layout in a light Home Assistant theme](assets/lawn-mower-card-dashboard-preview-light.png)
-
-This Dashboard preview uses simulated mower data. The gallery includes a phone
-preview and real-device captures of the other layouts.
-
-See the [layout gallery](docs/gallery.md) for Hero, Compact, mobile, and 3D
-screenshots with configuration examples.
-[Customize the card](docs/customization.md) with your own summary chips, tiles,
-actions, and controls in every layout, including both Hero compositions. Choose
-Native HA, Modern, or Minimal styling, with optional tinted or translucent
-surfaces and artwork controls to match your dashboard.
-
-## Sponsor
-
-Support development and maintenance through
-[GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys).
-Sponsorship is optional; these projects remain open source.
-
-## More for your Home Assistant home
-
-Other integrations and dashboards we maintain:
-
-- [Dreame & MOVA mowers](https://github.com/EvotecIT/homeassistant-dreamelawnmower) — Mowing controls, maps, schedules, and supported cameras.
-- [KEF](https://github.com/EvotecIT/homeassistant-kef) — Local control for modern and legacy speaker families.
-- [Devialet](https://github.com/EvotecIT/homeassistant-devialet) — Local speaker control, with Dione support.
-- [Siegenia](https://github.com/EvotecIT/homeassistant-siegenia) — Local control for supported window controllers.
-- [EasyControlX](https://github.com/EvotecIT/homeassistant-easycontrolx) — Connect supported Windows and macOS hosts.
-- [Waste Pickup Planner](https://github.com/EvotecIT/lovelace-waste-pickup-planner) — Waste collection dates, bin overviews, cards, and badges.
-
-For a native app connected to the same Home Assistant setup:
-
-- [CasaRay](https://casaray.dev/) — rooms, devices, cameras, and home activity on
-  iPhone, iPad, and Mac.
-- [Tactra Remote](https://tactra.dev/) — media players, speakers, and TV controls
-  on iPhone, iPad, Apple Watch, and Mac.
-
-Neither app is required to use this project.
+Requires **Home Assistant 2025.1.0 or newer**. See
+[what your integration needs to expose](docs/integration-compatibility.md).
 
 ## Installation
 
@@ -205,3 +169,29 @@ with your card and integration versions, layout, browser, and a minimal card
 configuration. Remove private entity names, URLs, and images before posting.
 For camera or mower errors, also check the integration's device page and
 diagnostics; a failed backend operation may not be a card problem.
+
+## Sponsor
+
+Support development and maintenance through
+[GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys).
+Sponsorship is optional; these projects remain open source.
+
+## More for your Home Assistant home
+
+Other integrations and dashboards we maintain:
+
+- [Dreame & MOVA mowers](https://github.com/EvotecIT/homeassistant-dreamelawnmower) — Mowing controls, maps, schedules, and supported cameras.
+- [KEF](https://github.com/EvotecIT/homeassistant-kef) — Local control for modern and legacy speaker families.
+- [Devialet](https://github.com/EvotecIT/homeassistant-devialet) — Local speaker control, with Dione support.
+- [Siegenia](https://github.com/EvotecIT/homeassistant-siegenia) — Local control for supported window controllers.
+- [EasyControlX](https://github.com/EvotecIT/homeassistant-easycontrolx) — Connect supported Windows and macOS hosts.
+- [Waste Pickup Planner](https://github.com/EvotecIT/lovelace-waste-pickup-planner) — Waste collection dates, bin overviews, cards, and badges.
+
+For a native app connected to the same Home Assistant setup:
+
+- [CasaRay](https://casaray.dev/) — rooms, devices, cameras, and home activity on
+  iPhone, iPad, and Mac.
+- [Tactra Remote](https://tactra.dev/) — media players, speakers, and TV controls
+  on iPhone, iPad, Apple Watch, and Mac.
+
+Neither app is required to use this project.
