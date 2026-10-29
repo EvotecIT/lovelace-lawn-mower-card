@@ -18,19 +18,21 @@ layouts, including phone views, are in the [gallery](docs/gallery.md).*
 
 ## What you get
 
-- **Works with any mower in Home Assistant.** Pick your mower and the card shows
-  its state, battery, and controls. It works best with the
+- **Works with any Home Assistant lawn mower.** Pick your mower entity and the card
+  shows its state, battery, and controls. It works best with the
   [Dreame & MOVA integration](https://github.com/EvotecIT/homeassistant-dreamelawnmower),
   which adds maps, camera, schedules, and history.
 - **Live map and camera** when your integration provides them, plus an
   on-demand 3D view of your garden on supported mowers.
-- **Week plan and next run** taken from your mower's own schedules.
-- **History** of recent runs: the map, photos, time, area, and battery each one used.
-- **Layouts for every dashboard:** Hero, Dashboard, Default, Compact, and Wide,
-  with Native HA, Modern, or Minimal styling. [Add your own](docs/customization.md)
+- **Week plan and next run** from your mower's schedules, a calendar, or a mowing
+  automation.
+- **History** of recent runs, when your integration provides it: the map, time,
+  and area of each run, with photos and battery use where available.
+- **Layouts for every dashboard:** Hero (with an optional Dashboard composition),
+  Default, Compact, and Wide, with Native HA, Modern, or Minimal styling. [Add your own](docs/customization.md)
   chips, tiles, and actions.
 - **Set up in the visual editor.** No YAML needed. Extra views appear on their
-  own when your mower supports them.
+  own when your integration provides them.
 
 Requires **Home Assistant 2025.1.0 or newer**. See
 [what your integration needs to expose](docs/integration-compatibility.md).
