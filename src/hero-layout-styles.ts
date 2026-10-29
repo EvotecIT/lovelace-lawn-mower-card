@@ -688,7 +688,8 @@ export const heroLayoutStyles = css`
       display: block;
     }
 
-    .hero-tabs.many-views { grid-auto-flow:row; grid-template-columns:repeat(3,minmax(0,1fr)); }
+    /* Up to five views share one row on a phone; only more than that wraps, evenly. */
+    .hero-tabs.many-views { grid-auto-flow:row; grid-template-columns:repeat(auto-fit,minmax(60px,1fr)); }
 
     .hero-tabs {
       gap: 2px;

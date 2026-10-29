@@ -87,13 +87,15 @@ export const dashboardStyles = css`
   .dashboard-card .mowing-stat strong { font-size:22px; text-align:right; min-width:0; max-width:65%; }
   .dashboard-card .mowing-progress-label { font-size:11px; gap:8px; }
   .dashboard-card .mowing-mission progress { height:6px; }  @container (min-width:720px) {
-    .dashboard-card .hero-shell { grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr); grid-template-rows:auto max-content minmax(340px,1fr); padding:22px; gap:16px; }
+    .dashboard-card .hero-shell { grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr); grid-template-rows:auto max-content max-content minmax(340px,1fr); padding:22px; gap:16px; }
     .dashboard-header { grid-column:1/-1; grid-row:1; margin-bottom:2px; }
     .dashboard-command-panel { grid-column:1/-1; grid-row:2; }
-    .dashboard-card .hero-stage { grid-column:1; grid-row:3; align-self:stretch; }
-    .dashboard-aside { grid-column:2; grid-row:3; }
+    .dashboard-card .hero-tabs { grid-column:1; grid-row:3; }
+    .dashboard-card .hero-stage { grid-column:1; grid-row:4; align-self:stretch; }
+    .dashboard-aside { grid-column:2; grid-row:3 / span 2; }
+    .dashboard-card.dashboard-no-aside .hero-tabs { grid-column:1/-1; }
     .dashboard-card.dashboard-no-aside .hero-shell { grid-template-columns:minmax(0,1fr); }
-    .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-action-feedback { grid-column:1/-1; }
+    .dashboard-card .hero-selectors, .dashboard-card .hero-action-feedback { grid-column:1/-1; }
     .dashboard-card .hero-stage.interactive-map { height:auto; min-height:340px; }
     .dashboard-card .view-map.interactive-map .hero-mowing-map { height:340px; flex:1 1 340px; min-height:340px; }
   }
@@ -112,9 +114,13 @@ export const dashboardStyles = css`
     .dashboard-battery span { font-size:10px; }
     .dashboard-card .hero-actions,
     .dashboard-card .hero-actions:has(.hero-action:nth-child(5)),
-    .dashboard-card .hero-actions:has(.hero-action:nth-child(7)) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-    .dashboard-card .hero-action { min-height:72px; padding:9px 5px; font-size:13px; }
-    .dashboard-card .hero-action ha-icon { --mdc-icon-size:25px; }
+    .dashboard-card .hero-actions:has(.hero-action:nth-child(7)) { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .dashboard-card .hero-actions:has(> .hero-action:nth-child(2):last-of-type),
+    .dashboard-card .hero-actions:has(> .hero-action:nth-child(4):last-of-type) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .dashboard-card .hero-actions > .hero-action:last-of-type:nth-child(3n+1):not(:first-child) { grid-column:1/-1; }
+    .dashboard-card .hero-actions:has(> .hero-action:nth-child(4):last-of-type) > .hero-action:last-of-type { grid-column:auto; }
+    .dashboard-card .hero-action { min-height:52px; flex-direction:row; gap:7px; padding:8px 6px; font-size:13px; }
+    .dashboard-card .hero-action ha-icon { --mdc-icon-size:22px; }
     .dashboard-card .hero-tab { padding:8px 4px; gap:5px; font-size:12px; }
   }
 `;
