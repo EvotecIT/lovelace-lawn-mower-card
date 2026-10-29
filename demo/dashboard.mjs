@@ -1,5 +1,6 @@
 import "../lawn-mower-card.js";
 import "./ha-icon.mjs";
+import { taskHistoryFixture } from "./task-history.mjs";
 
 // Deliberately local fixture: no authentication, device connection or live video.
 const query = new URLSearchParams(location.search);
@@ -50,13 +51,19 @@ const geo = query.get("geo") ? {
   zones:[{zone_id:1,name:"Main lawn",label_x:0,label_y:-6750},{zone_id:2,name:"Side lawn",label_x:11000,label_y:9750},
     {zone_id:3,name:"Orchard",label_x:-11000,label_y:11500}],
 } : {};
+const taskHistory = taskHistoryFixture(query, png);
 const hass = {
   language:query.get("hassLocale") || query.get("locale") || "en",
   states:{}, entities:{}, services:{lawn_mower:{start_mowing:{},pause:{},dock:{}},
     ...(query.get("geo")?{dreame_lawn_mower:{set_georeference:{}}}:{})},
   config:{latitude:52.37285,longitude:4.89366},
-  async callWS(message) { return { path: message.path }; },
+  async callWS(message) {
+    if (query.get("history")==="loading" && message.path?.startsWith(taskHistory.path)) await new Promise(()=>{});
+    return { path: message.path };
+  },
   hassUrl(route) {
+    const history = taskHistory.response(route);
+    if (history) return history;
     if (route.split("&authSig")[0] === `${backgroundPath}?labels=0`) return unlabelled;
     if (route === backgroundPath) return png;
     if (route === path && query.get("map") !== "error") {
@@ -78,11 +85,14 @@ const entity = (id,state,attributes) => {
   hass.entities[id]={platform:"dreame_lawn_mower",device_id:"dashboard-demo"};
 };
 entity("lawn_mower.demo",query.get("state") || "mowing",{friendly_name:"Garden mower",supported_features:7,...(query.get("battery")==="none"?{}:{battery_level:query.get("battery") || 87})});
+if (query.has("history")) hass.states["lawn_mower.demo"].attributes.task_history_api_path=taskHistory.path;
+if (query.has("allViews")) hass.services.dreame_lawn_mower={download_session_photos:{}};
 entity("sensor.demo_progress","62",{friendly_name:"Mission progress",unit_of_measurement:"%"});
 entity("sensor.demo_area","329",{unit_of_measurement:"m²"});
 entity("sensor.demo_total","531",{unit_of_measurement:"m²"});
 if (query.get("status")) entity("sensor.demo_status",query.get("status"),{});
 entity("image.demo_map","ready",{friendly_name:"Garden",mowing_map_api_path:path,entity_picture:png});
+if (query.has("allViews")) hass.states["image.demo_map"].attributes.point_cloud_api_path="/api/dreame_lawn_mower/point-cloud/dashboard-demo/0";
 entity("camera.demo","idle",{friendly_name:"Mower camera",supported_features:2,...(query.get("camera")==="blocked"?{video_block_reason:"Demo privacy lock"}:{})});
 // A local preview avoids camera_proxy requests from the disconnected fixture.
 hass.states["camera.demo"].attributes.entity_picture=png;
@@ -92,7 +102,7 @@ const card=document.getElementById("mower");
 card.setConfig({type:"custom:lawn-mower-card",entity:"lawn_mower.demo",layout:"hero",hero_layout:query.get("composition")==="cinematic"?"cinematic":"dashboard",hero_default_tab:query.get("defaultTab") || undefined,name:"Garden mower",locale:query.get("locale") || "en",map_background:query.get("background") || undefined,appearance:query.get("preset")==="legacy"?undefined:"native",
   dashboard_panels:query.get("panels")==="none"?[]:query.get("panels")==="camera"?["camera"]:query.get("panels")==="mission"?["mission"]:undefined,
   status_entity:query.get("status")?"sensor.demo_status":undefined,
-  map_entity:query.get("map")==="none"?undefined:"image.demo_map",show_map:query.get("map")!=="none",show_point_cloud:false,
+  map_entity:query.get("map")==="none"?undefined:"image.demo_map",show_map:query.get("map")!=="none",show_point_cloud:query.has("allViews"),
   camera_entity:query.get("camera")==="none"?undefined:"camera.demo",progress_entity:"sensor.demo_progress",coverage_entity:"sensor.demo_area",coverage_total_entity:"sensor.demo_total",control_entities:[],show_helper_actions:query.get("helpers")==="true"});
 if (query.get("camera")==="none") {delete hass.states["camera.demo"];delete hass.entities["camera.demo"];}
 card.hass=hass;

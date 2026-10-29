@@ -21,6 +21,7 @@ const themed = [
   "lawn-mower-card-styles.ts", "hero-layout-styles.ts", "dashboard-styles.ts", "hero-theme.ts",
   "card-appearance-styles.ts", "schedule-panel.ts", "device-settings-panel.ts",
   "recent-conditions-panel.ts", "customization-view.ts",
+  "task-history-styles.ts",
 ];
 
 test("theme-following rules use tokens instead of fixed colours", () => {

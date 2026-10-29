@@ -18,6 +18,13 @@ the **Default**, **Compact**, and **Wide** layouts. Compatible integrations add
 maps, live video, 3D point clouds, schedules, and mowing preferences without
 requiring a separate card for every control.
 
+With the Dreame & MOVA integration's history API, Hero and Dashboard also offer
+**History**: browse recent tasks, open their recorded maps and photos, and inspect
+battery curves and captured settings. Historical data stays separate from the
+live map. Missing summaries and settings remain unavailable; cached history and
+partial battery coverage are labelled. Battery usage uses percentage points
+(**pp**), rather than energy in Wh. A drop from 80% to 70% is 10 pp.
+
 Start with one mower entity. Optional views appear only when their companion
 entities are available. The card works with standard mower integrations; the
 [Dreame & MOVA integration](https://github.com/EvotecIT/homeassistant-dreamelawnmower)

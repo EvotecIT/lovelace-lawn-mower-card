@@ -233,11 +233,17 @@ export const heroLayoutStyles = css`
     height: 100%;
   }
 
-  .hero-stage.view-photos { display:flex; flex-direction:column; aspect-ratio:auto; height:auto; }
-  .view-photos .hero-heading { position:relative; order:1; }
-  .view-photos .hero-scrim { display:none; }
+  .hero-stage.view-photos,.hero-stage.view-history { display:flex; flex-direction:column; aspect-ratio:auto; height:auto; }
+  .view-photos .hero-heading,.view-history .hero-heading { position:relative; order:1; }
+  .view-photos .hero-scrim,.view-history .hero-scrim { display:none; }
   .hero-photos { position:absolute; inset:0; }
   .view-photos .hero-photos { position:relative; order:2; flex:none; height:auto; }
+  .hero-history { position:absolute; inset:0; }
+  .view-history .hero-history { position:relative; order:2; flex:none; height:auto; }
+  .hero-card .hero-stage.view-history { background:var(--mower-canvas); color:var(--mower-text); }
+  .view-history .hero-heading,.view-history .hero-title-block { color:inherit; }
+  .view-history .hero-title-block { text-shadow:none; }
+  .view-history .hero-eyebrow,.view-history .hero-subtitle { color:var(--mower-muted); }
 
   /* Keep capability guidance and errors clear of the mower heading. */
   .hero-stage.view-point-cloud {
@@ -681,6 +687,8 @@ export const heroLayoutStyles = css`
     .hero-metric.next-run .hero-metric-label {
       display: block;
     }
+
+    .hero-tabs.many-views { grid-auto-flow:row; grid-template-columns:repeat(3,minmax(0,1fr)); }
 
     .hero-tabs {
       gap: 2px;

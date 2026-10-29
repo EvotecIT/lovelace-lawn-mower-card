@@ -1,4 +1,5 @@
 import "./photo-album";
+import "./task-history";
 import { html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import type { HeroLayoutModel, HeroView } from "./hero-layout";
@@ -14,10 +15,15 @@ function useBuiltInHeroArtwork(event: Event): void {
   }
 }
 
-export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView[] = ["overview", "map", "point-cloud", "camera", "photos"]): TemplateResult {
+export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView[] = ["overview", "map", "point-cloud", "camera", "photos", "history"]): TemplateResult {
   const image = normalizeHeroImage(model.heroImage) || heroArtwork;
   const position = normalizeHeroImagePosition(model.heroImagePosition);
   return html`
+    ${views.includes("history") && model.taskHistoryPath ? html`
+      <lawn-mower-task-history class=${`hero-layer hero-history${model.activeView === "history" ? " active" : ""}`}
+        .hass=${model.hass} .path=${model.taskHistoryPath} .locale=${model.locale}
+        .active=${model.activeView === "history" && model.mediaVisible !== false}
+      ></lawn-mower-task-history>` : nothing}
     ${views.includes("overview") && model.appearance.artwork ? html`<img
       class=${`hero-layer hero-art position-${position}${
         model.activeView === "overview" ? " active" : ""
