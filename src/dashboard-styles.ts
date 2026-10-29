@@ -42,7 +42,7 @@ export const dashboardStyles = css`
   .dashboard-card .hero-stage .hero-scrim { display:none; }
   .dashboard-card .hero-map { padding:0; background:var(--mower-map-ground,#18291e); }
   .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-actions, .dashboard-card .hero-action-feedback, .dashboard-card .hero-menu { margin:0; }
-  .dashboard-card .hero-tabs { padding:5px; gap:5px; border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-chrome); }
+  .dashboard-card .hero-tabs { padding:5px; gap:5px; border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-chrome); container:dashboard-tabs / inline-size; }
   .dashboard-card .hero-tab { min-height:42px; font-family:inherit; font-size:13px; font-weight:600; line-height:1.25; color:var(--mower-muted); cursor:pointer; }
   .dashboard-card .hero-tab.selected { background:var(--mower-fill-accent); border-color:var(--mower-border-accent); color:var(--mower-text); box-shadow:none; }
   .dashboard-card:not(.theme-auto) .hero-tab.selected { background:#163c4c; border-color:#32708a; color:#b7edff; }
@@ -124,5 +124,10 @@ export const dashboardStyles = css`
     .dashboard-card .hero-tab { padding:8px 4px; gap:5px; font-size:12px; }
     .dashboard-card .hero-tabs.many-views { padding:4px; gap:3px; }
     .dashboard-card .hero-tabs.many-views .hero-tab { padding:7px 1px; font-size:11px; }
+  }
+  /* The tab bar can be one column of a wide card: below 560px of its own width the tabs stack icon over label. */
+  @container dashboard-tabs (max-width:560px) {
+    .dashboard-card .hero-tab { flex-direction:column; gap:3px; padding:6px 2px; font-size:11px; min-width:0; }
+    .dashboard-card .hero-tab span { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   }
 `;

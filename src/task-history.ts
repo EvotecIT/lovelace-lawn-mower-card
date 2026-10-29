@@ -144,7 +144,9 @@ export class LawnMowerTaskHistory extends LitElement {
   /** One range, with the date said once when the task ends the same day. */
   private _range(start: number | null, end: number | null): string {
     if (!start) return this._date(end);
-    const format = new Intl.DateTimeFormat(this.locale, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+    const thisYear = new Date().getFullYear();
+    const otherYear = [start, end].some((epoch) => epoch && new Date(epoch * 1000).getFullYear() !== thisYear);
+    const format = new Intl.DateTimeFormat(this.locale, { weekday: "short", day: "numeric", month: "short", ...(otherYear ? { year: "numeric" } : {}), hour: "numeric", minute: "2-digit" });
     return end && end > start ? format.formatRange(start * 1000, end * 1000) : format.format(start * 1000);
   }
 
@@ -217,7 +219,10 @@ export class LawnMowerTaskHistory extends LitElement {
       const text = new Intl.RelativeTimeFormat(this.locale, { numeric: "auto" }).format(-day.offset, "day");
       return text.charAt(0).toLocaleUpperCase(this.locale) + text.slice(1);
     }
-    return new Intl.DateTimeFormat(this.locale, { weekday: "long", day: "numeric", month: "long" }).format(new Date(`${day.date}T12:00:00`));
+    const at = new Date(`${day.date}T12:00:00`);
+    // A task from another year says which.
+    const year = at.getFullYear() !== new Date().getFullYear() ? { year: "numeric" as const } : {};
+    return new Intl.DateTimeFormat(this.locale, { weekday: "long", day: "numeric", month: "long", ...year }).format(at);
   }
 
   private _kindIcon(mode: number | null): string {
