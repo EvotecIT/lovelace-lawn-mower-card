@@ -690,7 +690,8 @@ export const heroLayoutStyles = css`
 
     /* Up to five views share one row on a phone; six make two even rows. */
     .hero-tabs.many-views { grid-auto-flow:row; grid-template-columns:repeat(var(--tab-columns,3),minmax(0,1fr)); }
-    .hero-tabs.many-views .hero-tab span { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* A long translated label wraps inside its tab rather than being cut off. */
+    .hero-tabs.many-views .hero-tab span { max-width:100%; overflow-wrap:break-word; hyphens:auto; text-align:center; line-height:1.15; }
 
     .hero-tabs {
       gap: 2px;

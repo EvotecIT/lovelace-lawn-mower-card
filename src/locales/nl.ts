@@ -12,7 +12,7 @@ export const nl = {
   "history.zoneOverrides": "Zonevoorkeuren kunnen afwijken van de standaardinstellingen van de taak.",
   "history.cached": "Opgeslagen geschiedenis · cloudverversing niet beschikbaar",
   "history.rush": "Snel",
-  "history.title": "Geschiedenis",
+  "history.title": "Historie",
   "history.latest": "De 30 laatst gemelde taken",
   "history.loading": "Taakgeschiedenis laden…",
   "history.error": "De taakgeschiedenis kon niet worden geladen.",

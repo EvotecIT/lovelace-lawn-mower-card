@@ -264,7 +264,7 @@ export const pl = {
   "hero.mission": "Zadanie",
   "hero.nextRun": "Następne koszenie",
   "hero.coverage": "Skoszony obszar",
-  "hero.overview": "Podsumowanie",
+  "hero.overview": "Przegląd",
   "hero.map": "Mapa",
   "hero.photos": "Zdjęcia",
   "photos.latest": "Najnowsze zdjęcie",

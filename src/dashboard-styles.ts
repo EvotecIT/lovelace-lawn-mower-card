@@ -43,10 +43,12 @@ export const dashboardStyles = css`
   .dashboard-card .hero-map { padding:0; background:var(--mower-map-ground,#18291e); }
   .dashboard-card .hero-tabs, .dashboard-card .hero-selectors, .dashboard-card .hero-actions, .dashboard-card .hero-action-feedback, .dashboard-card .hero-menu { margin:0; }
   .dashboard-card .hero-tabs { padding:5px; gap:5px; border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-chrome); container:dashboard-tabs / inline-size; }
-  .dashboard-card .hero-tab { min-height:42px; font-family:inherit; font-size:13px; font-weight:600; line-height:1.25; color:var(--mower-muted); cursor:pointer; }
+  /* Icon beside label while it fits; a longer label moves under the icon instead of past the edge. */
+  .dashboard-card .hero-tab { flex-wrap:wrap; justify-content:center; row-gap:3px; min-width:0; min-height:42px; font-family:inherit; font-size:13px; font-weight:600; line-height:1.25; color:var(--mower-muted); cursor:pointer; }
   .dashboard-card .hero-tab.selected { background:var(--mower-fill-accent); border-color:var(--mower-border-accent); color:var(--mower-text); box-shadow:none; }
   .dashboard-card:not(.theme-auto) .hero-tab.selected { background:#163c4c; border-color:#32708a; color:#b7edff; }
   .dashboard-card .hero-tab ha-icon { --mdc-icon-size:20px; }
+  .dashboard-card .hero-tab span { min-width:0; max-width:100%; overflow-wrap:break-word; text-align:center; }
   .dashboard-card .hero-selectors { border:1px solid var(--mower-border); border-radius:var(--mower-radius-inner); background:var(--mower-panel); }
   .dashboard-card .hero-actions { grid-template-columns:repeat(auto-fit,minmax(54px,1fr)); border:0; padding:0; gap:10px; align-content:start; background:transparent; }
   .dashboard-command-panel { display:grid; align-content:start; gap:10px; min-width:0; }
@@ -119,15 +121,26 @@ export const dashboardStyles = css`
     .dashboard-card .hero-actions:has(> .hero-action:nth-child(4):last-of-type) { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .dashboard-card .hero-actions > .hero-action:last-of-type:nth-child(3n+1):not(:first-child) { grid-column:1/-1; }
     .dashboard-card .hero-actions:has(> .hero-action:nth-child(4):last-of-type) > .hero-action:last-of-type { grid-column:auto; }
-    .dashboard-card .hero-action { min-height:52px; flex-direction:row; gap:7px; padding:8px 6px; font-size:13px; }
+    .dashboard-card .hero-action { min-height:52px; flex-direction:row; flex-wrap:wrap; justify-content:center; gap:4px 7px; padding:8px 6px; font-size:13px; }
+    /* A label too long to sit beside its icon moves under it whole, rather than breaking mid-word. */
+    .dashboard-card .hero-action span { overflow-wrap:break-word; hyphens:manual; text-align:center; }
     .dashboard-card .hero-action ha-icon { --mdc-icon-size:22px; }
     .dashboard-card .hero-tab { padding:8px 4px; gap:5px; font-size:12px; }
     .dashboard-card .hero-tabs.many-views { padding:4px; gap:3px; }
     .dashboard-card .hero-tabs.many-views .hero-tab { padding:7px 1px; font-size:11px; }
   }
-  /* The tab bar can be one column of a wide card: below 560px of its own width the tabs stack icon over label. */
+  /* The tab bar can be one column of a wide card: when narrow, or with many views, every tab
+     stacks icon over label together, so translated labels get the whole tab width. */
+  @container dashboard-tabs (max-width:760px) {
+    .dashboard-card .hero-tabs.many-views .hero-tab { flex-direction:column; flex-wrap:nowrap; gap:3px; padding:6px 2px; font-size:12px; min-width:0; }
+    .dashboard-card .hero-tabs.many-views .hero-tab span { max-width:100%; overflow-wrap:break-word; hyphens:auto; text-align:center; line-height:1.15; }
+  }
   @container dashboard-tabs (max-width:560px) {
     .dashboard-card .hero-tab { flex-direction:column; gap:3px; padding:6px 2px; font-size:11px; min-width:0; }
-    .dashboard-card .hero-tab span { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .dashboard-card .hero-tab span { max-width:100%; overflow-wrap:break-word; hyphens:auto; text-align:center; line-height:1.15; }
+  }  /* Very narrow bars with many views: a smaller label keeps whole words such as Cronologia or Historique. */
+  @container dashboard-tabs (max-width:420px) {
+    .dashboard-card .hero-tabs.many-views .hero-tab { padding:6px 1px; font-size:10px; letter-spacing:-.01em; }
   }
+
 `;
