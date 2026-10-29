@@ -48,7 +48,7 @@ test("detail keeps historical track breaks and rejects mismatched private media"
 test("invalid metrics, overlarge geometry, and unordered battery data cannot become measurements", () => {
   const raw = {...detail(),area_sqm:NaN,duration_minutes:true,
     features:[{...detail().features[0],points:Array(12001).fill([0,0])}],
-    battery:{source:"observed",samples:[{at:200,level:75,charging:false,active:true},{at:100,level:60,charging:false,active:true}]}};
+    battery:{source:"observed",samples:[{at:200,level:75,charging:false,active:true,continuous:false},{at:100,level:60,charging:false,active:true,continuous:false}]}};
   const parsed = readHistoryDetail(raw,path,id);
   assert.equal(parsed.area_sqm,null); assert.equal(parsed.duration_minutes,null);
   assert.deepEqual(parsed.features[0].points,[]); assert.equal(parsed.battery,null);
