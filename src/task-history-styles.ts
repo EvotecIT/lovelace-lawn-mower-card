@@ -22,6 +22,18 @@ export const taskHistoryStyles = css`
   .week-summary { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 16px; margin-bottom:14px; padding:12px 14px; border-radius:12px; background:var(--mower-fill-accent,color-mix(in srgb,var(--mower-accent,var(--primary-color)) 12%,transparent)); font-size:13px; font-variant-numeric:tabular-nums; }
   .week-summary strong { font-size:15px; }
   .summary-label { flex-basis:100%; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--mower-muted,var(--secondary-text-color)); }
+  .season { display:grid; gap:8px; margin-bottom:10px; padding:12px 14px; border-radius:12px; border:1px solid var(--mower-border,var(--divider-color)); font-variant-numeric:tabular-nums; }
+  .season-totals { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; font-size:13px; }
+  .season-totals strong { font-size:20px; letter-spacing:-.01em; }
+  .season-chart { list-style:none; margin:4px 0 0; padding:0; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:4px; }
+  .season-chart li { display:grid; grid-template-rows:56px auto; gap:4px; justify-items:center; }
+  .season-chart .bars { position:relative; width:100%; max-width:22px; height:100%; border-bottom:1px solid var(--mower-border,var(--divider-color)); }
+  .season-chart .bar { position:absolute; inset:auto 0 0; border-radius:4px 4px 1px 1px; background:var(--mower-accent,var(--primary-color)); }
+  .season-chart .bar.previous { background:color-mix(in srgb,var(--mower-muted,var(--secondary-text-color)) 28%,transparent); }
+  .season-chart .bar.previous + .bar { inset:auto 22% 0 0; }
+  .season-chart .month { font-size:10px; color:var(--mower-muted,var(--secondary-text-color)); }
+  .season-chart .current .month { color:var(--mower-text,var(--primary-text-color)); font-weight:700; }
+  .season .note { margin:0; }
   .day + .day { margin-top:14px; }
   .day-label { margin:0 2px 8px; font-size:12px; font-weight:600; color:var(--mower-muted,var(--secondary-text-color)); }
   .task-list { list-style:none; margin:0; padding:0; display:grid; gap:6px; }

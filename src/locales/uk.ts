@@ -3,6 +3,8 @@ import type { TranslationCatalog } from "./en.ts";
 export const uk = {
   "history.global": "Загальні налаштування",
   "history.lastWeek": "Останні 7 днів",
+  "history.season": "Сезон {year}",
+  "history.lastSeason": "Увесь {year} рік: {value}",
   "history.runs": {
     one: "{count} скошування",
     few: "{count} скошування",

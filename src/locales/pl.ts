@@ -3,6 +3,8 @@ import type { TranslationCatalog } from "./en.ts";
 export const pl = {
   "history.global": "Ustawienia globalne",
   "history.lastWeek": "Ostatnie 7 dni",
+  "history.season": "Sezon {year}",
+  "history.lastSeason": "Cały {year}: {value}",
   "history.runs": {
     one: "{count} koszenie",
     few: "{count} koszenia",

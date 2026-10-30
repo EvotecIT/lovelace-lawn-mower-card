@@ -14,6 +14,8 @@ export type TranslationMessage = string | PluralMessage;
 export const en = {
   "history.global": "Global preferences",
   "history.lastWeek": "Last 7 days",
+  "history.season": "{year} season",
+  "history.lastSeason": "All of {year}: {value}",
   "history.runs": {
     "one": "{count} run",
     "other": "{count} runs",

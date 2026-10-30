@@ -3,6 +3,8 @@ import type { TranslationCatalog } from "./en.ts";
 export const ru = {
   "history.global": "Общие настройки",
   "history.lastWeek": "Последние 7 дней",
+  "history.season": "Сезон {year}",
+  "history.lastSeason": "Весь {year} год: {value}",
   "history.runs": {
     one: "{count} покос",
     few: "{count} покоса",
