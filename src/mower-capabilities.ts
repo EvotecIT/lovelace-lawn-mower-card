@@ -4,6 +4,7 @@ export const LawnMowerFeature = {
   START_MOWING: 1,
   PAUSE: 2,
   DOCK: 4,
+  STOP: 8,
 } as const;
 
 export type LawnMowerFeatureValue =
@@ -28,4 +29,16 @@ export function mowerSupportsFeature(
 ): boolean {
   const features = supportedFeatures(entity);
   return features === undefined || (features & feature) === feature;
+}
+
+/**
+ * Stop is newer than the bitmask itself, so an entity without metadata never gets it;
+ * only an integration that advertises it does.
+ */
+export function mowerAdvertisesFeature(
+  entity: HassEntity,
+  feature: LawnMowerFeatureValue,
+): boolean {
+  const features = supportedFeatures(entity);
+  return features !== undefined && (features & feature) === feature;
 }

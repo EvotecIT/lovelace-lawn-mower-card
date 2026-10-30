@@ -43,7 +43,7 @@ export const themeTokenStyles = css`
   }
   .state-mowing { --mower-state:var(--mower-state-mowing); }
   .state-returning { --mower-state:var(--mower-state-returning); }
-  .state-paused { --mower-state:var(--mower-state-paused); }
+  .state-paused, .state-stopped { --mower-state:var(--mower-state-paused); }
   .state-docked { --mower-state:var(--mower-state-docked); }
   .state-error, .state-unavailable { --mower-state:var(--mower-state-error); }
 `;

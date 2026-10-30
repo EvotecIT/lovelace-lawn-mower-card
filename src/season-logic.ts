@@ -16,9 +16,11 @@ export type Season = {
   previousTotal: SeasonMonth;
 };
 
-const SUFFIXES: Record<SeasonMetric, string> = {
-  area: "total_mowed_area", minutes: "total_mowing_time", sessions: "total_mowing_sessions",
+/** Dreame's names first; Husqvarna's lifetime cutting time is the same measure of mowing time. */
+const SUFFIXES: Record<SeasonMetric, readonly string[]> = {
+  area: ["total_mowed_area"], minutes: ["total_mowing_time", "total_cutting_time"], sessions: ["total_mowing_sessions"],
 };
+const COUNTER_CLASSES = ["total_increasing", "total"];
 const METRICS: SeasonMetric[] = ["area", "minutes", "sessions"];
 
 type Resolver = (domain: string, suffix: string) => string | undefined;
@@ -30,10 +32,19 @@ export function seasonSources(
 ): SeasonSources {
   const sources: SeasonSources = {};
   for (const metric of METRICS) {
-    const entityId = resolve("sensor", SUFFIXES[metric]);
-    if (entityId && states[entityId]?.attributes?.state_class === "total_increasing") sources[metric] = entityId;
+    for (const suffix of SUFFIXES[metric]) {
+      const entityId = resolve("sensor", suffix);
+      if (entityId && COUNTER_CLASSES.includes(String(states[entityId]?.attributes?.state_class))) {
+        sources[metric] = entityId;
+        break;
+      }
+    }
   }
   return sources;
+}
+
+export function hasSeasonSources(sources: SeasonSources): boolean {
+  return Object.values(sources).some(Boolean);
 }
 
 /** Midnight on 1 January of the previous year, so last season can be compared. */
