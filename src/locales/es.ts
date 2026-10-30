@@ -443,7 +443,7 @@ export const es = {
   "editor.mapCamera": "Cámara del mapa",
   "editor.mapCameraHint": "Entidad de cámara opcional usada para la vista previa del mapa. Una cámara de trayecto en directo funciona mejor cuando está disponible.",
   "editor.videoCamera": "Cámara de vídeo en directo",
-  "editor.videoCameraHint": "Entidad de cámara opcional usada en el diseño Hero. La cámara de la integración se detecta automáticamente cuando está disponible.",
+  "editor.videoCameraHint": "Entidad de cámara opcional para la vista Cámara. La cámara de la integración se detecta automáticamente cuando está disponible.",
   "editor.showMap": "Mostrar mapa",
   "editor.showPointCloud": "Mostrar la nube de puntos 3D cuando sea compatible",
   "editor.statusEntity": "Entidad de estado",

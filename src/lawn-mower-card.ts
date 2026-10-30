@@ -2,6 +2,8 @@ import { clockOptions, formatNextRun, nextScheduledRun } from "./next-run";
 import { actionRowCapacity } from "./hero-actions";
 import { fitLabelRows, textOverflow } from "./label-fit";
 import { renderMediaSwitch, resolveStandardMedia, standardMediaViews, type StandardMediaView } from "./media-switch";
+import { renderCameraStream } from "./camera-stream";
+import { keyed } from "lit/directives/keyed.js";
 import { cardGridOptions, renderTile, tileSecondary, type GridOptions } from "./tile-layout";
 import { maintenanceParts, renderMaintenancePanel, type MaintenancePartKey } from "./maintenance";
 import { ForecastSubscription, renderWeekPlan, weekPlan, type DayForecast } from "./week-plan";
@@ -315,6 +317,8 @@ export class LawnMowerCard extends LitElement {
   @state() private _pointCloudMounted = false;
   @state() private _traditionalPointCloudActive = false;
   @state() private _standardMediaView: StandardMediaView = "map";
+  /** What the switch resolved to on the last render; it falls back when the chosen view is gone. */
+  private _shownStandardMedia?: StandardMediaView;
   @state() private _traditionalPointCloudLoading = false;
   @state() private _pointCloudLoadError?: string;
   @state() private _cameraMounted = false;
@@ -470,7 +474,7 @@ export class LawnMowerCard extends LitElement {
       return;
     }
     this._restoreRetainedHeroView();
-    if (this._heroView === "camera") {
+    if (this._cameraViewActive()) {
       this._cameraMounted = true;
     }
   }
@@ -588,11 +592,7 @@ export class LawnMowerCard extends LitElement {
     if (!this.hass || !this._config) {
       return;
     }
-    if (this._config.layout === "hero") {
-      this._syncCameraRecovery();
-      return;
-    }
-    this._resetCameraRecovery();
+    this._syncCameraRecovery();
   }
 
   /** Follows the configured weather entity and HA connection, whatever else re-renders. */
@@ -709,9 +709,11 @@ export class LawnMowerCard extends LitElement {
     const showAdvancedDetails = this._config.show_advanced_details ?? false;
     const visibleActionFeedback =
       this._actionFeedback || this._connectionFeedback(mower);
-    // Map and 3D share one media area; 3D takes no space until it is chosen.
-    const mediaViews = standardMediaViews(showMap, showPointCloud);
+    // Map, 3D and camera share one media area; 3D and video load only when chosen.
+    const camera = layout === "hero" ? undefined : this._presentableCamera(mower);
+    const mediaViews = standardMediaViews(showMap, showPointCloud, Boolean(camera));
     const mediaView = resolveStandardMedia(this._standardMediaView, mediaViews);
+    this._shownStandardMedia = layout === "hero" ? undefined : mediaView;
 
     if (layout === "hero") {
       return this._renderHeroCard(
@@ -832,6 +834,9 @@ export class LawnMowerCard extends LitElement {
                   </div>
                 `
               : nothing}
+            ${camera && (mediaView === "camera" || this._cameraMounted)
+              ? this._renderCameraPanel(camera, mediaView === "camera", mediaViews.length > 1)
+              : nothing}
           </div>
 
           <div class="side">
@@ -942,21 +947,7 @@ export class LawnMowerCard extends LitElement {
       return nothing;
     }
 
-    const candidateCameraEntity = this._cameraCandidate();
-    const cameraEntity =
-      candidateCameraEntity &&
-      (this._config.camera_entity
-        ? configuredCameraCanBePresented(
-            candidateCameraEntity,
-            this._cameraMounted,
-          )
-        : cameraCanBePresented(
-            candidateCameraEntity,
-            this._cameraMounted,
-            mower,
-          ))
-        ? candidateCameraEntity
-        : undefined;
+    const cameraEntity = this._presentableCamera(mower);
     const helperEntities = defaultHelperEntities(
       this.hass.states,
       this._config.entity,
@@ -1188,19 +1179,31 @@ export class LawnMowerCard extends LitElement {
         this._pointCloudLoadError = this._t("pointCloud.rendererFailed");
       });
     }
-    if (view === "camera") {
+    this._cameraViewChanged(view === "camera", previous === "camera");
+  }
+
+  /** Leaving the camera keeps its stream briefly, so a quick look elsewhere doesn't reconnect it. */
+  private _cameraViewChanged(selected: boolean, wasSelected: boolean): void {
+    if (selected) {
       this._clearCameraUnmountTimer();
       this._cameraMounted = true;
-    } else if (previous === "camera" && this._cameraMounted) {
+    } else if (wasSelected && this._cameraMounted) {
       this._resetCameraRecovery();
       this._clearCameraUnmountTimer();
       this._cameraUnmountTimer = window.setTimeout(() => {
         this._cameraUnmountTimer = undefined;
-        if (this._heroView !== "camera") {
+        if (!this._cameraViewActive()) {
           this._cameraMounted = false;
         }
       }, CAMERA_VIEW_GRACE_MS);
     }
+  }
+
+  /** The Hero has its own tabs; the other layouts share one media switch. */
+  private _cameraViewActive(): boolean {
+    return this._config?.layout === "hero"
+      ? this._heroView === "camera"
+      : this._shownStandardMedia === "camera";
   }
 
   /** One row for Sections grids: state or the reason it stopped, and the one next action. */
@@ -1242,7 +1245,9 @@ export class LawnMowerCard extends LitElement {
   }
 
   private _selectStandardMedia(view: StandardMediaView, mapEntity?: HassEntity): void {
+    const previous = this._shownStandardMedia;
     this._standardMediaView = view;
+    this._cameraViewChanged(view === "camera", previous === "camera");
     // Choosing 3D is the request to load it, unless the integration can't confirm it works.
     if (view === "point-cloud" && !pointCloudNeedsConfirmation(mapEntity)) this._activateTraditionalPointCloud();
   }
@@ -1420,10 +1425,58 @@ export class LawnMowerCard extends LitElement {
     return cameraEntityId ? this.hass.states[cameraEntityId] : undefined;
   }
 
+  /**
+   * Live video starts only when chosen: a camera shown by default waits for Open camera.
+   * A player left mounted after switching away stays hidden until its grace period ends.
+   */
+  private _renderCameraPanel(camera: HassEntity, active: boolean, tabbed: boolean) {
+    const blocked = cameraBlockReason(camera);
+    return html`
+      <div class="camera-panel" id="media-panel-camera" ?hidden=${!active}
+        role=${tabbed ? "tabpanel" : nothing} aria-labelledby=${tabbed ? "media-tab-camera" : nothing}>
+        ${blocked
+          ? html`
+              <div class="camera-blocked" role="status">
+                <ha-icon icon="mdi:shield-lock-outline"></ha-icon>
+                <span>${blocked}</span>
+              </div>
+            `
+          : !this._cameraMounted
+          ? html`
+              <button type="button" class="dashboard-camera-start" @click=${() => this._selectStandardMedia("camera")}>
+                <ha-icon icon="mdi:play-circle-outline"></ha-icon>
+                <strong>${this._t("dashboard.openCamera")}</strong>
+                <span>${this._t("dashboard.cameraOnDemand")}</span>
+              </button>
+            `
+          : this._mediaVisible
+          ? keyed(`${camera.entity_id}:${this._cameraRenderGeneration}`, renderCameraStream({
+              hass: this.hass,
+              entity: camera,
+              previewUrl: cameraImageUrl(camera.entity_id, camera),
+              reconnecting: active && this._cameraReconnecting,
+              t: this._t,
+            }))
+          : nothing}
+      </div>
+    `;
+  }
+
+  /** The camera, while it has something to show or a mounted player is recovering it. */
+  private _presentableCamera(mower: HassEntity): HassEntity | undefined {
+    const candidate = this._cameraCandidate();
+    if (!candidate) return undefined;
+    return (this._config?.camera_entity
+      ? configuredCameraCanBePresented(candidate, this._cameraMounted)
+      : cameraCanBePresented(candidate, this._cameraMounted, mower))
+      ? candidate
+      : undefined;
+  }
+
   private _syncCameraRecovery(): void {
     const camera = this._cameraCandidate();
     if (
-      this._heroView !== "camera" ||
+      !this._cameraViewActive() ||
       !this._mediaVisible ||
       !this._cameraMounted ||
       !camera
@@ -1459,7 +1512,7 @@ export class LawnMowerCard extends LitElement {
       this._cameraReconnectTimer = undefined;
       if (
         this.isConnected &&
-        this._heroView === "camera" &&
+        this._cameraViewActive() &&
         this._cameraMounted
       ) {
         this._cameraRenderGeneration += 1;

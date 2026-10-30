@@ -486,7 +486,7 @@ export const nl = {
   "editor.mapCamera": "Kaartcamera",
   "editor.mapCameraHint": "Optionele camera-entiteit voor de kaartweergave. Live routecamera's werken het best als ze beschikbaar zijn.",
   "editor.videoCamera": "Camera voor live video",
-  "editor.videoCameraHint": "Optionele camera-entiteit voor de Hero-indeling. De camera van de integratie wordt automatisch gevonden als die beschikbaar is.",
+  "editor.videoCameraHint": "Optionele camera-entiteit voor de cameraweergave. De camera van de integratie wordt automatisch gevonden als die beschikbaar is.",
   "editor.showMap": "Kaartsectie tonen",
   "editor.showPointCloud": "3D-puntenwolk tonen als die wordt ondersteund",
   "editor.statusEntity": "Statusentiteit",

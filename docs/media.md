@@ -119,7 +119,7 @@ The download is deliberately on demand:
 
 - in Hero, select the **3D** tab; if support is unverified, read the explanation
   and press **Load 3D map** only when you want to try a generation request
-- in compact, default, or wide layouts, choose **3D** in the Map / 3D switch
+- in compact, default, or wide layouts, choose **3D** in the Map / 3D / Camera switch
   above the map; the map and the 3D view share one area, and 3D loads when you
   choose it (or after **Load 3D map** when support is unverified)
 - use the viewer to orbit, pan, zoom, change point size, reset, or refresh
@@ -179,7 +179,10 @@ period before suspending. Media resumes when the card is visible again.
 Integration-provided restart map images are labelled **Saved preview**, not
 **Live**.
 
-Live video starts only when selected. Home Assistant's camera player uses an
+Live video starts only when selected: the Hero **Camera** tab, or **Camera** in
+the Map / 3D / Camera switch of the compact, default, and wide layouts. When the
+camera is the only media a card has, it shows **Open camera** first. Home
+Assistant's camera player uses an
 available WebRTC provider or falls back to HLS. A snapshot stays behind the
 player during startup. Leaving Camera keeps the same player warm for 15 seconds
 so a quick return does not restart playback.
