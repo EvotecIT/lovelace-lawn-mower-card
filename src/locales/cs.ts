@@ -21,6 +21,7 @@ export const cs = {
   "history.loading": "Načítání historie úloh…",
   "history.error": "Historii úloh se nepodařilo načíst.",
   "history.empty": "Zatím nejsou hlášeny žádné úlohy.",
+  "history.seasonEmpty": "Zatím žádné souhrny sezóny.",
   "history.complete": "Dokončeno",
   "history.stopped": "Zastaveno",
   "history.incomplete": "Nedokončeno",

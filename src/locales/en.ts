@@ -30,6 +30,7 @@ export const en = {
   "history.loading": "Loading task history…",
   "history.error": "Task history could not be loaded.",
   "history.empty": "No reported tasks yet.",
+  "history.seasonEmpty": "No season totals yet.",
   "history.complete": "Complete",
   "history.stopped": "Stopped",
   "history.incomplete": "Incomplete",

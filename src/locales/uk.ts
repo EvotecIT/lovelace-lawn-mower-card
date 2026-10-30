@@ -21,6 +21,7 @@ export const uk = {
   "history.loading": "Завантаження історії завдань…",
   "history.error": "Не вдалося завантажити історію завдань.",
   "history.empty": "Зареєстрованих завдань поки немає.",
+  "history.seasonEmpty": "Підсумків сезону поки немає.",
   "history.complete": "Завершено",
   "history.stopped": "Зупинено",
   "history.incomplete": "Не завершено",

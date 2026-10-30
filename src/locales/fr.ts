@@ -19,6 +19,7 @@ export const fr = {
   "history.loading": "Chargement de l’historique…",
   "history.error": "Impossible de charger l’historique des tâches.",
   "history.empty": "Aucune tâche signalée.",
+  "history.seasonEmpty": "Pas encore de totaux pour la saison.",
   "history.complete": "Terminée",
   "history.stopped": "Arrêtée",
   "history.incomplete": "Incomplète",

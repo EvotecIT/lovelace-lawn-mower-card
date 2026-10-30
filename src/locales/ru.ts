@@ -21,6 +21,7 @@ export const ru = {
   "history.loading": "Загрузка истории задач…",
   "history.error": "Не удалось загрузить историю задач.",
   "history.empty": "Зарегистрированных задач пока нет.",
+  "history.seasonEmpty": "Итогов сезона пока нет.",
   "history.complete": "Завершено",
   "history.stopped": "Остановлено",
   "history.incomplete": "Не завершено",

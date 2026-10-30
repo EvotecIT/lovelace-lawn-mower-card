@@ -19,6 +19,7 @@ export const de = {
   "history.loading": "Aufgabenverlauf wird geladen…",
   "history.error": "Der Aufgabenverlauf konnte nicht geladen werden.",
   "history.empty": "Noch keine gemeldeten Aufgaben.",
+  "history.seasonEmpty": "Noch keine Saisonsummen.",
   "history.complete": "Abgeschlossen",
   "history.stopped": "Gestoppt",
   "history.incomplete": "Unvollständig",

@@ -96,15 +96,18 @@ if (query.has("history") && query.get("season") !== "none") {
   entity(seasonIds.minutes,"9120",{state_class:"total_increasing",unit_of_measurement:"min"});
   entity(seasonIds.sessions,"412",{state_class:"total_increasing"});
 }
+// ?season=husqvarna: no task history, only a lifetime cutting time in seconds with state class total.
+const cuttingTime = "sensor.demo_total_cutting_time";
+if (query.get("season") === "husqvarna") entity(cuttingTime,"547200",{state_class:"total",unit_of_measurement:"s"});
 function seasonResponse(message) {
-  const units = { [seasonIds.area]:"m²", [seasonIds.minutes]:"min", [seasonIds.sessions]:null };
+  const units = { [seasonIds.area]:"m²", [seasonIds.minutes]:"min", [seasonIds.sessions]:null, [cuttingTime]:"s" };
   if (message.type === "recorder/get_statistics_metadata")
     return message.statistic_ids.map((id) => ({ statistic_id:id, statistics_unit_of_measurement:units[id] }));
   // Area per month, last season then this one; time and runs follow from it.
   const year = new Date().getFullYear(), area = [[0,0,0,2100,4800,5600,6100,5200,3900,1700,0,0],[0,0,900,3600,5900,6400,6800,5500,4100,2300,0,0]];
   const rows = (scale) => area.flatMap((months, offset) => months.map((value, month) => ({
     start:new Date(year - 1 + offset, month, 1).getTime(), end:new Date(year - 1 + offset, month + 1, 1).getTime(), change:Math.round(value * scale) })));
-  return { [seasonIds.area]:rows(1), [seasonIds.minutes]:rows(.19), [seasonIds.sessions]:rows(.009) };
+  return { [seasonIds.area]:rows(1), [seasonIds.minutes]:rows(.19), [seasonIds.sessions]:rows(.009), [cuttingTime]:rows(.19 * 60) };
 }
 if (query.has("allViews")) hass.services.dreame_lawn_mower={download_session_photos:{}};
 entity("sensor.demo_progress","62",{friendly_name:"Mission progress",unit_of_measurement:"%"});

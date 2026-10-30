@@ -19,6 +19,7 @@ export const es = {
   "history.loading": "Cargando el historial…",
   "history.error": "No se pudo cargar el historial de tareas.",
   "history.empty": "Aún no hay tareas notificadas.",
+  "history.seasonEmpty": "Aún no hay totales de la temporada.",
   "history.complete": "Completada",
   "history.stopped": "Detenida",
   "history.incomplete": "Incompleta",

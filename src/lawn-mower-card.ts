@@ -84,7 +84,7 @@ import { renderHeroLayout, type HeroView } from "./hero-layout";
 import { resolveHeroLabel } from "./hero-label";
 import { availableHeroViews, initialHeroView, resolveHeroView } from "./hero-views";
 import { historyPath } from "./task-history-logic";
-import { seasonSources } from "./season-logic";
+import { hasSeasonSources, seasonSources } from "./season-logic";
 import { lawnMowerCardStyles } from "./lawn-mower-card-styles";
 import {
   normalizeHeroImage,
@@ -978,11 +978,13 @@ export class LawnMowerCard extends LitElement {
       ? this._renderControlContent(controlEntities, scheduleControls, true) : undefined;
     const scenePath = this._config.show_map === false ? undefined
       : this._mapPath(configuredMapEntity);
+    const season = seasonSources(this.hass.states, (domain, suffix) =>
+      resolvedOwnedMowerCompanionEntity(this.hass!.states, this._config!.entity, this.hass!.entities, domain, suffix));
     const availableViews = availableHeroViews({
       map: Boolean(mapUrl || scenePath),
       pointCloud: Boolean(pointCloudPath),
       camera: Boolean(cameraEntity),
-      history: Boolean(historyPath(mower.attributes.task_history_api_path)),
+      history: Boolean(historyPath(mower.attributes.task_history_api_path)) || hasSeasonSources(season),
       photos: (this._config.show_photos ?? true) &&
         photoAlbumAvailable(this._config.entity, this.hass.entities, this.hass.services),
     });
@@ -1023,8 +1025,7 @@ export class LawnMowerCard extends LitElement {
       area: coverage.area,
       mowingMapPath: scenePath,
       taskHistoryPath: historyPath(mower.attributes.task_history_api_path),
-      seasonSources: seasonSources(this.hass.states, (domain, suffix) =>
-        resolvedOwnedMowerCompanionEntity(this.hass!.states, this._config!.entity, this.hass!.entities, domain, suffix)),
+      seasonSources: season,
       mapBackground: this._config.map_background,
       mowerEntityId: this._config.entity,
       worldTiles: worldTileConfig(this._config),

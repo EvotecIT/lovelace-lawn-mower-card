@@ -19,6 +19,7 @@ export const it = {
   "history.loading": "Caricamento della cronologia…",
   "history.error": "Impossibile caricare la cronologia delle attività.",
   "history.empty": "Nessuna attività segnalata.",
+  "history.seasonEmpty": "Ancora nessun totale della stagione.",
   "history.complete": "Completata",
   "history.stopped": "Interrotta",
   "history.incomplete": "Incompleta",

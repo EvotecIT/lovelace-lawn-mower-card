@@ -49,7 +49,7 @@ Optional UI follows optional entities:
 | related sensors, calendars, selects, switches, and buttons | Adds the matching summaries, schedules, controls, and helpers |
 | Dreame mower plus `dreame_lawn_mower.cancel_current_task` | Adds a confirmed **Cancel task** action while keeping Pause and Dock separate |
 | same-device Last Mower Notification sensor with a `recent` array | Adds a collapsed condition history with observation time and active, cleared, or unknown state |
-| same-device lifetime counters (`total_mowed_area`, `total_mowing_time`, `total_mowing_sessions`) with `state_class: total_increasing`, alongside History | Adds a season panel to History: this year's totals and one bar per month, with last year behind it, from Home Assistant's long-term statistics |
+| same-device lifetime counters (`total_mowed_area`, `total_mowing_time` or Husqvarna's `total_cutting_time`, `total_mowing_sessions`) with `state_class: total_increasing` or `total` | Adds a season panel to History: this year's totals and one bar per month, with last year behind it, from Home Assistant's long-term statistics. A mower without task history gets a History tab with just the season |
 
 Richer automatic setup works best when companion entities belong to the same
 Home Assistant device and use stable translation keys such as `live_video`,

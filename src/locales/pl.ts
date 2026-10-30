@@ -21,6 +21,7 @@ export const pl = {
   "history.loading": "Wczytywanie historii zadań…",
   "history.error": "Nie udało się wczytać historii zadań.",
   "history.empty": "Brak zgłoszonych zadań.",
+  "history.seasonEmpty": "Brak jeszcze podsumowania sezonu.",
   "history.complete": "Ukończono",
   "history.stopped": "Zatrzymano",
   "history.incomplete": "Nieukończone",

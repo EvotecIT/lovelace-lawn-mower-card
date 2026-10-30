@@ -19,6 +19,7 @@ export const nl = {
   "history.loading": "Taakgeschiedenis laden…",
   "history.error": "De taakgeschiedenis kon niet worden geladen.",
   "history.empty": "Nog geen gemelde taken.",
+  "history.seasonEmpty": "Nog geen seizoenstotalen.",
   "history.complete": "Voltooid",
   "history.stopped": "Gestopt",
   "history.incomplete": "Onvolledig",
