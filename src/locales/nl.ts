@@ -3,6 +3,8 @@ import type { TranslationCatalog } from "./en.ts";
 export const nl = {
   "history.global": "Algemene voorkeuren",
   "history.lastWeek": "Afgelopen 7 dagen",
+  "history.season": "Seizoen {year}",
+  "history.lastSeason": "Heel {year}: {value}",
   "history.runs": {
     one: "{count} maaibeurt",
     other: "{count} maaibeurten",

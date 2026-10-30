@@ -9,6 +9,7 @@ import {
   type HistoryTask, type HistoryDetail, type HistoryDay,
 } from "./task-history-logic";
 import { taskHistoryStyles } from "./task-history-styles";
+import { readSeason, seasonStart, type Season, type SeasonMetric, type SeasonSources } from "./season-logic";
 
 /** Read-only task history. Leaving the view retires all private requests/media. */
 @customElement("lawn-mower-task-history")
@@ -17,6 +18,10 @@ export class LawnMowerTaskHistory extends LitElement {
   @property() public path?: string;
   @property({ type: Boolean }) public active = false;
   @property({ attribute: false }) public locale: SupportedLocale = "en";
+  @property({ attribute: false }) public seasonSources: SeasonSources = {};
+  @state() private _season?: Season;
+  private _seasonState: "idle" | "loading" | "done" = "idle";
+  private _seasonGeneration = 0;
   @state() private _cached = false;
   @state() private _tasks: HistoryTask[] = [];
   @state() private _selected?: HistoryTask;
@@ -41,13 +46,47 @@ export class LawnMowerTaskHistory extends LitElement {
       this._stop(); this._tasks = []; this._selected = undefined;
       this._detail = undefined; this._status = "idle";
     }
+    const sourcesChanged = changed.has("seasonSources") && JSON.stringify(changed.get("seasonSources") ?? {}) !== JSON.stringify(this.seasonSources);
+    if (sourcesChanged || sessionChanged || (changed.has("active") && !this.active)) this._resetSeason();
     if (this.active && this.isConnected && this._status === "idle" && historyPath(this.path)) void this._load();
+    if (this.active && this.isConnected && this._seasonState === "idle") void this._loadSeason();
   }
 
   public connectedCallback(): void { super.connectedCallback(); this.requestUpdate(); }
   public disconnectedCallback(): void {
     this._stop(); this._tasks = []; this._selected = undefined; this._detail = undefined; this._status = "idle";
+    this._resetSeason();
     super.disconnectedCallback();
+  }
+  private _resetSeason(): void {
+    this._seasonGeneration += 1; this._seasonState = "idle"; this._season = undefined;
+  }
+
+  /** Season totals are optional: any failure leaves the recent list as it was. */
+  private async _loadSeason(): Promise<void> {
+    const hass = this.hass, sources = this.seasonSources;
+    const metrics = (Object.keys(sources) as SeasonMetric[]).filter((metric) => sources[metric]);
+    this._seasonState = "loading";
+    if (!hass || !metrics.length) { this._seasonState = "done"; return; }
+    const generation = ++this._seasonGeneration, ids = metrics.map((metric) => sources[metric] as string), now = new Date();
+    try {
+      const [metadata, statistics] = await Promise.all([
+        hass.callWS<unknown>({ type: "recorder/get_statistics_metadata", statistic_ids: ids }),
+        hass.callWS<unknown>({ type: "recorder/statistics_during_period", start_time: seasonStart(now).toISOString(),
+          period: "month", statistic_ids: ids, types: ["change"] }),
+      ]);
+      if (generation !== this._seasonGeneration) return;
+      const units: Partial<Record<SeasonMetric, unknown>> = {};
+      for (const row of Array.isArray(metadata) ? metadata : []) {
+        const entry = row as Record<string, unknown>, metric = metrics.find((key) => sources[key] === entry?.statistic_id);
+        if (metric) units[metric] = entry.statistics_unit_of_measurement;
+      }
+      this._season = readSeason(statistics, units, sources, now);
+    } catch {
+      if (generation === this._seasonGeneration) this._season = undefined;
+    } finally {
+      if (generation === this._seasonGeneration) this._seasonState = "done";
+    }
   }
   private _stop(): void {
     this._generation += 1; this._abort?.abort(); this._abort = undefined;
@@ -191,7 +230,8 @@ export class LawnMowerTaskHistory extends LitElement {
   private _renderList() {
     const now = new Date(), summary = historySummary(this._tasks, now);
     const time = new Intl.DateTimeFormat(this.locale, { timeStyle: "short" });
-    return html`${summary.runs ? html`<div class="week-summary" aria-label=${this._t("history.lastWeek")}>
+    return html`${this._season ? this._renderSeason(this._season) : nothing}
+      ${summary.runs ? html`<div class="week-summary" aria-label=${this._t("history.lastWeek")}>
         <span class="summary-label">${this._t("history.lastWeek")}</span>
         <span><strong>${this._t("history.runs", { count: summary.runs })}</strong></span>
         ${summary.area ? html`<span>${summary.area.partial ? "≥ " : ""}${this._number(summary.area.value, "m²", 0)}</span>` : nothing}
@@ -210,6 +250,43 @@ export class LawnMowerTaskHistory extends LitElement {
           </button></li>`;
         })}</ol>
       </section>`)}`;
+  }
+
+  private _seasonValue(metric: SeasonMetric, value: number): string {
+    return metric === "area" ? this._number(value, "m²", 0)
+      // A season of mowing reads in whole hours; minutes matter only for short totals.
+      : metric === "minutes" ? this._minutes(value >= 600 ? Math.round(value / 60) * 60 : value) : this._t("history.runs", { count: Math.round(value) });
+  }
+
+  /** This year's totals with one bar per month, last year's months drawn faintly behind. */
+  private _renderSeason(season: Season) {
+    const metric = season.chart, now = new Date();
+    const peak = Math.max(...[...season.months, ...season.previous].map((month) => month[metric] ?? 0), 1);
+    const monthName = new Intl.DateTimeFormat(this.locale, { month: "long" });
+    const initial = new Intl.DateTimeFormat(this.locale, { month: "narrow" });
+    const totals = (["area", "minutes", "sessions"] as SeasonMetric[]).filter((key) => season.total[key] !== null);
+    const previous = season.previousTotal[metric];
+    const label = this._t("history.season", { year: String(season.year) });
+    return html`<section class="season" aria-label=${label}>
+      <span class="summary-label">${label}</span>
+      <div class="season-totals">${totals.map((key, index) => index === 0
+        ? html`<strong>${this._seasonValue(key, season.total[key] as number)}</strong>`
+        : html`<span>${this._seasonValue(key, season.total[key] as number)}</span>`)}</div>
+      <ol class="season-chart">${season.months.map((month, index) => {
+        const value = month[metric], before = season.previous[index][metric], future = index > now.getMonth();
+        const name = monthName.format(new Date(season.year, index, 15));
+        const description = [`${name} ${season.year}: ${future ? "—" : this._seasonValue(metric, value ?? 0)}`,
+          before !== null ? `${season.year - 1}: ${this._seasonValue(metric, before)}` : undefined].filter(Boolean).join(" · ");
+        return html`<li title=${description} aria-label=${description} class=${index === now.getMonth() ? "current" : ""}>
+          <span class="bars" aria-hidden="true">
+            ${before ? html`<span class="bar previous" style=${`height:${before / peak * 100}%`}></span>` : nothing}
+            ${!future && value ? html`<span class="bar" style=${`height:${Math.max(4, value / peak * 100)}%`}></span>` : nothing}
+          </span>
+          <span class="month" aria-hidden="true">${initial.format(new Date(season.year, index, 15))}</span>
+        </li>`;
+      })}</ol>
+      ${previous ? html`<p class="note">${this._t("history.lastSeason", { year: String(season.year - 1), value: this._seasonValue(metric, previous) })}</p>` : nothing}
+    </section>`;
   }
 
   /** Today and Yesterday by name; older days by weekday and date. */

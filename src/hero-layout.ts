@@ -1,4 +1,5 @@
 import type { CommandPlan } from "./command-plan";
+import type { SeasonSources } from "./season-logic";
 import type { DisplayTile, DisplayAction, HeroSection } from "./card-customization";
 import type { CardAppearance } from "./card-appearance";
 import { styleMap } from "lit/directives/style-map.js";
@@ -47,6 +48,7 @@ export type HeroLayoutModel = {
   area?: MowingAreaProgress;
   mowingMapPath?: string;
   taskHistoryPath?: string;
+  seasonSources?: SeasonSources;
   mapBackground?: string;
   /** Mower entity for map services such as set_georeference. */
   mowerEntityId?: string;

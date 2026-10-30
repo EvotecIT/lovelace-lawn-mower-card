@@ -3,6 +3,8 @@ import type { TranslationCatalog } from "./en.ts";
 export const cs = {
   "history.global": "Globální předvolby",
   "history.lastWeek": "Posledních 7 dní",
+  "history.season": "Sezóna {year}",
+  "history.lastSeason": "Celý rok {year}: {value}",
   "history.runs": {
     one: "{count} sečení",
     few: "{count} sečení",

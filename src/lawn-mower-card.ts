@@ -82,6 +82,7 @@ import { renderHeroLayout, type HeroView } from "./hero-layout";
 import { resolveHeroLabel } from "./hero-label";
 import { availableHeroViews, initialHeroView, resolveHeroView } from "./hero-views";
 import { historyPath } from "./task-history-logic";
+import { seasonSources } from "./season-logic";
 import { lawnMowerCardStyles } from "./lawn-mower-card-styles";
 import {
   normalizeHeroImage,
@@ -1023,6 +1024,8 @@ export class LawnMowerCard extends LitElement {
       area: coverage.area,
       mowingMapPath: scenePath,
       taskHistoryPath: historyPath(mower.attributes.task_history_api_path),
+      seasonSources: seasonSources(this.hass.states, (domain, suffix) =>
+        resolvedOwnedMowerCompanionEntity(this.hass!.states, this._config!.entity, this.hass!.entities, domain, suffix)),
       mapBackground: this._config.map_background,
       mowerEntityId: this._config.entity,
       worldTiles: worldTileConfig(this._config),

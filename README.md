@@ -27,7 +27,8 @@ layouts, including phone views, are in the [gallery](docs/gallery.md).*
 - **Week plan and next run** from your mower's schedules, a calendar, or a mowing
   automation.
 - **History** of recent runs, when your integration provides it: the map, time,
-  and area of each run, with photos and battery use where available.
+  and area of each run, with photos and battery use where available. A season
+  view adds up this year month by month next to last year.
 - **Layouts for every dashboard:** Hero (with an optional Dashboard composition),
   Default, Compact, and Wide, with Native HA, Modern, or Minimal styling. [Add your own](docs/customization.md)
   chips, tiles, and actions.

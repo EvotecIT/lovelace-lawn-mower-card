@@ -21,7 +21,7 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
   return html`
     ${views.includes("history") && model.taskHistoryPath ? html`
       <lawn-mower-task-history class=${`hero-layer hero-history${model.activeView === "history" ? " active" : ""}`}
-        .hass=${model.hass} .path=${model.taskHistoryPath} .locale=${model.locale}
+        .hass=${model.hass} .path=${model.taskHistoryPath} .locale=${model.locale} .seasonSources=${model.seasonSources ?? {}}
         .active=${model.activeView === "history" && model.mediaVisible !== false}
       ></lawn-mower-task-history>` : nothing}
     ${views.includes("overview") && model.appearance.artwork ? html`<img
