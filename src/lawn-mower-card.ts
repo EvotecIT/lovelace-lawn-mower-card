@@ -435,6 +435,11 @@ export class LawnMowerCard extends LitElement {
       this._resetHeroMediaState();
     } else if (previousLayout === "hero" && nextLayout !== "hero") {
       this._resetHeroMediaState();
+    } else if (previousLayout !== nextLayout) {
+      // A stream opened in the standard switch would otherwise stay mounted behind the Hero.
+      this._cameraMounted = false;
+      this._clearCameraUnmountTimer();
+      this._resetCameraRecovery();
     }
     this._config = config;
     if (previousEntity === undefined && this.isConnected) {
@@ -925,13 +930,14 @@ export class LawnMowerCard extends LitElement {
     if (layout === "hero") {
       return 8;
     }
+    const media = showMap || showPointCloud || Boolean(this._cameraCandidate());
     if (layout === "compact") {
-      return showMap || showPointCloud ? 8 : 6;
+      return media ? 8 : 6;
     }
     if (layout === "wide") {
-      return showMap || showPointCloud ? 10 : 8;
+      return media ? 10 : 8;
     }
-    return showMap || showPointCloud ? 9 : 7;
+    return media ? 9 : 7;
   }
 
   private _renderHeroCard(
