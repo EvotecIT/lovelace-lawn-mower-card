@@ -47,7 +47,8 @@ export class LawnMowerTaskHistory extends LitElement {
       this._detail = undefined; this._status = "idle";
     }
     const sourcesChanged = changed.has("seasonSources") && JSON.stringify(changed.get("seasonSources") ?? {}) !== JSON.stringify(this.seasonSources);
-    if (sourcesChanged || sessionChanged || (changed.has("active") && !this.active)) this._resetSeason();
+    const newYear = this._season !== undefined && this._season.year !== new Date().getFullYear();
+    if (sourcesChanged || sessionChanged || newYear || (changed.has("active") && !this.active)) this._resetSeason();
     if (this.active && this.isConnected && this._status === "idle" && historyPath(this.path)) void this._load();
     if (this.active && this.isConnected && this._seasonState === "idle") void this._loadSeason();
   }
@@ -79,7 +80,8 @@ export class LawnMowerTaskHistory extends LitElement {
       const units: Partial<Record<SeasonMetric, unknown>> = {};
       for (const row of Array.isArray(metadata) ? metadata : []) {
         const entry = row as Record<string, unknown>, metric = metrics.find((key) => sources[key] === entry?.statistic_id);
-        if (metric) units[metric] = entry.statistics_unit_of_measurement;
+        // Without `units`, Home Assistant returns values in the entity's current display unit when it has one.
+        if (metric) units[metric] = (hass.states[entry.statistic_id as string]?.attributes?.unit_of_measurement as string | undefined) ?? entry.statistics_unit_of_measurement;
       }
       this._season = readSeason(statistics, units, sources, now);
     } catch {
@@ -216,14 +218,14 @@ export class LawnMowerTaskHistory extends LitElement {
         ${task ? html`<button class="back" @click=${this._back}><ha-icon icon="mdi:arrow-left"></ha-icon>${this._t("history.title")}</button>`
           : html`<div><h3 class="list-title" tabindex="-1">${this._t("history.title")}</h3><p>${this._t("history.latest")}</p></div>`}
         <button class="icon-button" aria-label=${this._t("pointCloud.refresh")} title=${this._t("pointCloud.refresh")}
-          ?disabled=${this._status === "loading"} @click=${() => this._load(task, true)}><ha-icon icon="mdi:refresh"></ha-icon></button>
+          ?disabled=${this._status === "loading"} @click=${() => { if (!task) this._resetSeason(); void this._load(task, true); }}><ha-icon icon="mdi:refresh"></ha-icon></button>
       </header>
       ${(detail?.stale ?? this._cached) ? html`<p class="cache-note" role="status">${this._t("history.cached")}</p>` : nothing}
       ${this._status === "loading" ? html`<p class="message" role="status">${this._t("history.loading")}</p>`
         : this._status === "error" ? html`<div class="message" tabindex="-1" role="alert"><p>${this._t("history.error")}</p><button @click=${() => this._load(task, true)}>${this._t("pointCloud.tryAgain")}</button></div>`
         : detail ? this._renderDetail(detail)
         : this._tasks.length ? this._renderList()
-          : html`<p class="message">${this._t("history.empty")}</p>`}
+          : html`${this._season ? this._renderSeason(this._season) : nothing}<p class="message">${this._t("history.empty")}</p>`}
     </section>`;
   }
 
@@ -275,7 +277,7 @@ export class LawnMowerTaskHistory extends LitElement {
       <ol class="season-chart">${season.months.map((month, index) => {
         const value = month[metric], before = season.previous[index][metric], future = index > now.getMonth();
         const name = monthName.format(new Date(season.year, index, 15));
-        const description = [`${name} ${season.year}: ${future ? "—" : this._seasonValue(metric, value ?? 0)}`,
+        const description = [`${name} ${season.year}: ${future ? "—" : value === null ? this._t("common.unavailable") : this._seasonValue(metric, value)}`,
           before !== null ? `${season.year - 1}: ${this._seasonValue(metric, before)}` : undefined].filter(Boolean).join(" · ");
         return html`<li title=${description} aria-label=${description} class=${index === now.getMonth() ? "current" : ""}>
           <span class="bars" aria-hidden="true">
