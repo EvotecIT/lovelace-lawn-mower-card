@@ -191,6 +191,38 @@ export const lawnMowerCardStyles = [themeTokenStyles, css`
       min-height: 250px;
     }
 
+    .camera-panel {
+      position: relative;
+      box-sizing: border-box;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid var(--mower-border);
+      border-radius: var(--mower-radius-inner);
+      background: var(--mower-fill-strong);
+    }
+
+    .camera-panel[hidden] {
+      display: none;
+    }
+
+    .camera-panel .hero-camera-reconnecting {
+      bottom: 12px;
+    }
+
+    .camera-blocked {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      justify-items: center;
+      gap: 10px;
+      padding: 24px;
+      color: var(--mower-muted);
+      background: var(--mower-fill-strong);
+      text-align: center;
+    }
+
     .point-cloud-placeholder {
       min-height: inherit;
       display: grid;

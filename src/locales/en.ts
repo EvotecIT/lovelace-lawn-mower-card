@@ -502,7 +502,7 @@ export const en = {
   "editor.mapCamera": "Map camera",
   "editor.mapCameraHint": "Optional camera entity used for the map preview. Live path cameras work best when available.",
   "editor.videoCamera": "Live video camera",
-  "editor.videoCameraHint": "Optional camera entity used by the Hero layout. The integration camera is detected automatically when available.",
+  "editor.videoCameraHint": "Optional camera entity for the Camera view. The integration camera is detected automatically when available.",
   "editor.showMap": "Show map section",
   "editor.showPointCloud": "Show 3D point cloud when supported",
   "editor.statusEntity": "Status entity",

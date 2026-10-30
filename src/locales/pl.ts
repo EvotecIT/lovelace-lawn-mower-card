@@ -451,7 +451,7 @@ export const pl = {
   "editor.mapCamera": "Kamera mapy",
   "editor.mapCameraHint": "Opcjonalna encja kamery używana do podglądu mapy. Najlepiej sprawdza się kamera bieżącej trasy.",
   "editor.videoCamera": "Kamera z obrazem na żywo",
-  "editor.videoCameraHint": "Opcjonalna encja kamery używana w układzie Hero. Kamera integracji zostanie wykryta automatycznie, jeśli jest dostępna.",
+  "editor.videoCameraHint": "Opcjonalna encja kamery dla widoku Kamera. Kamera integracji zostanie wykryta automatycznie, jeśli jest dostępna.",
   "editor.showMap": "Pokaż mapę",
   "editor.showPointCloud": "Pokaż chmurę punktów 3D, jeśli jest obsługiwana",
   "editor.statusEntity": "Encja stanu",

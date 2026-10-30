@@ -72,7 +72,7 @@
 - `mower_length` / `mower_width`: real-size footprint in centimetres (10–300).
   Defaults: 65.9 × 43.9 cm (MOVA LiDAX Ultra 1000; the AWD variant is 74 × 53.2 cm).
   Set these for your mower's dimensions; the card does not infer them from the model.
-- `camera_entity`: optional live-video camera used by the Hero Camera view. A
+- `camera_entity`: optional live-video camera for the Camera view in every layout except Tile. A
   compatible companion camera is detected automatically when this is omitted.
 - `schedule_calendar_entity`: optional `calendar` entity for the Schedule helper
   in every layout. Overrides automatic detection; see [matching rules](controls.md#schedule-calendar).

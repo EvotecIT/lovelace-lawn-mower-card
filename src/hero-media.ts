@@ -4,6 +4,7 @@ import { html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import type { HeroLayoutModel, HeroView } from "./hero-layout";
 import { mapPresentationClasses } from "./map-presentation";
+import { renderCameraStream } from "./camera-stream";
 import { normalizeHeroImage, normalizeHeroImagePosition } from "./hero-image";
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
 import "./mowing-map";
@@ -95,31 +96,13 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
             }`}
             aria-hidden=${model.activeView === "camera" ? "false" : "true"}
           >
-            ${model.cameraPreviewUrl
-              ? html`
-                  <img
-                    class="hero-camera-preview"
-                    src=${model.cameraPreviewUrl}
-                    alt=""
-                    aria-hidden="true"
-                  />
-                `
-              : nothing}
-            <ha-camera-stream
-              class="hero-camera"
-              .hass=${model.hass}
-              .stateObj=${model.cameraEntity}
-              .controls=${true}
-              .muted=${true}
-            ></ha-camera-stream>
-            ${model.cameraReconnecting && model.activeView === "camera"
-              ? html`
-                  <div class="hero-camera-reconnecting" role="status">
-                    <ha-icon icon="mdi:wifi-sync"></ha-icon>
-                    <span>${model.t("hero.reconnectingVideo")}</span>
-                  </div>
-                `
-              : nothing}
+            ${renderCameraStream({
+              hass: model.hass,
+              entity: model.cameraEntity,
+              previewUrl: model.cameraPreviewUrl,
+              reconnecting: model.cameraReconnecting && model.activeView === "camera",
+              t: model.t,
+            })}
           </div>
         `,
         )

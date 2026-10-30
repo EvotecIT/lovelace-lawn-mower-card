@@ -1,11 +1,15 @@
 import { css, html, nothing, type TemplateResult } from "lit";
 import type { Translator } from "./localization";
 
-export type StandardMediaView = "map" | "point-cloud";
+export type StandardMediaView = "map" | "point-cloud" | "camera";
 
 /** Views the standard layouts can show, in switch order. */
-export function standardMediaViews(showMap: boolean, showPointCloud: boolean): StandardMediaView[] {
-  return [...(showMap ? ["map" as const] : []), ...(showPointCloud ? ["point-cloud" as const] : [])];
+export function standardMediaViews(showMap: boolean, showPointCloud: boolean, showCamera = false): StandardMediaView[] {
+  return [
+    ...(showMap ? ["map" as const] : []),
+    ...(showPointCloud ? ["point-cloud" as const] : []),
+    ...(showCamera ? ["camera" as const] : []),
+  ];
 }
 
 /** Keeps the chosen view while it exists; otherwise the first one, or none. */
@@ -76,6 +80,7 @@ export type MediaSwitchModel = {
 const LABELS = {
   map: { key: "hero.map", icon: "mdi:map-outline" },
   "point-cloud": { key: "action.pointCloud", icon: "mdi:rotate-3d-variant" },
+  camera: { key: "hero.camera", icon: "mdi:video-wireless-outline" },
 } as const;
 
 /** Tabs follow the ARIA pattern: arrows, Home and End choose and focus a view. */

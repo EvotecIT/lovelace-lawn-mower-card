@@ -507,7 +507,7 @@ export const cs = {
   "editor.mapCamera": "Kamera mapy",
   "editor.mapCameraHint": "Volitelná entita kamery použitá pro náhled mapy. Kamery s živou trasou fungují nejlépe, pokud jsou k dispozici.",
   "editor.videoCamera": "Kamera pro živé video",
-  "editor.videoCameraHint": "Volitelná entita kamery použitá v rozvržení Hero. Integrační kamera je automaticky detekována, pokud je k dispozici.",
+  "editor.videoCameraHint": "Volitelná entita kamery pro zobrazení Kamera. Integrační kamera je automaticky detekována, pokud je k dispozici.",
   "editor.showMap": "Zobrazit sekci mapy",
   "editor.showPointCloud": "Zobrazit 3D mračno bodů, pokud je podporováno",
   "editor.statusEntity": "Entita stavu",

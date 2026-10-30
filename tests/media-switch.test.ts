@@ -9,6 +9,12 @@ test("map and 3D share one media area when both are shown", () => {
   assert.deepEqual(standardMediaViews(false, false), []);
 });
 
+test("the camera joins the same switch after map and 3D", () => {
+  assert.deepEqual(standardMediaViews(true, true, true), ["map", "point-cloud", "camera"]);
+  assert.deepEqual(standardMediaViews(false, false, true), ["camera"]);
+  assert.equal(resolveStandardMedia("camera", ["map"]), "map");
+});
+
 test("the chosen view stays while it exists and falls back to the first", () => {
   assert.equal(resolveStandardMedia("point-cloud", ["map", "point-cloud"]), "point-cloud");
   assert.equal(resolveStandardMedia("map", ["point-cloud"]), "point-cloud");
