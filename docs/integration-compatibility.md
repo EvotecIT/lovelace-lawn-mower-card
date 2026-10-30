@@ -86,17 +86,17 @@ What the card shows depends on what each integration provides. I checked these
 integrations' source and documentation on 30 October 2026. Integrations change,
 so treat this as a guide, not a guarantee.
 
-| Brand (integration) | Start, Pause, Dock | Map | Camera | Week plan from a schedule | Season view |
+| Brand (integration) | Controls | Map | Camera | Week plan | Season view |
 | --- | --- | --- | --- | --- | --- |
-| Dreame and MOVA ([Dreame Lawn Mower](https://github.com/EvotecIT/homeassistant-dreamelawnmower), HACS) | Yes, plus **Cancel task** | Yes, live and interactive, with 3D on supported models | Yes, found automatically | Yes | Yes |
-| Husqvarna Automower ([core](https://www.home-assistant.io/integrations/husqvarna_automower/)) | Yes | No map entity; the integration reports position only | No | Yes, from its calendar (or choose it as the **Schedule calendar**) | No: its lifetime counters use a different state class |
-| Bosch Indego ([HACS](https://github.com/sander1988/Indego)) | Yes | Yes: choose its map camera as the **Map camera** | No | No schedule entity | No |
-| Ecovacs GOAT ([core](https://www.home-assistant.io/integrations/ecovacs/)) | Yes | Possibly: Ecovacs provides an `image` map for devices that report one; set it as `map_entity` in YAML | No | No schedule entity | No: its counters have different names |
-| Mammotion Luba and Yuka ([HACS](https://github.com/mikey0000/Mammotion-HA)) | Yes | No map entity yet | Yes: choose one of its cameras as the **Live video camera** | No schedule entity | No |
-| Worx Landroid ([HACS](https://github.com/MTrab/landroid_cloud)) | Yes | No map entity | No | No schedule entity | No |
-| Gardena smart system ([HACS](https://github.com/py-smart-gardena/hass-gardena-smart-system)) | Yes | No map entity | No | No schedule entity | No |
-| Segway Navimow ([HACS](https://github.com/segwaynavimow/NavimowHA)) | Yes | No map entity | No | No schedule entity | No |
-| Robonect ([HACS](https://github.com/geertmeersman/robonect)) | Yes | No map entity | No | No schedule entity | No |
+| Dreame and MOVA ([Dreame Lawn Mower](https://github.com/EvotecIT/homeassistant-dreamelawnmower), HACS) | Start, Pause, Dock, plus **Cancel task** | Yes, live and interactive, with 3D on supported models | Yes, found automatically | Yes | Yes |
+| Husqvarna Automower ([core](https://www.home-assistant.io/integrations/husqvarna_automower/)) | Start, Pause, Dock | No map entity; the integration reports position only | No | No: its calendar gives the next run only | Mowing time, in a History tab with just the season |
+| Bosch Indego ([HACS](https://github.com/sander1988/Indego)) | Start, Pause, Dock | Yes: choose its map camera as the **Map camera** | No | No schedule entity | No |
+| Ecovacs GOAT ([core](https://www.home-assistant.io/integrations/ecovacs/)) | Start, Pause, Dock, plus **Stop** | Possibly: Ecovacs provides an `image` map for devices that report one; set it as `map_entity` in YAML | No | No schedule entity | No: its counters have different names |
+| Mammotion Luba and Yuka ([HACS](https://github.com/mikey0000/Mammotion-HA)) | Start, Pause, Dock, plus **Stop** on models that advertise it | No map entity yet | Yes: choose one of its cameras as the **Live video camera** | No schedule entity | No |
+| Worx Landroid ([HACS](https://github.com/MTrab/landroid_cloud)) | Start, Pause, Dock | No map entity | No | No schedule entity | No |
+| Gardena smart system ([HACS](https://github.com/py-smart-gardena/hass-gardena-smart-system)) | Start, Pause, Dock | No map entity | No | No schedule entity | No |
+| Segway Navimow ([HACS](https://github.com/segwaynavimow/NavimowHA)) | Start, Pause, Dock | No map entity | No | No schedule entity | No |
+| Robonect ([HACS](https://github.com/geertmeersman/robonect)) | Start, Pause, Dock | No map entity | No | No schedule entity | No |
 
 Every brand gets the mower's state, its buttons, and the Hero Overview. Battery,
 error, and blade-wear sensors from these integrations can be added as summaries
