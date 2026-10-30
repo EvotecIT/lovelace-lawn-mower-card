@@ -17,6 +17,15 @@ test("only the mower's lifetime counters are season sources", () => {
   assert.deepEqual(seasonSources(states, () => undefined), {});
 });
 
+test("Husqvarna's lifetime cutting time counts as mowing time", () => {
+  const resolve = (domain: string, suffix: string) => `${domain}.automower_${suffix}`;
+  // Husqvarna reports its counters with state class total, not total_increasing.
+  const husqvarna = { "sensor.automower_total_cutting_time": { attributes: { state_class: "total" } } };
+  assert.deepEqual(seasonSources(husqvarna, resolve), { minutes: "sensor.automower_total_cutting_time" });
+  const both = { ...husqvarna, "sensor.automower_total_mowing_time": { attributes: { state_class: "total_increasing" } } };
+  assert.deepEqual(seasonSources(both, resolve), { minutes: "sensor.automower_total_mowing_time" });
+});
+
 test("the query reaches back to the start of last year", () => {
   assert.deepEqual(seasonStart(now), new Date(2025, 0, 1));
 });

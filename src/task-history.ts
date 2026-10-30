@@ -210,8 +210,22 @@ export class LawnMowerTaskHistory extends LitElement {
       : result === 0 || result === 2 ? "history.incomplete" : "common.unknown");
   }
 
+  /** Mowers with lifetime counters but no task list (Husqvarna) get the season on its own. */
+  private _renderSeasonOnly() {
+    return html`<section aria-label=${this._t("history.title")} aria-busy=${this._seasonState === "loading"}>
+      <header>
+        <div><h3 class="list-title" tabindex="-1">${this._t("history.title")}</h3></div>
+        <button class="icon-button" aria-label=${this._t("pointCloud.refresh")} title=${this._t("pointCloud.refresh")}
+          ?disabled=${this._seasonState === "loading"} @click=${() => { this._resetSeason(); this.requestUpdate(); }}><ha-icon icon="mdi:refresh"></ha-icon></button>
+      </header>
+      ${this._season ? this._renderSeason(this._season)
+        : this._seasonState === "done" ? html`<p class="message">${this._t("history.seasonEmpty")}</p>` : nothing}
+    </section>`;
+  }
+
   protected render() {
     if (!this.active) return nothing;
+    if (!historyPath(this.path)) return this._renderSeasonOnly();
     const task = this._selected, detail = this._detail;
     return html`<section aria-label=${this._t("history.title")} aria-busy=${this._status === "loading"}>
       <header>

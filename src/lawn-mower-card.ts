@@ -84,7 +84,7 @@ import { renderHeroLayout, type HeroView } from "./hero-layout";
 import { resolveHeroLabel } from "./hero-label";
 import { availableHeroViews, initialHeroView, resolveHeroView } from "./hero-views";
 import { historyPath } from "./task-history-logic";
-import { seasonSources } from "./season-logic";
+import { hasSeasonSources, seasonSources } from "./season-logic";
 import { lawnMowerCardStyles } from "./lawn-mower-card-styles";
 import {
   normalizeHeroImage,
@@ -110,6 +110,7 @@ import {
 } from "./mower-mutation-lock";
 import {
   LawnMowerFeature,
+  mowerAdvertisesFeature,
   mowerSupportsFeature,
 } from "./mower-capabilities";
 import {
@@ -264,6 +265,7 @@ const FRIENDLY_STATE: Record<string, TranslationKey> = {
   mowing: "state.mowing",
   docked: "state.docked",
   paused: "state.paused",
+  stopped: "state.stopped",
   returning: "state.returning",
   error: "common.error",
   unavailable: "common.unavailable",
@@ -976,11 +978,13 @@ export class LawnMowerCard extends LitElement {
       ? this._renderControlContent(controlEntities, scheduleControls, true) : undefined;
     const scenePath = this._config.show_map === false ? undefined
       : this._mapPath(configuredMapEntity);
+    const season = seasonSources(this.hass.states, (domain, suffix) =>
+      resolvedOwnedMowerCompanionEntity(this.hass!.states, this._config!.entity, this.hass!.entities, domain, suffix));
     const availableViews = availableHeroViews({
       map: Boolean(mapUrl || scenePath),
       pointCloud: Boolean(pointCloudPath),
       camera: Boolean(cameraEntity),
-      history: Boolean(historyPath(mower.attributes.task_history_api_path)),
+      history: Boolean(historyPath(mower.attributes.task_history_api_path)) || hasSeasonSources(season),
       photos: (this._config.show_photos ?? true) &&
         photoAlbumAvailable(this._config.entity, this.hass.entities, this.hass.services),
     });
@@ -1021,8 +1025,7 @@ export class LawnMowerCard extends LitElement {
       area: coverage.area,
       mowingMapPath: scenePath,
       taskHistoryPath: historyPath(mower.attributes.task_history_api_path),
-      seasonSources: seasonSources(this.hass.states, (domain, suffix) =>
-        resolvedOwnedMowerCompanionEntity(this.hass!.states, this._config!.entity, this.hass!.entities, domain, suffix)),
+      seasonSources: season,
       mapBackground: this._config.map_background,
       mowerEntityId: this._config.entity,
       worldTiles: worldTileConfig(this._config),
@@ -1087,6 +1090,7 @@ export class LawnMowerCard extends LitElement {
       supportsPause: mowerSupportsFeature(mower, LawnMowerFeature.PAUSE),
       supportsDock: mowerSupportsFeature(mower, LawnMowerFeature.DOCK),
       supportsCancelTask: this._supportsCancelCurrentTask(),
+      supportsStop: this._supportsStop(mower),
       canStart:
         !this._mutationInFlight &&
         this._canStart(mower.state) &&
@@ -1096,6 +1100,7 @@ export class LawnMowerCard extends LitElement {
       canDock: !this._mutationInFlight && this._canDock(mower),
       canCancelTask:
         !this._mutationInFlight && mowerCanCancelTask(mower),
+      canStop: !this._mutationInFlight && this._canStop(mower.state),
       commands: this._commandPlan(mower),
       dockActionLabel: this._dockActionLabel(mower),
       maintenancePointAvailable:
@@ -1110,6 +1115,7 @@ export class LawnMowerCard extends LitElement {
       onPause: () => this._pauseMowing(),
       onDock: () => this._dockMower(),
       onCancelTask: () => this._requestCancelCurrentTask(),
+      onStop: () => this._stopMowing(),
       onMaintenancePoint: maintenancePointButton
         ? () => this._pressButton(maintenancePointButton.entityId)
         : undefined,
@@ -2203,6 +2209,15 @@ export class LawnMowerCard extends LitElement {
             Boolean(this._mutationInFlight) || !this._canPause(mower.state),
           primary: primary === "pause",
           handler: () => this._pauseMowing(),
+        });
+      }
+      if (this._supportsStop(mower) && visible.has("stop")) {
+        defaultActions.push({
+          label: this._t("action.stop"),
+          icon: "mdi:stop",
+          disabled:
+            Boolean(this._mutationInFlight) || !this._canStop(mower.state),
+          handler: () => this._stopMowing(),
         });
       }
       if (this._supportsCancelCurrentTask() && visible.has("cancel")) {
@@ -3998,6 +4013,7 @@ export class LawnMowerCard extends LitElement {
     return commandPlan({
       start: this._canStart(mower.state),
       pause: this._canPause(mower.state),
+      stop: this._canStop(mower.state),
       cancel: mowerCanCancelTask(mower),
       dock: this._canDock(mower),
     });
@@ -4009,6 +4025,16 @@ export class LawnMowerCard extends LitElement {
 
   private _canPause(state: string): boolean {
     return ["mowing", "returning"].includes(state);
+  }
+
+  /** Stop ends the run where the mower is; Paused and mowing are the states it applies to. */
+  private _canStop(state: string): boolean {
+    return ["mowing", "paused"].includes(state);
+  }
+
+  /** Dreame's Cancel task already ends the run, so its mowers don't get a second Stop. */
+  private _supportsStop(mower: HassEntity): boolean {
+    return mowerAdvertisesFeature(mower, LawnMowerFeature.STOP) && !this._supportsCancelCurrentTask();
   }
 
   private _canDock(mower: HassEntity): boolean {
@@ -4401,6 +4427,14 @@ export class LawnMowerCard extends LitElement {
         `start_${kind}_patrol`,
         patrolServiceData(kind, entityId, zoneId),
       ),
+    );
+  }
+
+  private async _stopMowing() {
+    await this._runMowerAction("stop", this._t("action.stop"), () =>
+      this.hass.callService("lawn_mower", "stop", {
+        entity_id: this._config?.entity,
+      }),
     );
   }
 

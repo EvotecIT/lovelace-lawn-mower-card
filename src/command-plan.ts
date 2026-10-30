@@ -1,4 +1,4 @@
-export type MowerCommand = "start" | "pause" | "cancel" | "dock";
+export type MowerCommand = "start" | "pause" | "stop" | "cancel" | "dock";
 
 export type CommandPlan = { visible: ReadonlySet<MowerCommand>; primary?: MowerCommand };
 

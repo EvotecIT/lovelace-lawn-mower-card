@@ -5,6 +5,7 @@ import { keyed } from "lit/directives/keyed.js";
 import type { HeroLayoutModel, HeroView } from "./hero-layout";
 import { mapPresentationClasses } from "./map-presentation";
 import { renderCameraStream } from "./camera-stream";
+import { hasSeasonSources } from "./season-logic";
 import { normalizeHeroImage, normalizeHeroImagePosition } from "./hero-image";
 import heroArtwork from "../assets/lawn-mower-hero.jpg";
 import "./mowing-map";
@@ -20,7 +21,7 @@ export function renderHeroMedia(model: HeroLayoutModel, views: readonly HeroView
   const image = normalizeHeroImage(model.heroImage) || heroArtwork;
   const position = normalizeHeroImagePosition(model.heroImagePosition);
   return html`
-    ${views.includes("history") && model.taskHistoryPath ? html`
+    ${views.includes("history") && (model.taskHistoryPath || hasSeasonSources(model.seasonSources ?? {})) ? html`
       <lawn-mower-task-history class=${`hero-layer hero-history${model.activeView === "history" ? " active" : ""}`}
         .hass=${model.hass} .path=${model.taskHistoryPath} .locale=${model.locale} .seasonSources=${model.seasonSources ?? {}}
         .active=${model.activeView === "history" && model.mediaVisible !== false}

@@ -88,6 +88,10 @@ export function heroActionEntries(model: HeroLayoutModel): { commands: ActionEnt
       commands.push({ label: model.t("action.pause"), icon: "mdi:pause", handler: model.onPause,
         options: { disabled: !model.canPause, primary: primary === "pause" } });
     }
+    if (model.supportsStop && model.onStop && visible.has("stop")) {
+      commands.push({ label: model.t("action.stop"), icon: "mdi:stop", handler: model.onStop,
+        options: { disabled: !model.canStop } });
+    }
     if (model.supportsCancelTask && visible.has("cancel")) {
       commands.push({ label: model.t("action.cancelTask"), icon: "mdi:stop-circle-outline",
         handler: model.onCancelTask, options: { disabled: !model.canCancelTask } });

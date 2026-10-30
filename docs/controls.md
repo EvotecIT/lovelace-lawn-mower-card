@@ -67,7 +67,7 @@ The action appears only when Home Assistant identifies the entity as
 while a task is mowing, paused, returning, or still marked active/resumable. The
 integration waits for inactive mower state before completing the service, so a
 map change can safely follow it. Other mower integrations keep their existing
-standard Start, Pause, and Dock controls unchanged.
+standard Start, Pause, Stop, and Dock controls unchanged.
 
 ## Control Selectors
 
