@@ -11,6 +11,7 @@ const MOWER_STATES: Readonly<Record<string, TranslationKey>> = {
   mowing: "state.mowing",
   idle: "state.idle",
   paused: "state.paused",
+  stopped: "state.stopped",
   error: "common.error",
   returning: "state.returning",
   charging: "state.charging",

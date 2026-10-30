@@ -33,7 +33,10 @@ requirements. See the [quality ledger](quality.md) for remaining qualification.
 Any integration that exposes a standard Home Assistant `lawn_mower` entity can
 use the card. Start, pause, and dock buttons follow the entity's standard
 `supported_features` bitmask, so read-only or partially controllable mowers do
-not show actions that Home Assistant will reject.
+not show actions that Home Assistant will reject. A **Stop** button appears
+while mowing or paused when the integration advertises Home Assistant's Stop
+feature, such as Ecovacs; an entity without the bitmask doesn't get it. Dreame
+mowers keep their own **Cancel task** instead.
 
 Optional UI follows optional entities:
 

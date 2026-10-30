@@ -4,6 +4,7 @@ import test from "node:test";
 import type { HassEntity } from "../src/card-config.ts";
 import {
   LawnMowerFeature,
+  mowerAdvertisesFeature,
   mowerSupportsFeature,
 } from "../src/mower-capabilities.ts";
 
@@ -23,7 +24,16 @@ test("feature constants match Home Assistant's lawn mower bit assignments", () =
     START_MOWING: 1,
     PAUSE: 2,
     DOCK: 4,
+    STOP: 8,
   });
+});
+
+test("Stop shows only when the integration advertises it", () => {
+  const legacy = mower();
+  assert.equal(mowerSupportsFeature(legacy, LawnMowerFeature.PAUSE), true);
+  assert.equal(mowerAdvertisesFeature(legacy, LawnMowerFeature.STOP), false);
+  assert.equal(mowerAdvertisesFeature(mower(LawnMowerFeature.START_MOWING | LawnMowerFeature.STOP), LawnMowerFeature.STOP), true);
+  assert.equal(mowerAdvertisesFeature(mower(LawnMowerFeature.START_MOWING | LawnMowerFeature.DOCK), LawnMowerFeature.STOP), false);
 });
 
 test("standard mower actions follow Home Assistant supported_features", () => {

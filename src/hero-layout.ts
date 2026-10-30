@@ -104,12 +104,14 @@ export type HeroLayoutModel = {
   supportsPause: boolean;
   supportsDock: boolean;
   supportsCancelTask: boolean;
+  supportsStop?: boolean;
   canStart: boolean;
   /** The Start button has opened the area menu; it then reads as Cancel. */
   startMenuOpen?: boolean;
   canPause: boolean;
   canDock: boolean;
   canCancelTask: boolean;
+  canStop?: boolean;
   commands: CommandPlan;
   dockActionLabel: string;
   maintenancePointAvailable?: boolean;
@@ -124,6 +126,7 @@ export type HeroLayoutModel = {
   onPause(): void | Promise<void>;
   onDock(): void | Promise<void>;
   onCancelTask(): void | Promise<void>;
+  onStop?(): void | Promise<void>;
   onMaintenancePoint?(): void | Promise<void>;
   /** Built-in Dreame patrols, shown after Dock when the integration offers them. */
   patrolActions?: Array<{ label: string; icon?: string; disabled: boolean; handler(): void | Promise<void> }>;
