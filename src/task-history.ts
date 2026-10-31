@@ -9,6 +9,7 @@ import {
   type HistoryTask, type HistoryDetail, type HistoryDay,
 } from "./task-history-logic";
 import { taskHistoryStyles } from "./task-history-styles";
+import { clockOptions } from "./next-run";
 import { readSeason, seasonStart, type Season, type SeasonMetric, type SeasonSources } from "./season-logic";
 
 /** Read-only task history. Leaving the view retires all private requests/media. */
@@ -36,6 +37,8 @@ export class LawnMowerTaskHistory extends LitElement {
 
   static styles = taskHistoryStyles;
   private get _t() { return createTranslator(this.locale); }
+  /** Times follow the 12- or 24-hour clock chosen in the Home Assistant profile. */
+  private get _hourCycle() { return clockOptions(this.hass?.locale?.time_format); }
 
   protected updated(changed: PropertyValues): void {
     const previous = changed.get("hass") as HomeAssistant | undefined;
@@ -187,12 +190,12 @@ export class LawnMowerTaskHistory extends LitElement {
     if (!start) return this._date(end);
     const thisYear = new Date().getFullYear();
     const otherYear = [start, end].some((epoch) => epoch && new Date(epoch * 1000).getFullYear() !== thisYear);
-    const format = new Intl.DateTimeFormat(this.locale, { weekday: "short", day: "numeric", month: "short", ...(otherYear ? { year: "numeric" } : {}), hour: "numeric", minute: "2-digit" });
+    const format = new Intl.DateTimeFormat(this.locale, { weekday: "short", day: "numeric", month: "short", ...(otherYear ? { year: "numeric" } : {}), hour: "numeric", minute: "2-digit", ...this._hourCycle });
     return end && end > start ? format.formatRange(start * 1000, end * 1000) : format.format(start * 1000);
   }
 
   private _date(epoch: number | null): string {
-    return epoch ? new Intl.DateTimeFormat(this.locale, { dateStyle: "medium", timeStyle: "short" }).format(epoch * 1000) : this._t("common.unknown");
+    return epoch ? new Intl.DateTimeFormat(this.locale, { dateStyle: "medium", timeStyle: "short", ...this._hourCycle }).format(epoch * 1000) : this._t("common.unknown");
   }
   private _number(value: number | null, unit: string, digits = 2): string {
     return value === null ? this._t("common.unavailable")
@@ -245,7 +248,7 @@ export class LawnMowerTaskHistory extends LitElement {
 
   private _renderList() {
     const now = new Date(), summary = historySummary(this._tasks, now);
-    const time = new Intl.DateTimeFormat(this.locale, { timeStyle: "short" });
+    const time = new Intl.DateTimeFormat(this.locale, { timeStyle: "short", ...this._hourCycle });
     return html`${this._season ? this._renderSeason(this._season) : nothing}
       ${summary.runs ? html`<div class="week-summary" aria-label=${this._t("history.lastWeek")}>
         <span class="summary-label">${this._t("history.lastWeek")}</span>
@@ -400,7 +403,7 @@ export class LawnMowerTaskHistory extends LitElement {
   }
 
   private _clock(epoch: number): string {
-    return new Intl.DateTimeFormat(this.locale, { timeStyle: "short" }).format(epoch * 1000);
+    return new Intl.DateTimeFormat(this.locale, { timeStyle: "short", ...this._hourCycle }).format(epoch * 1000);
   }
 
   private _renderBattery(detail: HistoryDetail) {

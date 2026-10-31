@@ -163,6 +163,9 @@ export const settingsSheetStyles = css`
   .settings-sheet-body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    /* Rows keep their content's height and the body scrolls; otherwise a full sheet
+       squeezes panels that clip their overflow down to nothing. */
+    grid-auto-rows: max-content;
     align-content: start;
     gap: 10px;
     min-height: 0;

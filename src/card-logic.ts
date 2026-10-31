@@ -1034,12 +1034,12 @@ export function defaultHelperEntities(
     {
       entityId: resolveCompanion("camera", "all_maps"),
       label: "All Maps",
-      icon: "mdi:map-multiple-outline",
+      icon: "mdi:layers-outline",
     },
     {
       entityId: resolveCompanion("button", "go_to_maintenance_point"),
       label: "Maintenance Point",
-      icon: "mdi:map-marker-wrench",
+      icon: "mdi:wrench-outline",
       action: "press",
     },
   ];
