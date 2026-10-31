@@ -239,7 +239,8 @@ export const heroLayoutStyles = css`
   .hero-photos { position:absolute; inset:0; }
   .view-photos .hero-photos { position:relative; order:2; flex:none; height:auto; }
   .hero-history { position:absolute; inset:0; }
-  .view-history .hero-history { position:relative; order:2; flex:none; height:auto; }
+  /* Thirty tasks would push the tabs and buttons far down; the list scrolls in place instead. */
+  .view-history .hero-history { position:relative; order:2; flex:none; height:auto; max-height:min(72vh, 640px); overflow:auto; overscroll-behavior:contain; }
   .hero-card .hero-stage.view-history { background:var(--mower-canvas); color:var(--mower-text); }
   .view-history .hero-heading,.view-history .hero-title-block { color:inherit; }
   .view-history .hero-title-block { text-shadow:none; }

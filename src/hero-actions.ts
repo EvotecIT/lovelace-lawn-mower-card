@@ -123,7 +123,7 @@ export function heroActionEntries(model: HeroLayoutModel): { commands: ActionEnt
       }
     }
     if (model.onMaintenancePoint) {
-      helpers.push({ label: model.t("action.maintenance"), icon: "mdi:map-marker-wrench",
+      helpers.push({ label: model.t("action.maintenance"), icon: "mdi:wrench-outline",
         handler: model.onMaintenancePoint, options: { disabled: !model.maintenancePointAvailable } });
     }
   }
