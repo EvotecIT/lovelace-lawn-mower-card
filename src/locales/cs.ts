@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const cs = {
+  "history.batteryAboveUsual": "Spotřeba baterie na metr čtvereční byla o {value} vyšší než u srovnatelných sečení.",
+  "editor.mapTrailColor": "Barva živé trasy",
+  "editor.mapZoneLabelColor": "Barva názvů zón",
+  "editor.mapColorHint": "Hexadecimální barva. Pro výchozí barvu nechte pole prázdné.",
+  "action.dockEndTask": "Zaparkovat a ukončit úlohu",
+  "action.dockKeepTask": "Zaparkovat a zachovat úlohu",
   "history.global": "Globální předvolby",
   "history.lastWeek": "Posledních 7 dní",
   "history.season": "Sezóna {year}",

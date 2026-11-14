@@ -143,6 +143,10 @@ export class LawnMowerCardEditor extends LitElement {
         ${this._mapFitField(normalizeMapFit(config.map_fit))}
         ${this._mapPositionField(normalizeMapPosition(config.map_position))}
         ${this._mapBackgroundField(normalizeMapBackground(config.map_background))}
+        ${this._field(this._t("editor.mapTrailColor"), config.map_trail_color,
+          "map_trail_color", "#197f98", this._t("editor.mapColorHint"))}
+        ${this._field(this._t("editor.mapZoneLabelColor"), config.map_zone_label_color,
+          "map_zone_label_color", "#ffffff", this._t("editor.mapColorHint"))}
         ${this._field(
           this._t("editor.mapTileUrl"),
           config.map_tile_url,

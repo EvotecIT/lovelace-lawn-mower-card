@@ -1,7 +1,7 @@
 import { LitElement, html, nothing, svg, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "./card-config";
-import { createTranslator, type SupportedLocale } from "./localization";
+import { createTranslator, mowerNumberFormat, orderedHistoryDate, type SupportedLocale } from "./localization";
 import { fetchPrivateApi } from "./private-api";
 import {
   historyMapBounds, historyPath, readHistoryDetail, readHistoryList,
@@ -188,18 +188,34 @@ export class LawnMowerTaskHistory extends LitElement {
   /** One range, with the date said once when the task ends the same day. */
   private _range(start: number | null, end: number | null): string {
     if (!start) return this._date(end);
+    const datePreference = this.hass?.locale?.date_format;
+    const startDate = orderedHistoryDate(new Date(start * 1000), datePreference);
+    if (startDate) {
+      if (!end || end <= start) return this._date(start);
+      const endDate = orderedHistoryDate(new Date(end * 1000), datePreference);
+      if (endDate !== startDate) return `${this._date(start)} – ${this._date(end)}`;
+      const time = new Intl.DateTimeFormat(this.locale, { timeStyle: "short", ...this._hourCycle });
+      return `${startDate} · ${time.formatRange(start * 1000, end * 1000)}`;
+    }
     const thisYear = new Date().getFullYear();
     const otherYear = [start, end].some((epoch) => epoch && new Date(epoch * 1000).getFullYear() !== thisYear);
-    const format = new Intl.DateTimeFormat(this.locale, { weekday: "short", day: "numeric", month: "short", ...(otherYear ? { year: "numeric" } : {}), hour: "numeric", minute: "2-digit", ...this._hourCycle });
+    const format = new Intl.DateTimeFormat(datePreference === "system" ? undefined : this.locale, { weekday: "short", day: "numeric", month: "short", ...(otherYear ? { year: "numeric" } : {}), hour: "numeric", minute: "2-digit", ...this._hourCycle });
     return end && end > start ? format.formatRange(start * 1000, end * 1000) : format.format(start * 1000);
   }
 
   private _date(epoch: number | null): string {
-    return epoch ? new Intl.DateTimeFormat(this.locale, { dateStyle: "medium", timeStyle: "short", ...this._hourCycle }).format(epoch * 1000) : this._t("common.unknown");
+    if (!epoch) return this._t("common.unknown");
+    const date = new Date(epoch * 1000);
+    const preference = this.hass?.locale?.date_format;
+    const ordered = orderedHistoryDate(date, preference);
+    const format = new Intl.DateTimeFormat(preference === "system" ? undefined : this.locale, {
+      ...(ordered ? {} : { dateStyle: "medium" }), timeStyle: "short", ...this._hourCycle,
+    });
+    return ordered ? `${ordered} · ${format.format(date)}` : format.format(date);
   }
   private _number(value: number | null, unit: string, digits = 2): string {
     return value === null ? this._t("common.unavailable")
-      : `${new Intl.NumberFormat(this.locale, { maximumFractionDigits: digits }).format(value)} ${unit}`;
+      : `${mowerNumberFormat(this.locale, this.hass?.locale?.number_format, { maximumFractionDigits: digits }).format(value)} ${unit}`;
   }
   private _kind(mode: number | null): string {
     switch (mode) {
@@ -316,9 +332,15 @@ export class LawnMowerTaskHistory extends LitElement {
       return text.charAt(0).toLocaleUpperCase(this.locale) + text.slice(1);
     }
     const at = new Date(`${day.date}T12:00:00`);
+    const preference = this.hass?.locale?.date_format;
+    const ordered = orderedHistoryDate(at, preference);
+    if (ordered) {
+      const weekday = new Intl.DateTimeFormat(this.locale, { weekday: "long" }).format(at);
+      return `${weekday} · ${ordered}`;
+    }
     // A task from another year says which.
     const year = at.getFullYear() !== new Date().getFullYear() ? { year: "numeric" as const } : {};
-    return new Intl.DateTimeFormat(this.locale, { weekday: "long", day: "numeric", month: "long", ...year }).format(at);
+    return new Intl.DateTimeFormat(preference === "system" ? undefined : this.locale, { weekday: "long", day: "numeric", month: "long", ...year }).format(at);
   }
 
   private _kindIcon(mode: number | null): string {
@@ -340,7 +362,7 @@ export class LawnMowerTaskHistory extends LitElement {
   }
 
   private _percent(points: number, digits = 0): string {
-    return new Intl.NumberFormat(this.locale, { style: "percent", maximumFractionDigits: digits }).format(points / 100);
+    return mowerNumberFormat(this.locale, this.hass?.locale?.number_format, { style: "percent", maximumFractionDigits: digits }).format(points / 100);
   }
 
   private _renderDetail(detail: HistoryDetail) {
@@ -356,15 +378,33 @@ export class LawnMowerTaskHistory extends LitElement {
         ${battery?.percentage_points !== null && battery?.percentage_points !== undefined
           ? html`<div><dt>${this._t("hero.battery")}</dt><dd>${this._percent(battery.percentage_points)}</dd></div>` : nothing}</dl>
       <figure class="historical-map"><figcaption>${this._t("history.recordedMap")}</figcaption>
-        ${bounds ? svg`<svg viewBox=${bounds.join(" ")} role="img" aria-label=${this._t("history.recordedMap")}>
+        ${bounds ? svg`<svg viewBox=${bounds.join(" ")} role=${detail.obstacle_photo_pins.length ? "group" : "img"} aria-label=${this._t("history.recordedMap")}>
           ${detail.features.map((feature) => svg`${feature.points.length >= 3 ? svg`<polygon class=${feature.kind === 0 ? "lawn" : "boundary"} points=${points(feature.points)}></polygon>` : nothing}
             ${feature.tracks.map((run) => svg`<polyline class="track" points=${points(run)}></polyline>`)}`)}
+          ${detail.obstacle_photo_pins.map(([index, nativeX, y]) => {
+            const x = -nativeX;
+            if (x < bounds[0] || y < bounds[1] || x > bounds[0] + bounds[2] || y > bounds[1] + bounds[3]) return nothing;
+            const label = `${this._t("hero.photos")} ${index + 1} / ${detail.photo_paths.length}`;
+            const size = Math.max(bounds[2], bounds[3]) / 32;
+            const open = () => { if (!this._photoLoading) void this._loadPhoto(index, true); };
+            return svg`<circle class="obstacle-photo-pin" cx=${x} cy=${y} r=${size}
+              role="button" tabindex="0" aria-label=${label} aria-disabled=${this._photoLoading}
+              @click=${open} @keydown=${(event: KeyboardEvent) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  open();
+                }
+              }}><title>${label}</title></circle>`;
+          })}
         </svg>` : html`<p class="message">${this._t("history.noMap")}</p>`}
       </figure>
       <section class="panel"><h4>${this._t("history.batteryUse")}</h4>
         ${battery ? html`<div class="battery-summary">${battery.percentage_points !== null ? html`<strong>${this._t("history.batteryUsed", { value: this._percent(battery.percentage_points) })}</strong>` : nothing}
           ${battery.percentage_points_per_sqm !== null ? html`<span>${this._t("history.perHundred", { value: this._percent(battery.percentage_points_per_sqm * 100, 1) })}</span>` : nothing}</div>
           <p class="note">${this._t(battery.source === "recorder" ? "history.recorder" : "history.observed")}${battery.coverage === "partial" ? html` · ${this._t("history.partial")}` : nothing}</p>
+          ${detail.battery_comparison ? html`<p class="note">${this._t("history.batteryAboveUsual", {
+            value: this._percent(detail.battery_comparison.increase_percent),
+          })}</p>` : nothing}
           ${this._renderBattery(detail)}` : html`<p>${this._t("history.noBattery")}</p>`}
       </section>
       <section class="panel"><h4>${this._t("history.recordedSettings")}</h4>

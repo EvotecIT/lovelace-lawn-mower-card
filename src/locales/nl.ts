@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const nl = {
+  "history.batteryAboveUsual": "Per vierkante meter is {value} meer accu verbruikt dan gebruikelijk bij vergelijkbare maaibeurten.",
+  "editor.mapTrailColor": "Kleur van het live spoor",
+  "editor.mapZoneLabelColor": "Kleur van zonelabels",
+  "editor.mapColorHint": "Hexkleur. Laat leeg voor de standaardkleur.",
+  "action.dockEndTask": "Naar dock en taak beëindigen",
+  "action.dockKeepTask": "Naar dock en taak behouden",
   "history.global": "Algemene voorkeuren",
   "history.lastWeek": "Afgelopen 7 dagen",
   "history.season": "Seizoen {year}",

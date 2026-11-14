@@ -85,6 +85,9 @@ export const taskHistoryStyles = css`
   details ul { margin:0; padding:0 14px 12px 30px; } li { line-height:1.6; }
   .zone-results { list-style:none; padding:0 14px 12px; display:grid; gap:6px; }
   .zone-results li { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .obstacle-photo-pin { fill:var(--mower-accent,#73b977); stroke:var(--mower-text,#fff);
+    stroke-width:2px; vector-effect:non-scaling-stroke; cursor:pointer; }
+  .obstacle-photo-pin:focus-visible { outline:none; stroke-width:4px; }
   .photo { display:grid; place-items:center; min-height:120px; margin-top:8px; }
   .photo img { width:100%; max-height:360px; object-fit:contain; border-radius:8px; }
   .photo-nav { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:10px; font-size:12px; }

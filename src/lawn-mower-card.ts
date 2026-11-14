@@ -61,6 +61,7 @@ import {
   mowerCanDock,
   mowerCanPatrol,
   mowerSessionActive,
+  taskPreservingDockButton,
   numberControlSettings,
   resolvedControlEntities,
   resolvedCoverageEntityIds,
@@ -1103,6 +1104,7 @@ export class LawnMowerCard extends LitElement {
       canStop: !this._mutationInFlight && this._canStop(mower.state),
       commands: this._commandPlan(mower),
       dockActionLabel: this._dockActionLabel(mower),
+      taskPreservingDockAction: this._taskPreservingDockAction(),
       maintenancePointAvailable:
         !this._mutationInFlight &&
         maintenancePointButton !== undefined &&
@@ -2238,6 +2240,8 @@ export class LawnMowerCard extends LitElement {
           handler: () => this._dockMower(),
         });
       }
+      const taskPreservingDock = this._taskPreservingDockAction();
+      if (taskPreservingDock) defaultActions.push(taskPreservingDock);
       defaultActions.push(...this._patrolActions(mower));
     }
 
@@ -4147,7 +4151,9 @@ export class LawnMowerCard extends LitElement {
       mowerSessionActive(mower) &&
       !this._showsDedicatedCancelAction()
       ? this._t("action.cancelTask")
-      : this._t("action.dock");
+      : this._taskPreservingDockAction()
+        ? this._t("action.dockEndTask")
+        : this._t("action.dock");
   }
 
   /** Mowers with a choice of areas get the Start menu; others start right away. */
@@ -4314,6 +4320,24 @@ export class LawnMowerCard extends LitElement {
           },
         ),
     );
+  }
+
+  private _taskPreservingDockAction(): DisplayAction | undefined {
+    const mowerId = this._config?.entity;
+    if (!mowerId) return undefined;
+    const button = taskPreservingDockButton(this.hass.states, mowerId, this.hass.entities);
+    if (!button) return undefined;
+    return {
+      label: this._t("action.dockKeepTask"),
+      icon: "mdi:home-battery",
+      disabled: Boolean(this._mutationInFlight),
+      handler: () => {
+        if (this._config?.entity === mowerId &&
+            taskPreservingDockButton(this.hass.states, mowerId, this.hass.entities) === button) {
+          return this._pressButton(button);
+        }
+      },
+    };
   }
 
   private _patrolActions(mower: HassEntity): DisplayAction[] {

@@ -2,7 +2,7 @@ import { LitElement, html, nothing, svg, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { MarkerImageCheck } from "./marker-image";
 import { repeat } from "lit/directives/repeat.js";
-import { createTranslator, type SupportedLocale, type TranslationKey } from "./localization";
+import { createTranslator, mowerNumberFormat, type SupportedLocale, type TranslationKey } from "./localization";
 import { abortable, fetchPrivateApi } from "./private-api";
 import type { HomeAssistant } from "./card-config";
 import { actionErrorDetail } from "./action-error";
@@ -848,7 +848,7 @@ export class LawnMowerMowingMap extends LitElement {
 
   private _renderAlignBar(align: AlignSession) {
     const { rotation, scale } = align.adjustment;
-    const number = (options: Intl.NumberFormatOptions) => new Intl.NumberFormat(this.locale, options);
+    const number = (options: Intl.NumberFormatOptions) => mowerNumberFormat(this.locale, this.hass?.locale?.number_format, options);
     const degrees = number({ minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" })
       .format(rotation);
     const size = number({ style: "percent", maximumFractionDigits: 1 }).format(scale);

@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const de = {
+  "history.batteryAboveUsual": "Pro Quadratmeter wurde {value} mehr Akku verbraucht als bei vergleichbaren Läufen üblich.",
+  "editor.mapTrailColor": "Farbe der Live-Spur",
+  "editor.mapZoneLabelColor": "Farbe der Zonenbeschriftung",
+  "editor.mapColorHint": "Hex-Farbe. Leer lassen für die Standardfarbe.",
+  "action.dockEndTask": "Andocken und Aufgabe beenden",
+  "action.dockKeepTask": "Andocken und Aufgabe behalten",
   "history.global": "Globale Einstellungen",
   "history.lastWeek": "Letzte 7 Tage",
   "history.season": "Saison {year}",

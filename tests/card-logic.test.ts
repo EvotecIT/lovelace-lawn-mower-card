@@ -35,6 +35,7 @@ import {
   supportsDreamePatrol,
   supportsDreameTaskCancellation,
   taskCancellationStillAvailable,
+  taskPreservingDockButton,
   type MinimalHassEntity,
 } from "../src/card-logic.ts";
 
@@ -94,6 +95,29 @@ test("docked paused sessions retain a safe cancellation path", () => {
     }),
     false,
   );
+});
+
+test("task-preserving docking targets only the current mower's owned button", () => {
+  const mowerId = "lawn_mower.garden";
+  const button = "button.garden_dock_without_ending_session";
+  const owner = { platform: "dreame_lawn_mower", device_id: "garden" };
+  const entries = { [mowerId]: owner, [button]: owner };
+  const states = { [mowerId]: entity("mowing"), [button]: entity("unknown") };
+  const resolve = () => taskPreservingDockButton(states, mowerId, entries);
+
+  assert.equal(resolve(), button);
+  states[mowerId] = { state: "paused", attributes: { mowing_session_active: true } };
+  assert.equal(resolve(), button);
+  assert.equal(taskPreservingDockButton(states, mowerId, {
+    ...entries, [button]: { ...owner, device_id: "neighbor" },
+  }), undefined);
+  states[button] = entity("unavailable");
+  assert.equal(resolve(), undefined);
+  states[button] = entity("unknown");
+  states[mowerId] = { state: "docked", attributes: { mowing_session_active: true } };
+  assert.equal(resolve(), undefined);
+  states[mowerId] = { state: "paused", attributes: { mowing_session_active: false } };
+  assert.equal(resolve(), undefined);
 });
 
 test("task cancellation follows active state and the registered integration service", () => {

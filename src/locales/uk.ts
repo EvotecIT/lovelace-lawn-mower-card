@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const uk = {
+  "history.batteryAboveUsual": "Витрата заряду на квадратний метр на {value} вища за звичайну для подібних косінь.",
+  "editor.mapTrailColor": "Колір поточного маршруту",
+  "editor.mapZoneLabelColor": "Колір назв зон",
+  "editor.mapColorHint": "Колір у шістнадцятковому форматі. Залиште поле порожнім для типового кольору.",
+  "action.dockEndTask": "На станцію й завершити завдання",
+  "action.dockKeepTask": "На станцію й зберегти завдання",
   "history.global": "Загальні налаштування",
   "history.lastWeek": "Останні 7 днів",
   "history.season": "Сезон {year}",

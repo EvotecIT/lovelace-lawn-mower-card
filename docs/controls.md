@@ -62,6 +62,11 @@ standard Pause and Dock controls. Cancel ends the current mowing task without
 sending the mower to the dock. The card asks for confirmation because the mower
 stops and remains where it is.
 
+When the Dreame & MOVA integration provides a **Dock Without Ending Session**
+button for this mower, an active or paused run shows two choices. **Dock and
+end task** finishes the run before returning. **Dock and keep task** returns
+to the station and leaves the run available to resume.
+
 The action appears only when Home Assistant identifies the entity as
 `dreame_lawn_mower` and registers `dreame_lawn_mower.cancel_current_task`. It is enabled
 while a task is mowing, paused, returning, or still marked active/resumable. The
