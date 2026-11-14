@@ -451,15 +451,17 @@ export class LawnMowerTaskHistory extends LitElement {
     if (!start || !end || start >= end || !samples.length) return nothing;
     const x = (at: number) => 30 + (at - start) / (end - start) * 530;
     const y = (level: number) => 18 + (100 - level) * 1.1;
-    return html`<div class="battery-plot" role="img" aria-label=${`${this._t("history.batteryUse")}: ${samples[0].level}% – ${samples[samples.length - 1].level}%`}>
-      <div class="chart-scale" aria-hidden="true"><span>100%</span><span>50%</span><span>0%</span></div>
+    const format = mowerNumberFormat(this.locale, this.hass?.locale?.number_format, { style: "percent", maximumFractionDigits: 2 });
+    const levelLabel = (level: number) => format.format(level / 100);
+    return html`<div class="battery-plot" role="img" aria-label=${`${this._t("history.batteryUse")}: ${levelLabel(samples[0].level)} – ${levelLabel(samples[samples.length - 1].level)}`}>
+      <div class="chart-scale" aria-hidden="true"><span>${levelLabel(100)}</span><span>${levelLabel(50)}</span><span>${levelLabel(0)}</span></div>
       <svg class="battery-chart" viewBox="30 0 540 145" preserveAspectRatio="none" aria-hidden="true">
       ${svg`<path class="chart-grid" d="M30 18H560M30 73H560M30 128H560"></path>
         ${samples.slice(1).map((sample, index) => {
           const before = samples[index];
           return sample.continuous && sample.at - before.at <= 300 ? svg`<line class=${before.charging || sample.charging || sample.level > before.level ? "charge" : "battery-line"} x1=${x(before.at)} y1=${y(before.level)} x2=${x(sample.at)} y2=${y(sample.level)}></line>` : nothing;
         })}
-        ${samples.map((sample) => svg`<circle cx=${x(sample.at)} cy=${y(sample.level)} r="2"><title>${this._date(sample.at)}: ${sample.level}%</title></circle>`)}`}
+        ${samples.map((sample) => svg`<circle cx=${x(sample.at)} cy=${y(sample.level)} r="2"><title>${this._date(sample.at)}: ${levelLabel(sample.level)}</title></circle>`)}`}
     </svg>
       <div class="chart-times" aria-hidden="true"><span>${this._clock(start)}</span><span>${this._clock(end)}</span></div></div>`;
   }
