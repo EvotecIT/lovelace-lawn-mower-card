@@ -14,8 +14,7 @@ export type HomeAssistant = {
   connection?: object;
   user?: { id: string; is_admin?: boolean };
   language?: string;
-  /** `time_format` is "language", "system", "12" or "24", from the user's profile. */
-  locale?: { language?: string; time_format?: string };
+  locale?: { language?: string; time_format?: string; number_format?: string; date_format?: string };
   /** Active theme; `darkMode` is true when Home Assistant renders in dark mode. */
   themes?: { darkMode?: boolean; theme?: string };
   /** Home location; the starting point for aligning an unaligned map. */
@@ -93,6 +92,8 @@ export type LawnMowerCardConfig = {
   map_entity?: string;
   map_fit?: MapFit;
   map_background?: "standard" | "real_scene" | "map" | "satellite";
+  map_trail_color?: string;
+  map_zone_label_color?: string;
   /** Tile template with {z}, {x}, {y} for the street map background. */
   map_tile_url?: string;
   map_tile_attribution?: string;

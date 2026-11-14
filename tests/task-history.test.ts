@@ -38,6 +38,7 @@ test("detail keeps historical track breaks and rejects mismatched private media"
   assert.deepEqual(parsed.faults,[[1793181700,27]]);
   assert.deepEqual(parsed.recorded_settings,{mowing_height_cm:5.5,efficient_mode:1});
   assert.equal(parsed.battery,null);
+  assert.equal(parsed.battery_comparison,null);
   assert.throws(() => readHistoryDetail({...detail(),id:"b".repeat(32)},path,id));
   assert.throws(() => readHistoryDetail({...detail(),photo_paths:["https://vendor/private.jpg"]},path,id));
   assert.throws(() => readHistoryDetail({...detail(),photo_paths:[`${path}/another-task/photo/0`]},path,id));
@@ -74,6 +75,26 @@ test("signed reads accept only the requested local route and cancellation preven
     await assert.rejects(pending,{name:"AbortError"});
     assert.equal(calls.length,1);
   } finally { globalThis.fetch=original; }
+});
+
+test("obstacle pins use only validated photo indices from a verified map", () => {
+  const raw = { ...detail(), map_revision: "c".repeat(32),
+    obstacle_photo_pins: [[0, 120, 200]],
+  };
+  assert.deepEqual(readHistoryDetail(raw, path, id).obstacle_photo_pins, [[0, 120, 200]]);
+  assert.deepEqual(readHistoryDetail({ ...raw, map_revision: null }, path, id).obstacle_photo_pins, []);
+  assert.deepEqual(readHistoryDetail({ ...raw, obstacle_photo_pins: [[1, 120, 200]] }, path, id).obstacle_photo_pins, []);
+});
+
+test("battery comparison is only shown for eligible history payloads", () => {
+  const raw = { ...detail(),
+    battery: { source: "observed", coverage: "complete", samples: [] },
+    battery_comparison: { baseline_count: 5, increase_percent: 28 },
+  };
+  assert.deepEqual(readHistoryDetail(raw, path, id).battery_comparison,
+    { baseline_count: 5, increase_percent: 28 });
+  raw.battery.coverage = "partial";
+  assert.equal(readHistoryDetail(raw, path, id).battery_comparison, null);
 });
 
 test("recorded direction mode gives a retained angle its meaning", () => {

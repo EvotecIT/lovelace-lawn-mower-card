@@ -610,6 +610,30 @@ export function resolvedOwnedMowerCompanionEntity(
   );
 }
 
+/** Resolve the integration-owned button only for a session that can still be docked. */
+export function taskPreservingDockButton(
+  states: HassStates,
+  mowerEntityId: string,
+  entities: EntityRegistryEntries | undefined,
+): string | undefined {
+  const mower = states[mowerEntityId];
+  if (!mower || entities?.[mowerEntityId]?.platform !== DREAME_LAWN_MOWER_SERVICE_DOMAIN) {
+    return undefined;
+  }
+  const state = mower.state.trim().toLowerCase();
+  if (state !== "mowing" && state !== "paused") {
+    return undefined;
+  }
+  if (mower.attributes?.mowing_session_active === false) {
+    return undefined;
+  }
+  const button = resolvedOwnedMowerCompanionEntity(
+    states, mowerEntityId, entities, "button",
+    "dock_without_ending_session", "dock_without_stopping",
+  );
+  return button && states[button]?.state !== "unavailable" ? button : undefined;
+}
+
 /** Resolve the mower's map selector without accepting an explicit owner mismatch. */
 export function resolvedMowerMapSelector(
   states: HassStates,

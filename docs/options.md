@@ -51,6 +51,9 @@
   background the current scene cannot draw falls back to `standard`; the map
   toolbar can switch for the current view. See
   [street map and satellite](media.md#street-map-and-satellite).
+- `map_trail_color` and `map_zone_label_color`: optional hex colors for the live
+  trail and zone names the interactive map draws. Leave them blank to use the
+  defaults. They apply to this card and do not recolor the map camera image.
 - `map_tile_url` / `satellite_tile_url`: optional `http(s)` tile templates with
   `{z}`, `{x}` and `{y}` for the street map (default Esri World Street Map) and satellite
   (default Esri World Imagery) backgrounds

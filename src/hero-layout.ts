@@ -114,6 +114,7 @@ export type HeroLayoutModel = {
   canStop?: boolean;
   commands: CommandPlan;
   dockActionLabel: string;
+  taskPreservingDockAction?: DisplayAction;
   maintenancePointAvailable?: boolean;
   actionFeedback?: {
     message: string;

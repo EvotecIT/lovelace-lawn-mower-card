@@ -61,7 +61,7 @@ export const mowingMapStyles = css`
     --map-muted:var(--mower-muted, var(--secondary-text-color, #53665b));
     --map-border:var(--mower-border, var(--divider-color, #cedbd1));
     --map-accent:var(--mower-accent, var(--primary-color, #597d49));
-    --map-trail:var(--mower-route, #197f98);
+    --map-trail:var(--mower-custom-map-trail, var(--mower-route, #197f98));
   }
   .viewport {
     width:100%; height:100%; min-height:inherit; overflow:hidden;
@@ -123,7 +123,8 @@ export const mowingMapStyles = css`
   .map-text { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
   .map-text * { pointer-events:none; }
   .zone-label { position:absolute; transform:translate(-50%,-50%); white-space:nowrap;
-    font-weight:700; line-height:1.2; letter-spacing:.01em; color:#fff;
+    font-weight:700; line-height:1.2; letter-spacing:.01em;
+    color:var(--mower-custom-map-zone-label, #fff);
     text-shadow:0 0 2px #000, 0 0 3px #000, 0 1px 3px rgba(0,0,0,.9), 0 0 6px rgba(0,0,0,.6); }
   .base-tool { gap:8px; }
   .align-step { flex:1 1 160px; min-width:0; font-size:13px; font-weight:700; color:var(--map-accent); }

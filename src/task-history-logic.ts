@@ -20,6 +20,8 @@ export type HistoryDetail = {
   features: HistoryFeature[]; faults: [number | null, number][]; zone_results: [number, number][];
   recorded_settings: Record<string, number>; per_zone_settings: boolean;
   battery: HistoryBattery | null; photo_paths: string[]; stale: boolean;
+  battery_comparison: { baseline_count: number; increase_percent: number } | null;
+  obstacle_photo_pins: [number, number, number][];
 };
 
 export function historyPath(value: unknown): string | undefined {
@@ -74,13 +76,35 @@ export function readHistoryDetail(value: unknown, path: string, id: string): His
     .map((pair) => [epoch(pair[0]), pair[1]]) : [];
   const photos = Array.isArray(data.photo_paths) ? data.photo_paths : [];
   if (photos.length > 100 || photos.some((photo, index) => photo !== `${path}/${id}/photo/${index}`)) throw new Error("Invalid task photo reference");
+  const rawPins = identifier(data.map_revision) && Array.isArray(data.obstacle_photo_pins)
+    ? data.obstacle_photo_pins.slice(0, photos.length) as unknown[] : [];
+  const pins = new Map<number, [number, number, number]>();
+  const seen = new Set<number>();
+  for (const pin of rawPins) {
+    if (!Array.isArray(pin) || pin.length !== 3) continue;
+    const index = integer(pin[0]);
+    const x = number(pin[1], -1e7, 1e7), y = number(pin[2], -1e7, 1e7);
+    if (index === null || index < 0 || index >= photos.length || x === null || y === null) continue;
+    if (seen.has(index)) pins.delete(index);
+    else pins.set(index, [index, x, y]);
+    seen.add(index);
+  }
+  const comparison = record(data.battery_comparison);
+  const count = integer(comparison.baseline_count);
+  const increase = number(comparison.increase_percent, 20);
+  const battery = readBattery(data.battery);
   const pref = record(data.recorded_settings), settings: Record<string, number> = {};
   for (const key of ["mowing_height_cm", "efficient_mode"]) if (number(pref[key]) !== null) settings[key] = pref[key] as number;
   return {
     id, started_at: epoch(data.started_at), ended_at: epoch(data.ended_at), duration_minutes: number(data.duration_minutes),
     area_sqm: number(data.area_sqm), mode: integer(data.mode), result: integer(data.result), features, faults,
     zone_results: pairs(data.zone_results), recorded_settings: settings, per_zone_settings: data.per_zone_settings === true,
-    battery: readBattery(data.battery), photo_paths: photos as string[], stale: data.stale === true,
+    battery, photo_paths: photos as string[], stale: data.stale === true,
+    obstacle_photo_pins: [...pins.values()],
+    battery_comparison: battery?.source === "observed" && battery.coverage === "complete" &&
+      data.result === 1 && count !== null && count >= 5 && count <= 15 && increase !== null
+      ? { baseline_count: count, increase_percent: increase }
+      : null,
   };
 }
 

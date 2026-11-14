@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const ru = {
+  "history.batteryAboveUsual": "Расход заряда на квадратный метр на {value} выше обычного для сопоставимых покосов.",
+  "editor.mapTrailColor": "Цвет текущего маршрута",
+  "editor.mapZoneLabelColor": "Цвет названий зон",
+  "editor.mapColorHint": "Цвет в шестнадцатеричном формате. Оставьте поле пустым для цвета по умолчанию.",
+  "action.dockEndTask": "На станцию и завершить задачу",
+  "action.dockKeepTask": "На станцию и сохранить задачу",
   "history.global": "Общие настройки",
   "history.lastWeek": "Последние 7 дней",
   "history.season": "Сезон {year}",

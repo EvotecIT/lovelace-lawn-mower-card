@@ -100,6 +100,10 @@ export function heroActionEntries(model: HeroLayoutModel): { commands: ActionEnt
       commands.push({ label: model.dockActionLabel, icon: "mdi:home-import-outline",
         handler: model.onDock, options: { disabled: !model.canDock } });
     }
+    if (model.taskPreservingDockAction) {
+      const { label, icon, handler, disabled } = model.taskPreservingDockAction;
+      commands.push({ label, icon: icon || "mdi:home-battery", handler, options: { disabled } });
+    }
     for (const action of model.patrolActions || []) {
       commands.push({ label: action.label, icon: action.icon || "mdi:shield-outline",
         handler: action.handler, options: { disabled: action.disabled } });

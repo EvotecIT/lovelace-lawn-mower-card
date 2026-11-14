@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { mowerNumberFormat, orderedHistoryDate } from "../src/localization.ts";
 import {
   catalogFor,
   catalogKeys,
@@ -131,4 +132,16 @@ test("Russian and Ukrainian use their few and many plural forms", () => {
   assert.equal(createTranslator("ru")("schedule.count", { count: 5 }), "5 планов");
   assert.equal(createTranslator("uk")("schedule.count", { count: 2 }), "2 плани");
   assert.equal(createTranslator("uk")("schedule.count", { count: 5 }), "5 планів");
+});
+
+test("explicit Home Assistant formatting overrides the card language", () => {
+  assert.equal(mowerNumberFormat("pl", "comma_decimal", {}).format(1234.5), "1,234.5");
+  assert.equal(mowerNumberFormat("en", "decimal_comma", {}).format(1234.5), "1.234,5");
+  assert.equal(mowerNumberFormat("fr", "none", {}).format(1234.5), "1234.5");
+
+  const day = new Date(2026, 10, 14, 12);
+  assert.equal(orderedHistoryDate(day, "DMY"), "14/11/2026");
+  assert.equal(orderedHistoryDate(day, "MDY"), "11/14/2026");
+  assert.equal(orderedHistoryDate(day, "YMD"), "2026-11-14");
+  assert.equal(orderedHistoryDate(day, "language"), undefined);
 });

@@ -20,13 +20,17 @@ test("minimal artwork defaults can be overridden independently of the style", ()
 });
 
 test("appearance values cannot inject CSS and numeric overrides have finite bounds", () => {
-  const invalid=cardAppearance({ ...config, accent_color:"red;display:none", corner_radius:Infinity, hero_overlay:NaN, surface_opacity:-20 });
+  const invalid=cardAppearance({ ...config, accent_color:"red;display:none", map_trail_color:"red;display:none", map_zone_label_color:"#12", corner_radius:Infinity, hero_overlay:NaN, surface_opacity:-20 });
   assert.equal(invalid.styles["--mower-custom-accent"], undefined);
+  assert.equal(invalid.styles["--mower-custom-map-trail"], undefined);
+  assert.equal(invalid.styles["--mower-custom-map-zone-label"], undefined);
   assert.equal(invalid.styles["--mower-custom-radius"], undefined);
   assert.equal(invalid.styles["--mower-art-overlay"], undefined);
   assert.equal(invalid.styles["--mower-surface-opacity"], "60%");
-  const valid=cardAppearance({ ...config, accent_color:" #AbC ",corner_radius:0,hero_overlay:0,surface_opacity:120 });
+  const valid=cardAppearance({ ...config, accent_color:" #AbC ",map_trail_color:"#ff9900",map_zone_label_color:" #abc ",corner_radius:0,hero_overlay:0,surface_opacity:120 });
   assert.equal(valid.styles["--mower-custom-accent"], "#AbC");
+  assert.equal(valid.styles["--mower-custom-map-trail"], "#ff9900");
+  assert.equal(valid.styles["--mower-custom-map-zone-label"], "#abc");
   assert.equal(valid.styles["--mower-custom-radius"], "0px");
   assert.equal(valid.styles["--mower-art-overlay"], "0");
   assert.equal(valid.styles["--mower-surface-opacity"], "100%");

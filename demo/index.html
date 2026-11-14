@@ -824,6 +824,11 @@
             available_zone_ids: [1, 2, 3],
           },
         },
+        "button.backyard_mower_dock_without_ending_session": {
+          entity_id: "button.backyard_mower_dock_without_ending_session",
+          state: "unknown",
+          attributes: { friendly_name: "Dock Without Ending Session" },
+        },
         "sensor.backyard_mower_state_name": {
           entity_id: "sensor.backyard_mower_state_name",
           state: "Mowing front yard",
@@ -1363,6 +1368,10 @@
         states: stateStore,
         entities: {
           "lawn_mower.backyard_mower": {
+            platform: "dreame_lawn_mower",
+            device_id: "backyard-mower-device",
+          },
+          "button.backyard_mower_dock_without_ending_session": {
             platform: "dreame_lawn_mower",
             device_id: "backyard-mower-device",
           },

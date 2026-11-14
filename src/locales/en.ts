@@ -12,6 +12,12 @@ export type PluralMessage = Readonly<{
 export type TranslationMessage = string | PluralMessage;
 
 export const en = {
+  "history.batteryAboveUsual": "{value} more battery per square metre than usual for comparable runs.",
+  "editor.mapTrailColor": "Live trail color",
+  "editor.mapZoneLabelColor": "Zone label color",
+  "editor.mapColorHint": "Hex color. Leave blank to use the default.",
+  "action.dockEndTask": "Dock and end task",
+  "action.dockKeepTask": "Dock and keep task",
   "history.global": "Global preferences",
   "history.lastWeek": "Last 7 days",
   "history.season": "{year} season",

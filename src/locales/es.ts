@@ -1,6 +1,12 @@
 import type { TranslationCatalog } from "./en.ts";
 
 export const es = {
+  "history.batteryAboveUsual": "El consumo de batería por metro cuadrado fue un {value} superior al habitual en recorridos comparables.",
+  "editor.mapTrailColor": "Color del recorrido en directo",
+  "editor.mapZoneLabelColor": "Color del nombre de las zonas",
+  "editor.mapColorHint": "Color hexadecimal. Déjalo vacío para usar el predeterminado.",
+  "action.dockEndTask": "Ir a la base y finalizar la tarea",
+  "action.dockKeepTask": "Ir a la base y conservar la tarea",
   "history.global": "Ajustes globales",
   "history.lastWeek": "Últimos 7 días",
   "history.season": "Temporada {year}",

@@ -71,6 +71,37 @@ export function resolveLocale(
   return "en";
 }
 
+/** Use Home Assistant's numeric presentation independently of label language. */
+export function mowerNumberFormat(
+  locale: SupportedLocale,
+  preference: unknown,
+  options: Intl.NumberFormatOptions,
+): Intl.NumberFormat {
+  switch (preference) {
+    case "comma_decimal": return new Intl.NumberFormat("en-US", options);
+    case "decimal_comma": return new Intl.NumberFormat("de", options);
+    case "space_comma": return new Intl.NumberFormat("fr", options);
+    case "quote_decimal": return new Intl.NumberFormat("de-CH", options);
+    case "system": return new Intl.NumberFormat(undefined, options);
+    case "none": return new Intl.NumberFormat("en-US", { ...options, useGrouping: false });
+    default: return new Intl.NumberFormat(locale, options);
+  }
+}
+
+/** Return a numeric date only when the user chose an explicit component order. */
+export function orderedHistoryDate(date: Date, preference: unknown): string | undefined {
+  if (preference !== "DMY" && preference !== "MDY" && preference !== "YMD") return undefined;
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+  }).formatToParts(date);
+  const day = parts.find(part => part.type === "day")?.value;
+  const month = parts.find(part => part.type === "month")?.value;
+  const year = parts.find(part => part.type === "year")?.value;
+  if (!day || !month || !year) return undefined;
+  if (preference === "YMD") return `${year}-${month}-${day}`;
+  return preference === "DMY" ? `${day}/${month}/${year}` : `${month}/${day}/${year}`;
+}
+
 function selectMessage(
   locale: SupportedLocale,
   message: TranslationMessage,
