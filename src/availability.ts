@@ -15,6 +15,21 @@ export type IntegrationStatus = {
 const ENTRY_STATES = new Set(["not_loaded", "setup_error", "setup_retry", "migration_error", "failed_unload", "setup_in_progress"]);
 const GONE = new Set(["unavailable", "unknown"]);
 
+/** Return the companion sensor that explicitly reports a lost mower/cloud connection. */
+export function offlineMowerConnection(
+  hass: Pick<HomeAssistant, "states" | "entities">, mowerId: string,
+): { entity: HassEntity; cloud: boolean } | undefined {
+  const companion = (suffix: string): HassEntity | undefined => {
+    const id = resolvedMowerCompanionEntity(hass.states, mowerId, hass.entities, "binary_sensor", suffix);
+    return id ? hass.states[id] : undefined;
+  };
+  const cloud = companion("cloud_connected");
+  if (cloud?.state === "off") return { entity: cloud, cloud: true };
+  const online = [companion("device_connected"), companion("online")]
+    .find(sensor => sensor && !GONE.has(sensor.state));
+  return online?.state === "off" ? { entity: online, cloud: false } : undefined;
+}
+
 /** Picks the mower's entry from config_entries/get, via its device when HA shares devices. */
 export function integrationStatus(
   entries: unknown, hass: Pick<HomeAssistant, "entities" | "devices">, mowerId: string,
@@ -63,10 +78,6 @@ export function availabilityAlert(
 ): MowerAlert | undefined {
   const mower = hass.states[config.entity];
   if (!mower) return undefined;
-  const companion = (suffix: string): HassEntity | undefined => {
-    const id = resolvedMowerCompanionEntity(hass.states, config.entity, hass.entities, "binary_sensor", suffix);
-    return id ? hass.states[id] : undefined;
-  };
   const integrationPage = integration
     ? `/config/integrations/integration/${encodeURIComponent(integration.domain)}#config_entry=${encodeURIComponent(integration.entryId)}`
     : undefined;
@@ -92,17 +103,15 @@ export function availabilityAlert(
   }
 
   // The integration is running, but reports the mower or the cloud unreachable.
-  const cloud = companion("cloud_connected");
-  if (cloud?.state === "off") {
+  const offline = offlineMowerConnection(hass, config.entity);
+  if (offline?.cloud) {
     return {
       key: "offline", severity: "warning", icon: "mdi:cloud-off-outline", title: t("alerts.cloudOffline"),
-      detail: t("alerts.cloudOfflineDetail"), entityId: cloud.entity_id,
+      detail: t("alerts.cloudOfflineDetail"), entityId: offline.entity.entity_id,
     };
   }
-  // The first connection sensor with a usable state; an unavailable one says nothing.
-  const online = [companion("device_connected"), companion("online")]
-    .find(sensor => sensor && !GONE.has(sensor.state));
-  if (online?.state === "off") {
+  if (offline) {
+    const online = offline.entity;
     const seen = lastSeen(online.last_changed ?? online.last_updated, locale, now);
     return {
       key: "offline", severity: "warning", icon: "mdi:wifi-off", title: t("alerts.offline"),

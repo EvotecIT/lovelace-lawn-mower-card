@@ -76,9 +76,18 @@ export type LawnMowerActionConfig = {
   confirmation?: string;
 };
 
+/** An opt-in integration refresh while this card is being viewed. */
+export type ViewingActionConfig = {
+  service: string;
+  service_data?: Record<string, unknown>;
+  /** Seconds between attempts, from 10 to 86400. Defaults to 60. */
+  interval?: number;
+};
+
 export type LawnMowerCardConfig = {
   type: string;
   entity: string;
+  viewing_action?: ViewingActionConfig;
   locale?: LocalePreference;
   name?: string;
   layout?: "default" | "compact" | "wide" | "hero" | "tile";

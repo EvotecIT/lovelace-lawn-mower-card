@@ -2,6 +2,40 @@
 
 [Back to the README](../README.md) · [Configuration](configuration.md)
 
+## Refreshing while viewed
+
+Some mower integrations need an app-presence request to keep map updates flowing.
+Add `viewing_action` in the card's YAML editor to call an integration's service
+when the card becomes visible and repeat it while the card is being viewed.
+For `ha-ecovacs-mower`, use its `app_ping` service, for example:
+
+```yaml
+type: custom:lawn-mower-card
+entity: lawn_mower.goat
+viewing_action:
+  service: ecovacs_mower.app_ping
+  service_data:
+    entity_id: lawn_mower.goat
+  interval: 120
+```
+
+Replace the entity with your mower. For an integration that exposes a refresh
+button, use `service: button.press` with the button's `entity_id` in
+`service_data`. The service must already exist in Home Assistant. Configure a
+read or refresh action suitable for automatic use.
+
+Calls pause immediately when the card scrolls out of view, the tab or app is
+hidden, or the card is removed. They also pause while the mower is unavailable
+or the Home Assistant connection is disconnected. Returning to the card resumes
+calls, keeping at least the configured interval between attempts. Slow calls
+finish before another call starts. A failed call uses the card's usual action
+error feedback and is retried at the configured interval while visible.
+
+The browser can observe visibility, so a visible dashboard left open continues
+to refresh. Each configured card runs its own action, including cards in other
+tabs or devices. Configure it once per mower on each dashboard and choose the
+interval recommended by the integration. Omit `viewing_action` to disable it.
+
 ## Smart Helper Actions
 
 When `show_helper_actions` is enabled (the default), the card discovers companion

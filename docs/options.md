@@ -4,6 +4,10 @@
 
 - `entity`: required `lawn_mower` entity id
 - `name`: optional card title override
+- `viewing_action`: optional service call while the card is in the viewport and
+  the browser tab or companion app is visible. Configure `service`,
+  optional `service_data`, and `interval` in seconds (10–86400, default 60).
+  See [refreshing while viewed](controls.md#refreshing-while-viewed).
 - `locale`: optional language override: `auto` (default), `en`, `cs`, `de`, `fr`,
   `it`, `pl`, `ru`, `uk`, or `es`. Automatic mode follows the Home Assistant user
   language, then the browser language, and safely falls back to English.
