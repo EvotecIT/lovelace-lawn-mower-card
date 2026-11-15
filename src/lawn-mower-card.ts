@@ -30,6 +30,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import "./lawn-mower-card-editor";
 import { mowerHassChanged } from "./card-update-scope";
 import { MediaVisibility } from "./media-visibility";
+import { ViewingAction, validateViewingAction } from "./viewing-action";
 import { markerImageUrl, mowerMarkerSize, mowingMapPath } from "./mowing-map-logic";
 import { photoAlbumAvailable } from "./photo-album-logic";
 import { mowingAreaProgress, type MowingAreaProgress } from "./mowing-progress";
@@ -326,6 +327,13 @@ export class LawnMowerCard extends LitElement {
   @state() private _pointCloudLoadError?: string;
   @state() private _cameraMounted = false;
   @state() private _mediaVisible = true;
+  private _viewingAction = new ViewingAction(this, (service, error) => {
+    this._actionFeedback = {
+      message: this._t("card.notConfirmed", { action: service,
+        detail: actionErrorDetail(error) || this._t("card.actionUnconfirmed") }),
+      error: true,
+    };
+  });
   private _visibleMapUrl?: string;
   private _mediaVisibility = new MediaVisibility(this, (visible) => {
     this._mediaVisible = visible;
@@ -405,6 +413,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   public setConfig(config: LawnMowerCardConfig): void {
+    validateViewingAction(config.viewing_action);
     this._clearNextRunTimer();
     this._maintenanceConfirm = undefined;
     if (config.entity !== this._config?.entity) this._resetIntegrationStatus();
@@ -445,6 +454,7 @@ export class LawnMowerCard extends LitElement {
       this._resetCameraRecovery();
     }
     this._config = config;
+    this._viewingAction.sync(this.hass, config);
     if (previousEntity === undefined && this.isConnected) {
       this._restoreRetainedHeroView();
     }
@@ -453,6 +463,7 @@ export class LawnMowerCard extends LitElement {
   public connectedCallback(): void {
     super.connectedCallback();
     this._mediaVisibility.connect();
+    this._viewingAction.connect();
     // The Hero action row holds as many readable buttons as the card's width allows.
     this._widthObserver ??= typeof ResizeObserver === "undefined" ? undefined
       : new ResizeObserver(([entry]) => {
@@ -503,6 +514,7 @@ export class LawnMowerCard extends LitElement {
     this._areaMenuContext = undefined;
     this._areaMenuTrigger = undefined;
     this._mediaVisibility.disconnect();
+    this._viewingAction.disconnect();
     const entityId = this._config?.entity;
     if (
       entityId &&
@@ -653,6 +665,7 @@ export class LawnMowerCard extends LitElement {
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
+    this._viewingAction.sync(this.hass, this._config);
     // Runs on every hass update, including ones filtered out below (a new connection).
     this._syncForecast();
     this._syncIntegrationStatus();

@@ -6,23 +6,27 @@ export class MediaVisibility {
   private visible = true;
   private host: Element;
   private changed: (visible: boolean) => void;
+  private strict: boolean;
 
-  constructor(host: Element, changed: (visible: boolean) => void) {
+  constructor(host: Element, changed: (visible: boolean) => void, strict = false) {
     this.host = host;
     this.changed = changed;
+    this.strict = strict;
+    this.visible = !strict;
   }
 
   connect(): void {
     this.disconnect();
-    this.intersecting = true;
+    this.intersecting = !this.strict;
     document.addEventListener("visibilitychange", this.sync);
     if (typeof IntersectionObserver !== "undefined") {
       this.observer = new IntersectionObserver((entries) => {
         const entry = entries.find((candidate) => candidate.target === this.host);
         if (!entry) return;
-        this.intersecting = entry.isIntersecting;
+        this.intersecting = entry.isIntersecting && (!this.strict || entry.intersectionRatio >= 0.001);
         this.sync();
-      }, { rootMargin: "150px" });
+      // A positive threshold also reports entry after a zero-area edge touch.
+      }, { rootMargin: this.strict ? "0px" : "150px", threshold: this.strict ? 0.001 : 0 });
       this.observer.observe(this.host);
     }
     this.sync();
@@ -33,6 +37,7 @@ export class MediaVisibility {
     this.observer?.disconnect();
     this.observer = undefined;
     this.clearTimer();
+    if (this.strict) this.publish(false);
   }
 
   private clearTimer(): void {
@@ -53,6 +58,8 @@ export class MediaVisibility {
     } else if (this.intersecting) {
       this.clearTimer();
       this.publish(true);
+    } else if (this.strict) {
+      this.publish(false);
     } else if (this.timer === undefined && this.visible) {
       this.timer = setTimeout(() => {
         this.timer = undefined;
