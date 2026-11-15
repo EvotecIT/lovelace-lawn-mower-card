@@ -1,5 +1,6 @@
 import type { HomeAssistant, LawnMowerCardConfig, ViewingActionConfig } from "./card-config";
 import { MediaVisibility } from "./media-visibility.ts";
+import { offlineMowerConnection } from "./availability.ts";
 
 /** Reject malformed automatic actions before installing any timer. */
 export function validateViewingAction(config: ViewingActionConfig | undefined): void {
@@ -87,7 +88,8 @@ export class ViewingAction {
     return Boolean(this.connected && this.visible && this.pageVisible &&
       document.visibilityState === "visible" && this.config?.viewing_action &&
       this.hass && connection?.connected !== false && mower &&
-      mower.state !== "unavailable" && mower.state !== "unknown");
+      mower.state !== "unavailable" && mower.state !== "unknown" &&
+      !offlineMowerConnection(this.hass, this.config!.entity));
   }
 
   private schedule(): void {

@@ -20,12 +20,12 @@ export class MediaVisibility {
     this.intersecting = !this.strict;
     document.addEventListener("visibilitychange", this.sync);
     if (typeof IntersectionObserver !== "undefined") {
+      // A positive threshold also reports entry after a zero-area edge touch.
       this.observer = new IntersectionObserver((entries) => {
-        const entry = entries.find((candidate) => candidate.target === this.host);
+        const entry = [...entries].reverse().find((candidate) => candidate.target === this.host);
         if (!entry) return;
         this.intersecting = entry.isIntersecting && (!this.strict || entry.intersectionRatio >= 0.001);
         this.sync();
-      // A positive threshold also reports entry after a zero-area edge touch.
       }, { rootMargin: this.strict ? "0px" : "150px", threshold: this.strict ? 0.001 : 0 });
       this.observer.observe(this.host);
     }

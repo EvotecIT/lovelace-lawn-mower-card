@@ -47,6 +47,9 @@ function fixture(t: TestContext) {
     respond: (value: typeof response) => { response = value; },
     intersect: (visible: boolean) => receive!([{ target: host, isIntersecting: visible,
       intersectionRatio: visible ? 1 : 0 } as IntersectionObserverEntry]),
+    batch: (states: boolean[]) => receive!(states.map(visible => ({
+      target: host, isIntersecting: visible, intersectionRatio: visible ? 1 : 0,
+    } as IntersectionObserverEntry))),
     disconnected: () => observerDisconnected };
 }
 
@@ -108,6 +111,53 @@ test("a card below the viewport waits for an observation and quick returns keep 
   await f.advance(9999);
   assert.equal(f.calls.length, 1);
   await f.advance(1);
+  assert.equal(f.calls.length, 2);
+});
+
+test("the final viewport observation determines whether a refresh may run", async t => {
+  const f = fixture(t);
+  f.action.sync(f.hass, f.config);
+  f.action.connect();
+  f.batch([true, false]);
+  await f.advance();
+  assert.equal(f.calls.length, 0);
+  f.batch([false, true]);
+  await f.advance();
+  assert.equal(f.calls.length, 1);
+  f.batch([true, false]);
+  await f.advance(10000);
+  assert.equal(f.calls.length, 1);
+});
+
+test("reported mower and cloud disconnection pause calls despite a docked state", async t => {
+  const f = fixture(t);
+  const mowerId = f.config.entity;
+  const renamed = "binary_sensor.garden_device_connected";
+  const cloud = "binary_sensor.goat_cloud_connected";
+  const device = { entity_id: renamed, state: "off", attributes: {} };
+  const hass = { ...f.hass, states: { ...f.hass.states,
+    [mowerId]: { ...f.hass.states[mowerId], state: "docked" },
+    [renamed]: device,
+    [cloud]: { entity_id: cloud, state: "on", attributes: {} },
+  }, entities: { [mowerId]: { device_id: "goat", platform: "ecovacs_mower" },
+    [renamed]: { device_id: "goat", platform: "ecovacs_mower", translation_key: "device_connected" },
+    [cloud]: { device_id: "goat", platform: "ecovacs_mower" } } };
+  f.action.sync(hass, f.config);
+  f.action.connect();
+  f.intersect(true);
+  await f.advance();
+  assert.equal(f.calls.length, 0);
+  device.state = "on";
+  f.action.sync({ ...hass }, f.config);
+  await f.advance();
+  assert.equal(f.calls.length, 1);
+  hass.states[cloud].state = "off";
+  f.action.sync({ ...hass }, f.config);
+  await f.advance(10000);
+  assert.equal(f.calls.length, 1);
+  hass.states[cloud].state = "on";
+  f.action.sync({ ...hass }, f.config);
+  await f.advance();
   assert.equal(f.calls.length, 2);
 });
 

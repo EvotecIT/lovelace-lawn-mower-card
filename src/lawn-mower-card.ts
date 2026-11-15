@@ -328,6 +328,7 @@ export class LawnMowerCard extends LitElement {
   @state() private _cameraMounted = false;
   @state() private _mediaVisible = true;
   private _viewingAction = new ViewingAction(this, (service, error) => {
+    this._clearActionFeedbackTimer();
     this._actionFeedback = {
       message: this._t("card.notConfirmed", { action: service,
         detail: actionErrorDetail(error) || this._t("card.actionUnconfirmed") }),
